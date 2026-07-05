@@ -1,0 +1,56 @@
+[
+  {
+    "id": 1,
+    "title": "A1 Intensive Course – July 2026 Registration Now Open!",
+    "excerpt": "Seats are filling fast for our upcoming A1 Intensive German course starting July 10th. Limited seats available. Register now to secure your spot.",
+    "content": "We are thrilled to announce that registration for our A1 Intensive German Language Course (July 2026 Batch) is now officially open. This is a 6-week intensive program designed for absolute beginners. Classes will be held live online via Zoom, Monday through Friday, from 8:00 PM – 9:30 PM (Bangladesh time). The course fee is BDT 3,500. Only 30 seats are available. Don't miss this opportunity to start your German learning journey with GLAB's expert instructors.",
+    "date": "2026-06-01",
+    "category": "Course Registration",
+    "important": true
+  },
+  {
+    "id": 2,
+    "title": "Free German Pronunciation Workshop – June 20, 2026",
+    "excerpt": "Join our free online workshop on German pronunciation fundamentals, perfect for beginners and intermediate learners.",
+    "content": "GLAB is hosting a FREE 2-hour online workshop on German Pronunciation Fundamentals on June 20, 2026. The workshop will cover Umlauts (a, o, u), the German 'ch' and 'r' sounds, word stress and intonation, and common pronunciation mistakes by Bangladeshi learners. The workshop is free for all GLAB students and open to the public. Register via the Google Form link below.",
+    "date": "2026-06-05",
+    "category": "Workshops",
+    "important": false
+  },
+  {
+    "id": 3,
+    "title": "Goethe-Institut Exam Preparation Tips – B1 TestDaF",
+    "excerpt": "Our B1 students preparing for the Goethe-Institut exam will find our new study guide and tips extremely helpful.",
+    "content": "With the Goethe-Institut B1 exam season approaching, GLAB has released an updated exam preparation guide specifically tailored for Bangladeshi students. The guide covers all four modules: Reading (Lesen), Listening (Horen), Writing (Schreiben), and Speaking (Sprechen). Download the PDF from the student resources section of the HelloDeutsch app.",
+    "date": "2026-05-28",
+    "category": "Exam Preparation",
+    "important": true
+  },
+  {
+    "id": 4,
+    "title": "HelloDeutsch App Beta – Vocabulary Trainer Now Live",
+    "excerpt": "The new Vocabulary Trainer feature in the HelloDeutsch app is now available for beta testing. Download and try it today!",
+    "content": "We are excited to announce that the Vocabulary Trainer module of the HelloDeutsch app is now live for beta testing on Android devices. The feature includes 2,000+ curated German vocabulary words organized by CEFR level (A1–B2), spaced repetition learning algorithm, audio pronunciation by native speakers, and progress tracking dashboards. Download the beta APK from our Facebook group or WhatsApp community.",
+    "date": "2026-05-20",
+    "category": "General Updates",
+    "important": false
+  },
+  {
+    "id": 5,
+    "title": "B2 Intensive Batch – Final Exam Results Announced",
+    "excerpt": "Congratulations to all students who completed the B2 Intensive course! Results and certificates are now available.",
+    "content": "We are proud to announce that 92% of our B2 Intensive (April 2026) batch students have successfully passed their internal assessments. Certificate distribution will begin on June 15, 2026. Students can collect their certificates digitally via the HelloDeutsch app or request a physical copy. A special celebration event is being planned for top performers.",
+    "date": "2026-05-15",
+    "category": "Events",
+    "important": false
+  },
+  {
+    "id": 6,
+    "title": "GLAB Partners with StudyLink Germany for Visa Guidance",
+    "excerpt": "GLAB has officially partnered with StudyLink Germany to provide free visa and university admission guidance to our advanced students.",
+    "content": "GLAB has entered a formal partnership with StudyLink Germany, a leading educational consultancy based in Dhaka and Berlin. This partnership will provide GLAB's B1 and B2 level students with free one-on-one visa consultation sessions, university application guidance, blocked account setup support (Sperrkonto), and mock visa interview preparation. This is a major step toward our mission of helping Bangladeshi students build their future in Germany.",
+    "date": "2026-05-10",
+    "category": "General Updates",
+    "important": true
+  }
+]

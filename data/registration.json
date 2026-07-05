@@ -1,0 +1,16 @@
+{
+  "registrationOpen": false,
+  "nextRegistrationDate": "2026-07-01T18:00:00",
+  "currentBatch": "July 2026",
+  "nextBatch": "August 2026",
+  "googleFormLink": "https://forms.google.com/glab-registration",
+  "whatsappLink": "https://chat.whatsapp.com/glab",
+  "message": "Registration for the next session will open in:",
+  "openMessage": "Registration for the August 2026 batch is now open! Secure your seat before it fills up.",
+  "courses": [
+    { "name": "A1 Intensive", "seats": 30, "available": 12 },
+    { "name": "A2 Intensive", "seats": 30, "available": 8 },
+    { "name": "B1 Intensive", "seats": 25, "available": 5 },
+    { "name": "Speaking Course", "seats": 15, "available": 15 }
+  ]
+}

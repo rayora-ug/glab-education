@@ -1,0 +1,10 @@
+{
+  "name": "GLAB - German Language Academy of Bangladesh",
+  "short_name": "GLAB",
+  "description": "Learn German. Build Your Future.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FEFDF9",
+  "theme_color": "#DD0000",
+  "icons": []
+}

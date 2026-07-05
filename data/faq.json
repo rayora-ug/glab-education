@@ -1,0 +1,50 @@
+[
+  {
+    "id": 1,
+    "question": "Do I need any prior knowledge of German to join GLAB?",
+    "answer": "No! Our Foundation and A1 Intensive courses are designed for complete beginners. You don't need any prior knowledge of German to start. We begin from the very basics including the alphabet, pronunciation, and simple vocabulary.",
+    "category": "Getting Started"
+  },
+  {
+    "id": 2,
+    "question": "Are the classes live or recorded?",
+    "answer": "All GLAB courses are conducted as LIVE online classes via Zoom. Classes are also recorded and made available to enrolled students within 24 hours, so you can review them anytime. We believe live interaction with teachers is essential for language learning.",
+    "category": "Classes"
+  },
+  {
+    "id": 3,
+    "question": "What level of German do I need for a student visa to Germany?",
+    "answer": "For most German university programs taught in German, you need B2 level. For university programs with Studienkolleg (preparatory college), A2 or B1 may be sufficient. Some English-taught programs don't require German at all. GLAB can guide you based on your specific university and program.",
+    "category": "Visa & Study"
+  },
+  {
+    "id": 4,
+    "question": "How do I register for a course?",
+    "answer": "When registration is open, you can click the 'Register Now' button on our Courses page or Registration page. You'll be directed to our Google Form where you'll fill in your details and receive payment instructions. Seats are confirmed upon payment.",
+    "category": "Registration"
+  },
+  {
+    "id": 5,
+    "question": "What is the HelloDeutsch app?",
+    "answer": "HelloDeutsch is GLAB's own mobile app for learning German. It includes a Vocabulary Trainer with 2,000+ words, Speaking Practice with audio recording, Progress Tracking, and Exam Preparation materials. It is being developed specifically for Bangladeshi German learners and will be available on Google Play and Apple App Store soon.",
+    "category": "HelloDeutsch App"
+  },
+  {
+    "id": 6,
+    "question": "Can I get a certificate after completing a course?",
+    "answer": "Yes! GLAB issues a course completion certificate for each level you complete. However, please note that GLAB certificates are internal course certificates and are separate from official internationally recognized certificates like the Goethe-Institut Zertifikat. We prepare you for those official exams as well.",
+    "category": "Certificates"
+  },
+  {
+    "id": 7,
+    "question": "What payment methods do you accept?",
+    "answer": "We accept payments via bKash, Nagad, Rocket, and bank transfer. Payment details are provided after form submission during the registration process. A receipt is issued for every payment.",
+    "category": "Payment"
+  },
+  {
+    "id": 8,
+    "question": "Is there a refund policy?",
+    "answer": "If you withdraw from the course within the first 3 days (before the 3rd class), you are eligible for a full refund. After the 3rd class, no refund is provided. In exceptional circumstances (medical emergencies, etc.), course credit for a future batch may be arranged at the discretion of GLAB management.",
+    "category": "Payment"
+  }
+]

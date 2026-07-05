@@ -1,0 +1,103 @@
+{
+  "averageRating": 4.9,
+  "totalReviews": 247,
+  "facebookLink": "https://facebook.com/glab.bd/reviews",
+  "reviews": [
+    {
+      "id": 1,
+      "name": "Nadia Rahman",
+      "location": "Dhaka",
+      "rating": 5,
+      "date": "2026-05-10",
+      "level": "B1 Intensive",
+      "text": "GLAB completely changed my German learning journey. Before joining, I struggled for 2 years with self-study. After just 10 weeks with GLAB, I passed my Goethe B1 exam with distinction! The teachers explain everything so clearly, even the hardest grammar topics become easy.",
+      "outcome": "Passed Goethe B1 Exam",
+      "verified": true,
+      "featured": true
+    },
+    {
+      "id": 2,
+      "name": "Tanvir Ahmed",
+      "location": "Chittagong",
+      "rating": 5,
+      "date": "2026-04-22",
+      "level": "A2 Intensive",
+      "text": "I enrolled in the A2 course to prepare for my student visa application. The course was incredibly well-structured and the speaking practice gave me the confidence I needed. I got my visa and I'm now preparing to move to Munich for my Master's degree.",
+      "outcome": "Student Visa Approved – Munich",
+      "verified": true,
+      "featured": true
+    },
+    {
+      "id": 3,
+      "name": "Sadia Islam",
+      "location": "Sylhet",
+      "rating": 5,
+      "date": "2026-04-05",
+      "level": "A1 Intensive",
+      "text": "Starting from zero was scary, but GLAB's teachers are so patient and supportive. The online classes are perfectly organized and the study materials are excellent. I finished A1 in just 6 weeks and immediately enrolled in A2.",
+      "outcome": "Completed A1, Now in A2",
+      "verified": true,
+      "featured": false
+    },
+    {
+      "id": 4,
+      "name": "Mahfuz Hossain",
+      "location": "Rajshahi",
+      "rating": 5,
+      "date": "2026-03-18",
+      "level": "B2 Intensive",
+      "text": "I took B2 to qualify for direct university admission without Studienkolleg. The course was demanding but worth every taka. I'm now admitted to TU Berlin for Computer Science. GLAB is truly world-class.",
+      "outcome": "Admitted to TU Berlin",
+      "verified": true,
+      "featured": true
+    },
+    {
+      "id": 5,
+      "name": "Farzana Khatun",
+      "location": "Dhaka",
+      "rating": 5,
+      "date": "2026-03-02",
+      "level": "Speaking Course",
+      "text": "My grammar was fine but I was terrified to speak German. GLAB's Speaking Course is exactly what I needed. Small group, real conversations, zero judgment. After 4 weeks I was speaking confidently in my interview at the German Embassy.",
+      "outcome": "Confident Speaker, Visa Approved",
+      "verified": true,
+      "featured": false
+    },
+    {
+      "id": 6,
+      "name": "Imran Kabir",
+      "location": "Comilla",
+      "rating": 5,
+      "date": "2026-02-14",
+      "level": "Exam Preparation",
+      "text": "Joined the Exam Prep course one month before my Goethe B1 exam. The mock tests and feedback sessions were game-changers. Passed the official exam with 87% overall score. Best investment I've made!",
+      "outcome": "Goethe B1 – 87% Score",
+      "verified": true,
+      "featured": false
+    },
+    {
+      "id": 7,
+      "name": "Roksana Begum",
+      "location": "Khulna",
+      "rating": 4,
+      "date": "2026-01-30",
+      "level": "A1 Intensive",
+      "text": "Very professional and organized course. The live sessions are engaging and the teachers are always available on WhatsApp for extra help. Only wish the course was a bit longer. Overall, excellent value for money.",
+      "outcome": "Completed A1 Certificate",
+      "verified": true,
+      "featured": false
+    },
+    {
+      "id": 8,
+      "name": "Arif Hasan",
+      "location": "Dhaka",
+      "rating": 5,
+      "date": "2026-01-15",
+      "level": "B1 Intensive",
+      "text": "I tried three other German coaching centers before GLAB and none of them came close to the quality here. The methodology is modern, the teachers are native-level, and the community is incredibly supportive.",
+      "outcome": "B1 Certified – Applying for Ausbildung",
+      "verified": true,
+      "featured": true
+    }
+  ]
+}

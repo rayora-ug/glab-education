@@ -1,34 +1,42 @@
 {
-  "examCode": "A2VOCAB0704",
+  "examCode": "A1EXAM0507",
   "title": "A2 Intensiv – Deutschprüfung",
   "subtitle": "Artikel & Adjektivkomparation",
   "duration": 30,
   "allowedIds": [
-    "GLAB20W001",
-    "GLAB20W002",
-    "GLAB20W003",
-    "GLAB20W004",
-    "GLAB20W005",
-    "GLAB20W006",
-    "GLAB20W007",
-    "GLAB20W008",
-    "GLAB20W009",
-    "GLAB20W010",
-    "GLAB20W011",
-    "GLAB20W012",
-    "GLAB20W013",
-    "GLAB20W014",
-    "GLAB20W015",
-    "GLAB20W016",
-    "GLAB20W017",
-    "GLAB20W018",
-    "GLAB20W019",
-    "GLAB20W020",
-    "GLAB20W021",
-    "GLAB20W022",
-    "GLAB20W023",
-    "GLAB20W024",
-    "GLAB20W025"
+    "GLAB26F011",
+    "GLAB26F044",
+    "GLAB26F099",
+    "GLAB26F050",
+    "GLAB26F102",
+    "GLAB26F009",
+    "GLAB26F006",
+    "GLAB26F010",
+    "GLAB26F036",
+    "GLAB26F107",
+    "GLAB26F017",
+    "GLAB25H055",
+    "GLAB26F068",
+    "GLAB26F051",
+    "GLAB26F085",
+    "GLAB26F085",
+    "GLAB26F042",
+    "GLAB26F008",
+    "GLAB24W182",
+    "GLAB26S801",
+    "GLAB26F086",
+    "GLAB24W002",
+    "GLAB26S803",
+    "GLAB26F013",
+    "GLAB25W096"
+    "GLAB23S062"
+    "GLAB26F043"
+    "GLAB26F115"
+    "GLAB26S806"
+    "GLAB26S805"
+    "GLAB26S807"
+    "GLAB26F037"
+    
   ],
   "questions": [
     { "id": 1,  "type": "article", "word": "Mädchen",      "answer": "das" },

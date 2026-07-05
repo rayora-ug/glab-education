@@ -28,16 +28,15 @@
     "GLAB24W002",
     "GLAB26S803",
     "GLAB26F013",
-    "GLAB25W096"
-    "GLAB23S062"
-    "GLAB26F043"
-    "GLAB26F115"
-    "GLAB26S806"
-    "GLAB26S805"
-    "GLAB26S807"
-    "GLAB26F037"
+    "GLAB25W096",
+    "GLAB23S062",
+    "GLAB26F043",
+    "GLAB26F115",
+    "GLAB26S806",
+    "GLAB26S805",
+    "GLAB26S807",
+    "GLAB26F037",
     "GLAB26F000"
-    
   ],
   "questions": [
     { "id": 1,  "type": "article", "word": "Mädchen",      "answer": "das" },

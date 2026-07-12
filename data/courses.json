@@ -38,14 +38,18 @@
     "badge": "Elementary",
     "duration": "8 Weeks",
     "schedule": "Mon–Fri | 8:00 PM – 9:30 PM",
-    "fee": "BDT 4,000",
+    "fee": "BDT 15,000",
     "feeUSD": "$35",
     "description": "Build upon your A1 foundation and expand your communicative competence. A2 is required for most student visa applications to Germany. The course includes intensive grammar, listening comprehension, and oral practice.",
     "highlights": ["Past Tenses (Perfekt & Praeteritum)", "Health, Travel & Directions", "Describing Experiences", "Dative Case & Prepositions", "A2 Mock Exams"],
     "seats": 30,
     "popular": false,
-    "registrationOpen": false,
-    "googleFormLink": null
+    "registrationOpen": true,
+    "googleFormLink": null,
+    "batches": [
+      { "id": "a2-36-E", "label": "36th Batch (Evening)", "schedule": "Mon + Thu, 6:00–9:30 PM (Germany time)", "startDate": "2026-08-10" },
+      { "id": "a2-37-M", "label": "37th Batch (Morning)", "schedule": "Tue + Fri, 6:30–9:30 AM (Germany time)", "startDate": "2026-08-11" }
+    ]
   },
   {
     "id": 4,
@@ -54,13 +58,17 @@
     "badge": "Intermediate",
     "duration": "10 Weeks",
     "schedule": "Mon–Fri | 8:00 PM – 9:30 PM",
-    "fee": "BDT 5,000",
+    "fee": "BDT 15,000",
     "feeUSD": "$44",
     "description": "The B1 level is the gateway to studying and working in Germany. This intensive course prepares you for the Goethe-Institut B1 exam with structured grammar lessons, essay writing, and oral presentation practice.",
     "highlights": ["Complex Sentence Structures", "Subjunctive II (Konjunktiv II)", "Opinion & Argumentation Writing", "Job Application German", "Full B1 Exam Simulation"],
     "seats": 25,
     "popular": true,
-    "registrationOpen": false,
-    "googleFormLink": null
+    "registrationOpen": true,
+    "googleFormLink": null,
+    "batches": [
+      { "id": "b1-32-M", "label": "32nd Batch (Morning)", "schedule": "Sat + Sun, 6:30–10:00 AM (Germany time)", "startDate": "2026-08-08" },
+      { "id": "b1-33-E", "label": "33rd Batch (Evening)", "schedule": "Tue + Sat, 6:00–9:30 PM (Germany time)", "startDate": "2026-08-11" }
+    ]
   }
 ]

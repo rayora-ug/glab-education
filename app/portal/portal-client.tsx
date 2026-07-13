@@ -273,14 +273,19 @@ export default function PortalPage() {
 
           {step === 'form' && (
             <div className="card p-8 md:p-10">
-              <div className="flex items-center gap-3 mb-8 pb-6" style={{ borderBottom: '1px solid var(--border)' }}>
-                <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(22,163,74,0.1)' }}>
-                  <UserCheck size={20} style={{ color: '#16a34a' }} />
+              <div className="flex items-center justify-between gap-3 mb-8 pb-6" style={{ borderBottom: '1px solid var(--border)' }}>
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(22,163,74,0.1)' }}>
+                    <UserCheck size={20} style={{ color: '#16a34a' }} />
+                  </div>
+                  <div>
+                    <div className="text-xs uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Welcome back</div>
+                    <div className="font-display font-bold text-xl" style={{ color: 'var(--text-primary)' }}>{studentName}</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-xs uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Welcome back</div>
-                  <div className="font-display font-bold text-xl" style={{ color: 'var(--text-primary)' }}>{studentName}</div>
-                </div>
+                <button onClick={resetForm} className="text-sm underline inline-flex items-center gap-1.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
+                  <RotateCcw size={13} /> Back to Start
+                </button>
               </div>
 
               {studentBatchOptions.length === 0 ? (

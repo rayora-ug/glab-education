@@ -322,11 +322,9 @@ export default function PortalPage() {
                       <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Batch</label>
                       <select value={selectedBatchId} onChange={e => setSelectedBatchId(e.target.value)} required className="input">
                         <option value="" disabled style={{ fontWeight: 700 }}>Select your batch</option>
-                        {Array.from(new Set(studentBatchOptions.map(b => b.courseTitle))).map(courseTitle => (
-                          <optgroup key={courseTitle} label={courseTitle}>
-                            {studentBatchOptions.filter(b => b.courseTitle === courseTitle).map(b => (
-                              <option key={b.id} value={b.id}>{b.optionText}</option>
-                            ))}
+                        {studentBatchOptions.map(b => (
+                          <optgroup key={b.id} label={b.label}>
+                            <option value={b.id}>{b.optionText}</option>
                           </optgroup>
                         ))}
                       </select>

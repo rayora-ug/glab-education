@@ -113,7 +113,6 @@ export default function PortalPage() {
         } else {
           setStudentName(data.name)
           setEligibleCourses(eligible)
-          setSelectedBatchId(available[0].id)
           setStep('form')
         }
       }
@@ -317,6 +316,7 @@ export default function PortalPage() {
                     <div>
                       <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Batch</label>
                       <select value={selectedBatchId} onChange={e => setSelectedBatchId(e.target.value)} required className="input">
+                        <option value="" disabled>Select your batch</option>
                         {studentBatchOptions.map(b => <option key={b.id} value={b.id}>{b.optionText}</option>)}
                       </select>
                     </div>

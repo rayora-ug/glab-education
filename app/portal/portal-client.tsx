@@ -3,13 +3,14 @@
 import { useState } from 'react'
 import {
   Search, ShieldCheck, ShieldX, UserCheck, Upload, CheckCircle, Clock,
-  MessageCircle, Paperclip, Landmark, RotateCcw
+  MessageCircle, Paperclip, Landmark, RotateCcw, CalendarClock
 } from 'lucide-react'
 import coursesData from '../../data/courses.json'
 
 const paymentMethods = ['Bank (BD)', 'Bank (Germany/EU)', 'bKash']
 const MAX_FILE_BYTES = 3 * 1024 * 1024
 const WHATSAPP_CHANNEL = 'https://wa.me/message/72NY3RBASOPYI1'
+const REGISTRATION_DEADLINE = '2026-07-18'
 
 const BANK_DETAILS = [
   { label: 'Account Name', value: 'Md Rayhanur Rahman' },
@@ -201,9 +202,12 @@ export default function PortalPage() {
           <h1 className="font-display font-black text-5xl md:text-6xl mb-4" style={{ color: 'var(--text-primary)' }}>
             Student Portal
           </h1>
-          <p className="text-xl max-w-2xl" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-xl max-w-2xl mb-5" style={{ color: 'var(--text-muted)' }}>
             Already a GLAB student? Register for your next course with just your GLAB ID — no need to fill out a new form.
           </p>
+          <span className="badge badge-red gap-1.5">
+            <CalendarClock size={13} /> Registration closes {formatDate(REGISTRATION_DEADLINE)}
+          </span>
         </div>
       </section>
 

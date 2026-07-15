@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import {
   Search, ShieldCheck, ShieldX, UserCheck, Upload, CheckCircle, Clock,
-  MessageCircle, Paperclip, Landmark, RotateCcw, CalendarClock
+  MessageCircle, Paperclip, Landmark, RotateCcw, CalendarClock, AlertTriangle
 } from 'lucide-react'
 import coursesData from '../../data/courses.json'
 
@@ -367,6 +367,28 @@ export default function PortalPage() {
                       </label>
                       <textarea value={feedback} onChange={e => setFeedback(e.target.value)} rows={3}
                         placeholder="Anything you'd like us to know?" className="input" style={{ resize: 'vertical' }} />
+                    </div>
+
+                    <div className="rounded-xl p-5" style={{ background: 'rgba(221,0,0,0.05)', border: '1px solid rgba(221,0,0,0.2)' }}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <AlertTriangle size={16} style={{ color: '#DD0000' }} />
+                        <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>GLAB Course Rules</span>
+                      </div>
+                      <ol className="text-sm space-y-1.5 mb-4 pl-5" style={{ color: 'var(--text-muted)', listStyleType: 'decimal' }}>
+                        <li>Once you have registered for a specific batch, you cannot switch to another batch under any circumstances.</li>
+                        <li>The course fee is non-refundable after registration, even if you do not attend any classes or decide to leave the course.</li>
+                        <li>Please register only if you are fully committed to completing the course.</li>
+                        <li>A change of mind, dissatisfaction with the teaching style, personal reasons, or a lack of time does not qualify for a refund or batch change.</li>
+                        <li>If you wish to join a different batch, you must complete a new registration and pay the full course fee again.</li>
+                        <li>Keeping your camera on during every class is mandatory.</li>
+                        <li>If you miss a total of 5 classes and/or homework submissions, you will be removed from the course without further notice.</li>
+                      </ol>
+                      <label className="flex items-start gap-2.5 cursor-pointer">
+                        <input type="checkbox" required className="mt-0.5" style={{ width: 16, height: 16, flexShrink: 0 }} />
+                        <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                          I understand that the course fee is non-refundable after registration and that no exceptions will be made due to a change of mind, personal circumstances, dissatisfaction, or discontinuing the course.
+                        </span>
+                      </label>
                     </div>
 
                     {submitError && (

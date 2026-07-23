@@ -9,8 +9,14 @@ import {
   WHATSAPP_CHANNEL, STATUS_INFO, formatDate, fileToBase64, validateProofFile,
   PaymentInfoCard, PaymentAndRulesFields, type Registration,
 } from '../portal/shared'
+import coursesData from '../../data/courses.json'
 
 const REGISTRATION_DEADLINE = '2026-07-30'
+
+function feeForBatch(confirmedBatch: string) {
+  const course = coursesData.find(c => confirmedBatch.startsWith(c.title))
+  return course?.fee ?? null
+}
 
 export default function ResultsPage() {
   const [step, setStep] = useState<'lookup' | 'form' | 'status'>('lookup')
@@ -274,10 +280,16 @@ export default function ResultsPage() {
                   <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{glabId}</span>
                   <span className="text-xs ml-2" style={{ color: 'var(--text-muted)' }}>(save this: you'll use it to check status and register for future courses)</span>
                 </div>
-                <div className="text-sm">
+                <div className="text-sm mb-1">
                   <span style={{ color: 'var(--text-muted)' }}>Your Batch: </span>
                   <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{confirmedBatch}</span>
                 </div>
+                {feeForBatch(confirmedBatch) && (
+                  <div className="text-sm">
+                    <span style={{ color: 'var(--text-muted)' }}>Course Fee: </span>
+                    <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{feeForBatch(confirmedBatch)}</span>
+                  </div>
+                )}
               </div>
 
               <PaymentInfoCard />

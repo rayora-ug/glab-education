@@ -7,16 +7,12 @@ import {
 } from 'lucide-react'
 import coursesData from '../../data/courses.json'
 import {
-  WHATSAPP_CHANNEL, paymentMethods, STATUS_INFO,
+  WHATSAPP_CHANNEL, paymentMethods, STATUS_INFO, formatDate,
   fileToBase64, validateProofFile, PaymentInfoCard, PaymentAndRulesFields,
   type Registration,
 } from './shared'
 
 const REGISTRATION_DEADLINE = '2026-07-30'
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-}
 
 const openCourses = (coursesData as any[]).filter(
   c => c.registrationOpen && c.level !== 'Pre-A1' && c.level !== 'A1'

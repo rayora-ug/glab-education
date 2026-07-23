@@ -8,6 +8,10 @@ import { Upload, Paperclip, Landmark, AlertTriangle } from 'lucide-react'
 export const WHATSAPP_CHANNEL = 'https://wa.me/message/72NY3RBASOPYI1'
 export const MAX_FILE_BYTES = 3 * 1024 * 1024
 
+export function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
 export const paymentMethods = ['Bank (BD)', 'Bank (Germany/EU)', 'bKash']
 
 export const BANK_DETAILS = [

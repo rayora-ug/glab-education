@@ -265,8 +265,8 @@ export default function ResultsPage() {
                     <PartyPopper size={20} style={{ color: '#16a34a' }} />
                   </div>
                   <div>
-                    <div className="text-xs uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Congratulations</div>
-                    <div className="font-display font-bold text-xl" style={{ color: 'var(--text-primary)' }}>{applicantName}</div>
+                    <div className="font-display font-bold text-xl" style={{ color: '#16a34a' }}>You're selected, {applicantName}!</div>
+                    <div className="text-sm" style={{ color: 'var(--text-muted)' }}>Complete your registration below to confirm your seat.</div>
                   </div>
                 </div>
                 <button onClick={resetForm} className="text-sm underline inline-flex items-center gap-1.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }}>

@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description: 'Explore GLAB\'s structured German courses: Foundation, A1, A2, B1, B2 Intensive, Speaking Course, and Exam Preparation. Live online classes for Bangladeshi students.',
   openGraph: {
     title: 'German Courses – GLAB',
-    description: 'From absolute beginner to upper-intermediate — structured, exam-ready German courses for Bangladeshi learners.',
+    description: 'From absolute beginner to upper-intermediate: structured, exam-ready German courses for Bangladeshi learners.',
   },
 }
 

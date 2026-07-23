@@ -60,7 +60,7 @@ export default function HelloDeutschPage() {
                 Hello<span style={{color:'#FFCE00'}}>Deutsch</span>
               </h1>
               <p className="text-xl text-gray-300 mb-8 leading-relaxed">
-                The dedicated German learning app for Bangladeshi students. Vocabulary training, speaking practice, progress tracking, and exam prep — all in your pocket.
+                The dedicated German learning app for Bangladeshi students. Vocabulary training, speaking practice, progress tracking, and exam prep, all in your pocket.
               </p>
               <div className="flex flex-wrap gap-4 mb-10">
                 <button className="flex items-center gap-3 px-6 py-4 rounded-xl font-semibold text-sm transition-all hover:scale-105" style={{background:'rgba(255,255,255,0.1)',color:'white',border:'1px solid rgba(255,255,255,0.2)'}}>

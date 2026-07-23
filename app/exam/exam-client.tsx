@@ -306,7 +306,7 @@ export default function ExamClient() {
             </div>
 
             <div style={{ background: 'rgba(255,206,0,0.12)', border: '1px solid rgba(255,206,0,0.4)', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: '#3A3A3A', marginBottom: 24 }}>
-              💡 Tipp: Für Umlaute kannst du auch schreiben: <b>ae=ä, oe=ö, ue=ü, ss=ß</b> — beides wird akzeptiert.
+              💡 Tipp: Für Umlaute kannst du auch schreiben: <b>ae=ä, oe=ö, ue=ü, ss=ß</b>, beides wird akzeptiert.
             </div>
 
             <button onClick={startExam}

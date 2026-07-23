@@ -10,6 +10,7 @@
 var STUDENTS_SHEET = 'Students';
 var REGISTRATIONS_SHEET = 'Registrations';
 var BATCH_LINKS_SHEET = 'Batch Links';
+var APPLICATIONS_SHEET = 'Applications';
 var REGISTRATIONS_HEADERS = [
   'Timestamp', 'GLAB ID', 'Name', 'Course', 'Batch ID',
   'Payment Method', 'Payment Reference', 'Proof File Link', 'Feedback', 'Status'
@@ -17,6 +18,7 @@ var REGISTRATIONS_HEADERS = [
 var DEFAULT_STATUS = 'Submitted';
 var CONFIRMED_STATUS = 'Confirmed';
 var ELIGIBILITY_COLUMNS = [
+  { header: 'eligible a1', course: 'A1 Intensive' },
   { header: 'eligible a2', course: 'A2 Intensive' },
   { header: 'eligible b1', course: 'B1 Intensive' }
 ];
@@ -32,6 +34,8 @@ function doPost(e) {
       response = lookupStudent_(body.glabId);
     } else if (body.action === 'submit') {
       response = submitRegistration_(body);
+    } else if (body.action === 'checkApplication') {
+      response = checkApplication_(body.email, body.dob);
     } else {
       throw new Error('Unknown action: ' + body.action);
     }
@@ -53,6 +57,31 @@ function isTruthy_(v) {
   if (v === true) return true;
   var s = String(v || '').trim().toLowerCase();
   return s === 'true' || s === 'yes' || s === 'y' || s === '1';
+}
+
+// Normalizes a Date object or a date-like string to 'YYYY-MM-DD' so sheet
+// dates and an HTML <input type="date"> value can be compared reliably.
+// A real Date object (from a date-formatted sheet cell) is read with local
+// getters, which Apps Script already resolves in the spreadsheet's own
+// timezone — safe. A string is matched directly against YYYY-MM-DD first,
+// deliberately avoiding new Date(isoString) + local getters for strings,
+// since that path parses as UTC and can shift the date by a day depending
+// on the script's timezone setting.
+function normalizeDate_(v) {
+  if (v instanceof Date) {
+    var y = v.getFullYear();
+    var m = String(v.getMonth() + 1).padStart(2, '0');
+    var day = String(v.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+  }
+  var s = String(v || '').trim();
+  var isoMatch = s.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (isoMatch) return isoMatch[1];
+  var parsed = new Date(s);
+  if (!isNaN(parsed.getTime())) {
+    return parsed.getFullYear() + '-' + String(parsed.getMonth() + 1).padStart(2, '0') + '-' + String(parsed.getDate()).padStart(2, '0');
+  }
+  return s;
 }
 
 // Finds a student by GLAB ID. Reads the Students tab by header name so it
@@ -140,6 +169,64 @@ function findWhatsAppLink_(batchId) {
     }
   }
   return null;
+}
+
+// Finds an A1 application by Email + Date of Birth. Reads the Applications
+// tab by header name — needs "Email" and "Date of Birth" columns at minimum,
+// plus "Name", "Selection Status", "GLAB ID", and "Confirmed Batch" for a
+// full result. "Confirmed Batch" does double duty as both the text shown to
+// the applicant and the key matched against Batch Links — no separate id.
+function findApplication_(email, dob) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(APPLICATIONS_SHEET);
+  if (!sheet) throw new Error('Applications sheet not found');
+
+  var values = sheet.getDataRange().getValues();
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var emailCol = headers.indexOf('email');
+  var dobCol = headers.indexOf('date of birth');
+  var nameCol = headers.indexOf('name');
+  var statusCol = headers.indexOf('selection status');
+  var glabIdCol = headers.indexOf('glab id');
+  var batchCol = headers.indexOf('confirmed batch');
+  if (emailCol === -1 || dobCol === -1) {
+    throw new Error('Applications sheet must have "Email" and "Date of Birth" columns');
+  }
+
+  var needleEmail = String(email || '').trim().toLowerCase();
+  var needleDob = normalizeDate_(dob);
+  if (!needleEmail || !needleDob) return null;
+
+  for (var i = 1; i < values.length; i++) {
+    var rowEmail = String(values[i][emailCol] || '').trim().toLowerCase();
+    var rowDob = normalizeDate_(values[i][dobCol]);
+    if (rowEmail === needleEmail && rowDob === needleDob) {
+      var rawStatus = statusCol !== -1 ? String(values[i][statusCol] || '').trim().toLowerCase() : '';
+      var status = 'pending';
+      if (rawStatus === 'selected') status = 'selected';
+      else if (rawStatus === 'not selected') status = 'not_selected';
+
+      return {
+        name: nameCol !== -1 ? values[i][nameCol] : '',
+        status: status,
+        glabId: status === 'selected' && glabIdCol !== -1 ? values[i][glabIdCol] : null,
+        confirmedBatch: status === 'selected' && batchCol !== -1 ? values[i][batchCol] : null
+      };
+    }
+  }
+  return null;
+}
+
+function checkApplication_(email, dob) {
+  var application = findApplication_(email, dob);
+  if (!application) return { success: true, found: false };
+  return {
+    success: true,
+    found: true,
+    name: application.name,
+    status: application.status,
+    glabId: application.glabId,
+    confirmedBatch: application.confirmedBatch
+  };
 }
 
 function lookupStudent_(glabId) {

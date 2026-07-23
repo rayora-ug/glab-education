@@ -7,9 +7,10 @@ One-time setup, done by whoever owns the GLAB Google account.
 Open the spreadsheet that already has the GLAB ID ↔ Name roster.
 
 - Make sure the tab with that data has a header row containing columns named exactly **`GLAB ID`** and **`Name`** (any other columns, any order, are fine — the script only looks for these by name). Rename the tab to **`Students`** if it isn't already.
-- Add two more columns: **`Eligible A2`** and **`Eligible B1`**. These control who can register for what — see "Marking students eligible" below. Leave them blank for students who aren't eligible for anything yet.
+- Add three more columns: **`Eligible A1`**, **`Eligible A2`**, and **`Eligible B1`**. These control who can register for what — see "Marking students eligible" below. Leave them blank for students who aren't eligible for anything yet.
 - You don't need to create the `Registrations` tab yourself — the script creates it automatically on the first submission, with headers: Timestamp, GLAB ID, Name, Course, Batch ID, Payment Method, Payment Reference, Proof File Link, Feedback, Status.
 - You do need to create a **`Batch Links`** tab yourself, with two columns: **`Batch ID`** and **`WhatsApp Group Link`**. This is how a confirmed student gets their batch's WhatsApp group link automatically — see "Assigning WhatsApp group links" below.
+- If you're using `/results` (A1 application results), you also need an **`Applications`** tab — see "A1 applications" below.
 
 ## 2. Drive folder for payment proofs
 
@@ -51,7 +52,7 @@ That's the entire Google-side setup. Any time you edit `Code.gs` in the Apps Scr
 
 There's no separate admin webpage — you do all of this directly in the spreadsheet.
 
-**Marking students eligible.** On the `Students` tab, set `Eligible A2` and/or `Eligible B1` to any of `TRUE`, `Yes`, `Y`, `1` (or use a real checkbox column via Format → Checkboxes) to grant access. A student only ever sees batches for the courses they're marked eligible for on `/portal`.
+**Marking students eligible.** On the `Students` tab, set `Eligible A1`, `Eligible A2`, and/or `Eligible B1` to any of `TRUE`, `Yes`, `Y`, `1` (or use a real checkbox column via Format → Checkboxes) to grant access. A student only ever sees batches for the courses they're marked eligible for on `/portal`.
 
 Eligibility is **not** hierarchical in the code — if a student finishes A2 and becomes eligible for B1, and you still want them able to register for A2 again (e.g. a repeat), you need to keep `Eligible A2` checked too. The script won't infer that for you; it's just whatever the two columns say.
 
@@ -71,3 +72,25 @@ Eligibility is **not** hierarchical in the code — if a student finishes A2 and
 (The `-M`/`-E` suffix marks Morning/Evening, matching the actual batch time — not the batch number.)
 
 If a new batch is ever added to the site, it'll get a new id there — add the matching row here whenever that happens.
+
+## A1 applications (`/results`)
+
+Applicants without a GLAB ID yet (new Foundation+A1 applicants) check whether they were selected on `/results`, using the Email + Date of Birth they gave on the original application form.
+
+**The `Applications` tab** needs your application-form export (Timestamp, Name, Email, Date of Birth, WhatsApp, etc. — whatever you already collect) plus three columns you manage yourself:
+
+| Column | What it's for |
+|---|---|
+| `Selection Status` | Leave blank while under review. Set to a dropdown (select the column → Data → Data validation → List of items: `Selected`, `Not Selected`) so it's always exactly one of those two once decided. |
+| `GLAB ID` | The GLAB ID you assign this applicant — only fill this in once they're `Selected`. |
+| `Confirmed Batch` | Display text shown to the applicant, e.g. `A1 Intensive — 40th Batch (Evening)`. Doesn't have to match whatever batch they originally requested — this is what you're actually placing them in. This same text is also the lookup key for the WhatsApp link — add a matching row to `Batch Links` with this exact text as the `Batch ID` if you want the link to appear automatically once the applicant's registration is `Confirmed`. |
+
+The `Email` and `Date of Birth` columns must exist with those exact names for lookups to work; everything else is read-only reference data for you.
+
+**Marking someone Selected is two manual steps, not automatic:**
+1. On `Applications`: set `Selection Status` to `Selected`, and fill in `GLAB ID` and `Confirmed Batch`.
+2. On `Students`: add a new row for them — GLAB ID, Name, and check `Eligible A1`.
+
+Once both are done, `/results` will show them as selected with their GLAB ID and confirmed batch, and they register through the exact same flow (and `Status`/`Confirmed`/WhatsApp-link mechanics) as any A2/B1 student — nothing else to configure.
+
+Applicants who look themselves up before you've made a decision just see "still under review" — no need to set `Selection Status` to anything for that; blank means pending.

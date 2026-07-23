@@ -134,7 +134,7 @@ export default function ContactPage() {
                   <span className="font-semibold text-sm" style={{color:'var(--text-primary)'}}>Operating From</span>
                 </div>
                 <p className="text-sm" style={{color:'var(--text-muted)'}}>
-                  GLAB operates fully online, serving students across all divisions of Bangladesh — Dhaka, Chittagong, Sylhet, Rajshahi, Khulna, and beyond.
+                  GLAB operates fully online, serving students across all divisions of Bangladesh: Dhaka, Chittagong, Sylhet, Rajshahi, Khulna, and beyond.
                 </p>
               </div>
             </div>

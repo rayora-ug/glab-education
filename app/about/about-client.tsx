@@ -27,7 +27,7 @@ export default function AboutPage() {
                 Future.
               </h1>
               <p className="text-xl leading-relaxed" style={{color:'var(--text-secondary)'}}>
-                GLAB (German Language Academy of Bangladesh) was founded with one mission: to give Bangladeshi students the best possible path to Germany — through structured, expert-taught German language education that's accessible online from anywhere in Bangladesh.
+                GLAB (German Language Academy of Bangladesh) was founded with one mission: to give Bangladeshi students the best possible path to Germany, through structured, expert-taught German language education that's accessible online from anywhere in Bangladesh.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -55,7 +55,7 @@ export default function AboutPage() {
               </div>
               <h2 className="font-display font-bold text-2xl mb-4" style={{color:'var(--text-primary)'}}>Our Mission</h2>
               <p className="leading-relaxed" style={{color:'var(--text-secondary)'}}>
-                To provide high-quality, accessible German language education to Bangladeshi students through structured online courses, digital learning tools, and comprehensive support — empowering them to study, work, and thrive in Germany and the German-speaking world.
+                To provide high-quality, accessible German language education to Bangladeshi students through structured online courses, digital learning tools, and comprehensive support, empowering them to study, work, and thrive in Germany and the German-speaking world.
               </p>
             </div>
             <div className="card p-8 relative overflow-hidden">
@@ -65,7 +65,7 @@ export default function AboutPage() {
               </div>
               <h2 className="font-display font-bold text-2xl mb-4" style={{color:'var(--text-primary)'}}>Our Vision</h2>
               <p className="leading-relaxed" style={{color:'var(--text-secondary)'}}>
-                To become the most trusted German language platform in South Asia — bridging the educational and cultural gap between Bangladesh and Germany, and helping thousands of Bangladeshi students build successful futures in Europe through the power of language.
+                To become the most trusted German language platform in South Asia, bridging the educational and cultural gap between Bangladesh and Germany, and helping thousands of Bangladeshi students build successful futures in Europe through the power of language.
               </p>
             </div>
           </div>
@@ -85,12 +85,12 @@ export default function AboutPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { icon: BookOpen, title: 'Free University Education', desc: 'Germany offers tuition-free public universities — even for international students. German proficiency is often the only requirement.', color: '#DD0000' },
+              { icon: BookOpen, title: 'Free University Education', desc: 'Germany offers tuition-free public universities, even for international students. German proficiency is often the only requirement.', color: '#DD0000' },
               { icon: Award, title: 'World-Class Degrees', desc: '6 of the world\'s top 100 universities are in Germany. A German degree opens doors globally.', color: '#FFCE00' },
               { icon: Globe, title: 'Work & Residency Rights', desc: 'Post-study work visas and pathways to permanent residency make Germany one of the most attractive destinations.', color: '#000' },
               { icon: Zap, title: 'Ausbildung (Vocational)', desc: 'Germany\'s dual vocational training system (Ausbildung) is world-famous. B1 German is the typical entry requirement.', color: '#DD0000' },
               { icon: Users, title: 'Bangladeshi Community', desc: 'A growing Bangladeshi community in Germany makes the transition smoother. GLAB helps connect you with that network.', color: '#FFCE00' },
-              { icon: Target, title: '4th Largest Economy', desc: 'Germany is the 4th largest economy in the world — career opportunities in engineering, IT, healthcare, and more.', color: '#000' },
+              { icon: Target, title: '4th Largest Economy', desc: 'Germany is the 4th largest economy in the world, with career opportunities in engineering, IT, healthcare, and more.', color: '#000' },
             ].map(({ icon: Icon, title, desc, color }) => (
               <div key={title} className="card p-6">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style={{background:`${color}15`}}>
@@ -115,9 +115,9 @@ export default function AboutPage() {
           <div className="space-y-6">
             {[
               { title: 'CEFR-Aligned Curriculum', desc: 'Every GLAB course is built around the Common European Framework of Reference (CEFR). This ensures our students\' skills are internationally recognized and comparable to any European standard.' },
-              { title: 'Live Interactive Classes', desc: 'All classes are conducted LIVE via Zoom — not pre-recorded videos. Real-time interaction with teachers and classmates is essential for language learning.' },
+              { title: 'Live Interactive Classes', desc: 'All classes are conducted LIVE via Zoom, not pre-recorded videos. Real-time interaction with teachers and classmates is essential for language learning.' },
               { title: 'Bangladesh-Specific Approach', desc: 'Our instructors understand the unique challenges Bangladeshi students face when learning German. We explain complex grammar in Bangla when needed and use relatable examples.' },
-              { title: 'Four-Skills Integration', desc: 'Every class develops all four language skills: Reading (Lesen), Writing (Schreiben), Listening (Horen), and Speaking (Sprechen) — mirroring official exam structures.' },
+              { title: 'Four-Skills Integration', desc: 'Every class develops all four language skills: Reading (Lesen), Writing (Schreiben), Listening (Horen), and Speaking (Sprechen), mirroring official exam structures.' },
               { title: 'Technology-Augmented Learning', desc: 'The HelloDeutsch app complements classroom learning with vocabulary training, speaking practice, and progress tracking between sessions.' },
             ].map((item, i) => (
               <div key={i} className="flex gap-6 items-start card p-6">
@@ -141,7 +141,7 @@ export default function AboutPage() {
             G
           </div>
           <blockquote className="font-display text-2xl md:text-3xl italic mb-8 leading-relaxed" style={{color:'var(--text-primary)'}}>
-            "Every Bangladeshi student who dreams of studying or working in Germany deserves access to world-class German education — not just those in major cities or with expensive tutors. GLAB exists to make that dream possible for everyone."
+            "Every Bangladeshi student who dreams of studying or working in Germany deserves access to world-class German education, not just those in major cities or with expensive tutors. GLAB exists to make that dream possible for everyone."
           </blockquote>
           <div className="font-bold text-lg" style={{color:'var(--text-primary)'}}>GLAB Founder</div>
           <div className="text-sm" style={{color:'var(--text-muted)'}}>German Language Academy of Bangladesh</div>

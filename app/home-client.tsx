@@ -170,7 +170,7 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { icon: Target, title: 'CEFR-Aligned Curriculum', desc: 'Our courses follow the Common European Framework of Reference (CEFR) — the international standard for language learning.', color: '#DD0000' },
+              { icon: Target, title: 'CEFR-Aligned Curriculum', desc: 'Our courses follow the Common European Framework of Reference (CEFR), the international standard for language learning.', color: '#DD0000' },
               { icon: Users, title: 'Expert Bangladeshi Instructors', desc: 'Learn from teachers who understand the unique challenges Bangladeshi students face and explain in Bangla when needed.', color: '#FFCE00' },
               { icon: Smartphone, title: 'HelloDeutsch App', desc: 'Reinforce your learning with our dedicated mobile app featuring vocabulary trainers, speaking practice, and progress tracking.', color: '#000' },
               { icon: Globe, title: 'Visa & Study Guidance', desc: 'Beyond language – we guide students on student visa requirements, university applications, and life in Germany.', color: '#DD0000' },

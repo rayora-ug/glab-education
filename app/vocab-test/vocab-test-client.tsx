@@ -220,7 +220,7 @@ export default function VocabTestPage() {
               </div>
 
               <div className="rounded-xl p-4 mb-6 text-sm" style={{ background: 'rgba(255,206,0,0.1)', border: '1px solid rgba(255,206,0,0.3)', color: 'var(--text-secondary)' }}>
-                <strong>Instructions:</strong> Once you start, the timer begins immediately. You can navigate between questions freely. MCQ questions — select the correct option. Fill-in-the-blank — type the missing word. Translation — write in German. Answers are auto-scored when you submit or time runs out.
+                <strong>Instructions:</strong> Once you start, the timer begins immediately. You can navigate between questions freely. For MCQ questions, select the correct option. For fill-in-the-blank, type the missing word. For translation, write in German. Answers are auto-scored when you submit or time runs out.
               </div>
 
               <button onClick={startTest} className="btn-primary w-full justify-center text-base py-4">
@@ -300,7 +300,7 @@ export default function VocabTestPage() {
                           }}
                         />
                         {q.type === 'translate' && (
-                          <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>Tip: Umlaut shortcuts — ae=ä, oe=ö, ue=ü, ss=ß (accepted)</p>
+                          <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>Tip: Umlaut shortcuts: ae=ä, oe=ö, ue=ü, ss=ß (accepted)</p>
                         )}
                       </div>
                     )}

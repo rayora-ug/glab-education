@@ -21,7 +21,7 @@ export default function CoursesPage() {
                 Our Courses
               </h1>
               <p className="text-xl mt-4 max-w-2xl" style={{color:'var(--text-muted)'}}>
-                From absolute beginner to upper-intermediate — structured, exam-ready German courses designed for Bangladeshi learners.
+                From absolute beginner to upper-intermediate: structured, exam-ready German courses designed for Bangladeshi learners.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">

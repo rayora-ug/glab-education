@@ -119,3 +119,20 @@ The `/exam` page (a fully client-side page, separate from `/portal`/`/results` �
 **Publishing results is entirely manual, by design** — the student never sees their score. Once you're ready to release results, that's on you to do however you communicate with students (a message, a separate page, whatever) — this tab is just the record. The `Published` column is provided as a place to mark off who you've told, but nothing in the code reads it; it's for your own tracking only.
 
 **The writing question (F51):** students see only the prompt — no answer box — plus a link to a Google Drive upload folder and a self-report checkbox ("I've uploaded my answer") that just affects their own progress indicator in the exam UI, not scoring. Look for their photographed/scanned handwritten answer in the Drive folder, matched by the filename convention (their GLAB ID) — grade it yourself outside this system, same as the score for that question is never auto-computed.
+
+Both `/exam` and `/exam-grammar` (the 100-question A2 grammar exam) share the same submission logic and write to this same `Exam Submissions` tab — rows from either exam are told apart by the `Exam Code` column.
+
+## Exam Permissions tab (`/exam-grammar` only)
+
+`/exam` still checks GLAB IDs against a static list baked into the site at build time (`allowedIds` in `data/exam-a2-vocab.json`) — fast, but needs a code redeploy to add or remove a student.
+
+`/exam-grammar` instead checks live against an `Exam Permissions` tab, so you can grant or revoke access at any time just by editing the spreadsheet — no redeploy needed. You need to create this tab yourself, with these columns:
+
+| Column | What it's for |
+|---|---|
+| `GLAB ID` | The student's GLAB ID. |
+| `Name` | Read-only reference for you — not used by the code. |
+| `Exam Code` | Must exactly match the exam's code (currently `A2GRAM0725` for the grammar exam — see `examCode` in `data/exam-a2-grammar.json`). This lets one tab serve multiple exams later if needed, each keyed by its own code. |
+| `Allowed` | A checkbox (or `TRUE`/`Yes`/`1`). Only checked rows let that student log in to that exam. |
+
+Add one row per student per exam. To revoke access, just uncheck `Allowed` — no need to delete the row. A student not present in this tab at all is treated the same as unchecked (not allowed).

@@ -18,6 +18,7 @@ var EXAM_SUBMISSIONS_HEADERS = [
   'Timestamp', 'GLAB ID', 'Name', 'Exam Code', 'Score', 'Total Scorable',
   'Percent', 'Writing Uploaded', 'Answers (JSON)', 'Published'
 ];
+var EXAM_PERMISSIONS_SHEET = 'Exam Permissions';
 var REGISTRATIONS_HEADERS = [
   'Timestamp', 'GLAB ID', 'Name', 'Course', 'Batch ID',
   'Payment Method', 'Payment Reference', 'Proof File Link', 'Feedback', 'Status'
@@ -45,6 +46,8 @@ function doPost(e) {
       response = checkApplication_(body.email, body.dob);
     } else if (body.action === 'submitExam') {
       response = submitExam_(body);
+    } else if (body.action === 'checkExamPermission') {
+      response = checkExamPermission_(body.examCode, body.glabId);
     } else {
       throw new Error('Unknown action: ' + body.action);
     }
@@ -432,4 +435,37 @@ function submitExam_(body) {
     ''
   ]);
   return { success: true };
+}
+
+// Checks whether a GLAB ID is allowed to take a given exam, by looking up
+// the "Exam Permissions" sheet — lets the admin grant/revoke access live via
+// checkbox, no redeploy needed, unlike an exam whose allowed IDs are baked
+// into the site's JSON at build time. Needs "GLAB ID", "Exam Code", and
+// "Allowed" columns; "Name" is optional, read-only reference data.
+function checkExamPermission_(examCode, glabId) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(EXAM_PERMISSIONS_SHEET);
+  if (!sheet) return { success: true, found: false, allowed: false };
+
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return { success: true, found: false, allowed: false };
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var idCol = headers.indexOf('glab id');
+  var codeCol = headers.indexOf('exam code');
+  var allowedCol = headers.indexOf('allowed');
+  if (idCol === -1 || codeCol === -1 || allowedCol === -1) {
+    throw new Error('Exam Permissions sheet must have "GLAB ID", "Exam Code", and "Allowed" columns');
+  }
+
+  var needleId = String(glabId || '').trim().toLowerCase();
+  var needleCode = String(examCode || '').trim().toLowerCase();
+  if (!needleId || !needleCode) return { success: true, found: false, allowed: false };
+
+  for (var i = 1; i < values.length; i++) {
+    var rowId = String(values[i][idCol] || '').trim().toLowerCase();
+    var rowCode = String(values[i][codeCol] || '').trim().toLowerCase();
+    if (rowId === needleId && rowCode === needleCode) {
+      return { success: true, found: true, allowed: isTruthy_(values[i][allowedCol]) };
+    }
+  }
+  return { success: true, found: false, allowed: false };
 }

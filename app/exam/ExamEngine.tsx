@@ -5,7 +5,14 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 /* ── types ── */
 type ArticleQ = { id: number; type: 'article'; word: string; answer: string }
 type FillQ    = { id: number; type: 'fill';    question: string; answer: string; hint: string }
-type WritingQ = { id: number; type: 'writing'; prompt: string; driveLink: string }
+type WritingQ = {
+  id: number
+  type: 'writing'
+  prompt: string
+  driveLink: string
+  uploadButtonLabel?: string
+  uploadInstructions?: string
+}
 type Question = ArticleQ | FillQ | WritingQ
 type Screen   = 'login' | 'rules' | 'exam' | 'results'
 
@@ -168,6 +175,7 @@ export default function ExamEngine({ examData, permissionMode }: { examData: Exa
         setCheckingPermission(false)
         if (!data.success) { setLoginErr('Verbindung fehlgeschlagen. Bitte überprüfe deine Internetverbindung und versuche es erneut.'); return }
         if (!data.allowed) { setLoginErr('Deine GLAB-ID ist nicht für diese Prüfung registriert. Kontaktiere deinen Kursleiter.'); return }
+        if (data.alreadySubmitted) { setLoginErr('Diese GLAB-ID hat die Prüfung bereits abgeschlossen. Eine erneute Teilnahme ist nicht möglich.'); return }
       } catch {
         setCheckingPermission(false)
         setLoginErr('Verbindung fehlgeschlagen. Bitte überprüfe deine Internetverbindung und versuche es erneut.')
@@ -523,11 +531,15 @@ export default function ExamEngine({ examData, permissionMode }: { examData: Exa
                     {(q as WritingQ).prompt}
                   </div>
                   <div style={{ background: 'rgba(255,206,0,0.12)', border: '1px solid rgba(255,206,0,0.4)', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: '#3A3A3A', marginBottom: 20, lineHeight: 1.6 }}>
-                    ✍️ Schreibe deine Antwort von Hand auf Papier, mache ein Foto oder einen Scan, und lade es über den Link unten hoch. Bitte benenne die Datei mit deiner GLAB-ID (z. B. <b>{glabId.toUpperCase() || 'GLAB26F011'}.jpg</b>), damit wir sie zuordnen können.
+                    {(q as WritingQ).uploadInstructions ? (
+                      (q as WritingQ).uploadInstructions
+                    ) : (
+                      <>✍️ Schreibe deine Antwort von Hand auf Papier, mache ein Foto oder einen Scan, und lade es über den Link unten hoch. Bitte benenne die Datei mit deiner GLAB-ID (z. B. <b>{glabId.toUpperCase() || 'GLAB26F011'}.jpg</b>), damit wir sie zuordnen können.</>
+                    )}
                   </div>
                   <a href={(q as WritingQ).driveLink} target="_blank" rel="noopener noreferrer"
                     style={{ display: 'block', textAlign: 'center', padding: '14px', borderRadius: 12, background: '#0A0A0A', color: 'white', fontSize: 15, fontWeight: 700, textDecoration: 'none', marginBottom: 16 }}>
-                    📤 Zum Google Drive Upload-Ordner
+                    {(q as WritingQ).uploadButtonLabel || '📤 Zum Google Drive Upload-Ordner'}
                   </a>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center', fontSize: 13, color: '#3A3A3A', cursor: 'pointer' }}>
                     <input type="checkbox" checked={!!answers[q.id]} onChange={e => setAns(q.id, e.target.checked ? 'uploaded' : '')}

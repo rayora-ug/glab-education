@@ -444,10 +444,10 @@ function submitExam_(body) {
 // "Allowed" columns; "Name" is optional, read-only reference data.
 function checkExamPermission_(examCode, glabId) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(EXAM_PERMISSIONS_SHEET);
-  if (!sheet) return { success: true, found: false, allowed: false };
+  if (!sheet) return { success: true, found: false, allowed: false, alreadySubmitted: false };
 
   var values = sheet.getDataRange().getValues();
-  if (values.length < 2) return { success: true, found: false, allowed: false };
+  if (values.length < 2) return { success: true, found: false, allowed: false, alreadySubmitted: false };
   var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
   var idCol = headers.indexOf('glab id');
   var codeCol = headers.indexOf('exam code');
@@ -458,14 +458,40 @@ function checkExamPermission_(examCode, glabId) {
 
   var needleId = String(glabId || '').trim().toLowerCase();
   var needleCode = String(examCode || '').trim().toLowerCase();
-  if (!needleId || !needleCode) return { success: true, found: false, allowed: false };
+  if (!needleId || !needleCode) return { success: true, found: false, allowed: false, alreadySubmitted: false };
+
+  var alreadySubmitted = hasExamSubmission_(needleCode, needleId);
 
   for (var i = 1; i < values.length; i++) {
     var rowId = String(values[i][idCol] || '').trim().toLowerCase();
     var rowCode = String(values[i][codeCol] || '').trim().toLowerCase();
     if (rowId === needleId && rowCode === needleCode) {
-      return { success: true, found: true, allowed: isTruthy_(values[i][allowedCol]) };
+      return { success: true, found: true, allowed: isTruthy_(values[i][allowedCol]), alreadySubmitted: alreadySubmitted };
     }
   }
-  return { success: true, found: false, allowed: false };
+  return { success: true, found: false, allowed: false, alreadySubmitted: alreadySubmitted };
+}
+
+// Cross-device check for whether this GLAB ID has already submitted this
+// exam — the client also keeps a localStorage "done" marker, but that only
+// blocks re-entry on the same browser/device. Checking the Exam Submissions
+// sheet here closes the gap: someone logging in from a different device (or
+// after clearing site data) after already submitting is still blocked.
+function hasExamSubmission_(needleCodeLower, needleIdLower) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(EXAM_SUBMISSIONS_SHEET);
+  if (!sheet) return false;
+
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return false;
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var idCol = headers.indexOf('glab id');
+  var codeCol = headers.indexOf('exam code');
+  if (idCol === -1 || codeCol === -1) return false;
+
+  for (var i = 1; i < values.length; i++) {
+    var rowId = String(values[i][idCol] || '').trim().toLowerCase();
+    var rowCode = String(values[i][codeCol] || '').trim().toLowerCase();
+    if (rowId === needleIdLower && rowCode === needleCodeLower) return true;
+  }
+  return false;
 }

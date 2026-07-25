@@ -28,6 +28,17 @@ function correct(q: Question, ans: string): boolean {
   return normalise(q.answer) === normalise(ans)
 }
 
+function storageAvailable() {
+  try {
+    const testKey = '__glab_storage_test__'
+    localStorage.setItem(testKey, '1')
+    localStorage.removeItem(testKey)
+    return true
+  } catch {
+    return false
+  }
+}
+
 /* ── anti-cheat hook ── */
 function useAntiCheat(active: boolean, onViolation: (msg: string) => void) {
   useEffect(() => {
@@ -70,8 +81,11 @@ export default function ExamClient() {
   const [submitted, setSubmitted]   = useState(false)
   const [resumed, setResumed]       = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [storageOk, setStorageOk]   = useState(true)
   const timerRef  = useRef<ReturnType<typeof setInterval> | null>(null)
   const glabIdRef = useRef('')
+
+  useEffect(() => { setStorageOk(storageAvailable()) }, [])
 
   const showWarning = useCallback((msg: string) => {
     setWarning(msg)
@@ -98,12 +112,12 @@ export default function ExamClient() {
     if (screen !== 'exam' || submitted) return
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify({
-        glabId: glabId.toUpperCase(),
+        glabId: glabIdRef.current,
         answers,
         timeLeft,
         current,
       }))
-    } catch { /* ignore */ }
+    } catch { setStorageOk(false) }
   }, [screen, submitted, answers, timeLeft, current, glabId])
 
   function login() {
@@ -333,6 +347,13 @@ export default function ExamClient() {
               </div>
             </div>
           </div>
+
+          {/* persistent storage warning */}
+          {!storageOk && (
+            <div style={{ background: 'rgba(255,206,0,0.15)', borderBottom: '1px solid rgba(255,206,0,0.4)', padding: '8px 20px', textAlign: 'center', fontSize: 12.5, color: '#7A5C00', fontWeight: 600 }}>
+              ⚠️ Dein Fortschritt kann in diesem Browser nicht automatisch gespeichert werden. Bitte schließe diesen Tab nicht und wechsle nicht die App, sonst gehen deine Antworten verloren.
+            </div>
+          )}
 
           {/* progress dots */}
           <div style={{ background: '#fff', borderBottom: '1px solid #E5E3DC', padding: '10px 20px', overflowX: 'auto' }}>

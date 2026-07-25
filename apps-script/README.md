@@ -94,3 +94,28 @@ The `Email` and `Date of Birth` columns must exist with those exact names for lo
 Once both are done, `/results` will show them as selected with their GLAB ID and confirmed batch, and they register through the exact same flow (and `Status`/`Confirmed`/WhatsApp-link mechanics) as any A2/B1 student — nothing else to configure.
 
 Applicants who look themselves up before you've made a decision just see "still under review" — no need to set `Selection Status` to anything for that; blank means pending.
+
+## Registration Pending tab (who hasn't registered yet)
+
+A `Registration Pending` tab tracks students who are marked eligible on `Students` but have never submitted a registration — so you know who to nudge without manually comparing the two tabs yourself. It's rebuilt automatically by the `refreshRegistrationPending` function in `Code.gs`; you don't edit this tab by hand, and any manual edits get overwritten the next time it runs.
+
+**One-time setup:** in the Apps Script editor, open **Triggers** (clock icon in the left sidebar) → **Add Trigger** → set:
+- Function: `refreshRegistrationPending`
+- Event source: **Time-driven**
+- Type: **Day timer**, pick any hour that works for you (e.g. 8am–9am)
+
+Save it, and the tab will stay current on its own from then on — no manual cross-referencing, and no need to re-run anything after future `Code.gs` redeploys (the trigger keeps running independently of deployments).
+
+**What counts as "pending":** any `Students` row with at least one `Eligible A1`/`Eligible A2`/`Eligible B1` box checked that has *zero* rows in `Registrations` for that GLAB ID — regardless of status (even a `Submitted`-but-not-yet-`Confirmed` registration counts as "not pending", since they've taken the action). Each student's `Pending Since` date is set the first time they're detected and preserved across future runs, so you can see how long someone's been sitting there.
+
+**Known limitation:** a returning student who's newly eligible for a *different* course but already has an old registration row from a previous course won't show up here, since the check only looks at whether any registration exists at all, not which course it was for. Catch those manually for now — it's a small, occasional case, not the common one this tab is for.
+
+## Exam Submissions tab (`/exam`)
+
+The `/exam` page (a fully client-side page, separate from `/portal`/`/results` — it doesn't use GLAB IDs from `Students`, just its own `allowedIds` list in `data/exam-a2-vocab.json`) now submits each student's answers to an `Exam Submissions` tab instead of showing the score directly to the student. The Web App creates this tab automatically on first submission — you don't need to create it yourself.
+
+**Columns:** `Timestamp`, `GLAB ID`, `Name`, `Exam Code`, `Score`, `Total Scorable`, `Percent`, `Writing Uploaded` (Yes/No, self-reported by the student), `Answers (JSON)` (their raw answers, for spot-checking), `Published` (blank by default).
+
+**Publishing results is entirely manual, by design** — the student never sees their score. Once you're ready to release results, that's on you to do however you communicate with students (a message, a separate page, whatever) — this tab is just the record. The `Published` column is provided as a place to mark off who you've told, but nothing in the code reads it; it's for your own tracking only.
+
+**The writing question (F51):** students see only the prompt — no answer box — plus a link to a Google Drive upload folder and a self-report checkbox ("I've uploaded my answer") that just affects their own progress indicator in the exam UI, not scoring. Look for their photographed/scanned handwritten answer in the Drive folder, matched by the filename convention (their GLAB ID) — grade it yourself outside this system, same as the score for that question is never auto-computed.

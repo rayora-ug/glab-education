@@ -6,14 +6,18 @@ import examData from '../../data/exam-a2-vocab.json'
 /* ── types ── */
 type ArticleQ = { id: number; type: 'article'; word: string; answer: string }
 type FillQ    = { id: number; type: 'fill';    question: string; answer: string; hint: string }
-type Question = ArticleQ | FillQ
+type WritingQ = { id: number; type: 'writing'; prompt: string; driveLink: string }
+type Question = ArticleQ | FillQ | WritingQ
 type Screen   = 'login' | 'rules' | 'exam' | 'results'
 
 const ARTICLE_OPTIONS = ['der', 'die', 'das']
 const questions = examData.questions as Question[]
 const TOTAL = questions.length
+const SCORABLE = questions.filter(q => q.type !== 'writing')
+const SCORABLE_TOTAL = SCORABLE.length
 const DURATION = examData.duration * 60
 const SAVE_KEY = `glab-exam-${examData.examCode}`
+const WRITING_Q = questions.find(q => q.type === 'writing') as WritingQ | undefined
 
 function fmt(s: number) {
   return `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`
@@ -25,6 +29,7 @@ function normalise(s: string) {
 }
 
 function correct(q: Question, ans: string): boolean {
+  if (q.type === 'writing') return false
   return normalise(q.answer) === normalise(ans)
 }
 
@@ -82,6 +87,8 @@ export default function ExamClient() {
   const [resumed, setResumed]       = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [storageOk, setStorageOk]   = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
   const timerRef  = useRef<ReturnType<typeof setInterval> | null>(null)
   const glabIdRef = useRef('')
 
@@ -170,7 +177,39 @@ export default function ExamClient() {
     setScreen('exam')
   }
 
-  function finalise() {
+  async function finalise() {
+    if (submitting) return
+    setSubmitting(true)
+    setSubmitError('')
+
+    const scorableCorrect = SCORABLE.filter(q => correct(q, answers[q.id] ?? '')).length
+    const percent = Math.round((scorableCorrect / SCORABLE_TOTAL) * 100)
+
+    let ok = false
+    try {
+      const res = await fetch('/api/exam/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          glabId: glabIdRef.current,
+          examCode: examData.examCode,
+          score: scorableCorrect,
+          totalScorable: SCORABLE_TOTAL,
+          percent,
+          answers,
+          writingUploaded: WRITING_Q ? !!answers[WRITING_Q.id] : false,
+        }),
+      })
+      const data = await res.json()
+      if (!data.success) throw new Error(data.error || 'Einreichung fehlgeschlagen.')
+      ok = true
+    } catch (err: any) {
+      setSubmitError(err.message || 'Einreichung fehlgeschlagen. Bitte überprüfe deine Internetverbindung und versuche es erneut.')
+    }
+    setSubmitting(false)
+    if (!ok) return
+
     if (timerRef.current) clearInterval(timerRef.current)
     try {
       localStorage.removeItem(SAVE_KEY)
@@ -181,20 +220,17 @@ export default function ExamClient() {
       localStorage.setItem(`${SAVE_KEY}-done`, JSON.stringify(done))
     } catch { /* ignore */ }
     setSubmitted(true)
+    setShowConfirm(false)
     setScreen('results')
   }
 
-  function confirmSubmit() { setShowConfirm(false); finalise() }
-  function submit() { setShowConfirm(true) }
+  function confirmSubmit() { finalise() }
+  function submit() { setSubmitError(''); setShowConfirm(true) }
 
   function setAns(qId: number, val: string) {
     setAnswers(a => ({ ...a, [qId]: val }))
   }
 
-  const score = questions.filter(q => correct(q, answers[q.id] ?? '')).length
-  const pct   = Math.round((score / TOTAL) * 100)
-  const grade = pct >= 90 ? 'Ausgezeichnet' : pct >= 75 ? 'Gut' : pct >= 50 ? 'Bestanden' : 'Nicht bestanden'
-  const gradeColor = pct >= 90 ? '#FFCE00' : pct >= 75 ? '#2563eb' : pct >= 50 ? '#16a34a' : '#888'
   const answered = Object.keys(answers).length
   const danger = timeLeft < 120
 
@@ -220,17 +256,22 @@ export default function ExamClient() {
             <div style={{ fontSize: 14, color: '#777', marginBottom: 8 }}>
               Du hast <b>{Object.keys(answers).length}</b> von <b>{TOTAL}</b> Fragen beantwortet.
             </div>
-            <div style={{ fontSize: 13, color: '#DD0000', marginBottom: 28 }}>
+            <div style={{ fontSize: 13, color: '#DD0000', marginBottom: 16 }}>
               Nach der Abgabe kannst du die Prüfung nicht mehr ändern.
             </div>
+            {submitError && (
+              <div style={{ background: 'rgba(221,0,0,0.08)', border: '1px solid rgba(221,0,0,0.3)', borderRadius: 10, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#DD0000', textAlign: 'left' }}>
+                {submitError}
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 12 }}>
-              <button onClick={() => setShowConfirm(false)}
-                style={{ flex: 1, padding: '12px', borderRadius: 10, border: '1px solid #E5E3DC', background: '#F8F7F2', color: '#3A3A3A', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+              <button onClick={() => { setShowConfirm(false); setSubmitError('') }} disabled={submitting}
+                style={{ flex: 1, padding: '12px', borderRadius: 10, border: '1px solid #E5E3DC', background: '#F8F7F2', color: '#3A3A3A', fontSize: 14, fontWeight: 600, cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.5 : 1 }}>
                 Zurück
               </button>
-              <button onClick={confirmSubmit}
-                style={{ flex: 1, padding: '12px', borderRadius: 10, border: 'none', background: '#DD0000', color: 'white', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
-                Ja, abgeben ✓
+              <button onClick={confirmSubmit} disabled={submitting}
+                style={{ flex: 1, padding: '12px', borderRadius: 10, border: 'none', background: '#DD0000', color: 'white', fontSize: 14, fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.7 : 1 }}>
+                {submitting ? 'Wird eingereicht…' : 'Ja, abgeben ✓'}
               </button>
             </div>
           </div>
@@ -380,7 +421,7 @@ export default function ExamClient() {
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: '#777', textTransform: 'uppercase', letterSpacing: '0.08em', background: '#F8F7F2', padding: '4px 10px', borderRadius: 6 }}>
-                  {q.type === 'article' ? 'Artikel' : 'Lückentext'} &nbsp;·&nbsp; F {current + 1} / {TOTAL}
+                  {q.type === 'article' ? 'Artikel' : q.type === 'fill' ? 'Lückentext' : 'Schreiben'} &nbsp;·&nbsp; F {current + 1} / {TOTAL}
                 </span>
                 {answers[q.id] && (
                   <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 600 }}>✓ Beantwortet</span>
@@ -431,6 +472,27 @@ export default function ExamClient() {
                   <p style={{ textAlign: 'center', fontSize: 12, color: '#bbb', marginTop: 8 }}>Enter drücken für die nächste Frage</p>
                 </>
               )}
+
+              {/* WRITING question */}
+              {q.type === 'writing' && (
+                <>
+                  <div style={{ fontSize: 17, fontWeight: 600, color: '#0A0A0A', lineHeight: 1.7, marginBottom: 24, whiteSpace: 'pre-wrap' }}>
+                    {(q as WritingQ).prompt}
+                  </div>
+                  <div style={{ background: 'rgba(255,206,0,0.12)', border: '1px solid rgba(255,206,0,0.4)', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: '#3A3A3A', marginBottom: 20, lineHeight: 1.6 }}>
+                    ✍️ Schreibe deine Antwort von Hand auf Papier, mache ein Foto oder einen Scan, und lade es über den Link unten hoch. Bitte benenne die Datei mit deiner GLAB-ID (z. B. <b>{glabId.toUpperCase() || 'GLAB26F011'}.jpg</b>), damit wir sie zuordnen können.
+                  </div>
+                  <a href={(q as WritingQ).driveLink} target="_blank" rel="noopener noreferrer"
+                    style={{ display: 'block', textAlign: 'center', padding: '14px', borderRadius: 12, background: '#0A0A0A', color: 'white', fontSize: 15, fontWeight: 700, textDecoration: 'none', marginBottom: 16 }}>
+                    📤 Zum Google Drive Upload-Ordner
+                  </a>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center', fontSize: 13, color: '#3A3A3A', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={!!answers[q.id]} onChange={e => setAns(q.id, e.target.checked ? 'uploaded' : '')}
+                      style={{ width: 18, height: 18 }} />
+                    Ich bestätige, dass ich meine Antwort hochgeladen habe.
+                  </label>
+                </>
+              )}
             </div>
           </div>
 
@@ -469,16 +531,18 @@ export default function ExamClient() {
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', padding: '32px 16px', background: '#F8F7F2' }}>
           <div style={{ width: '100%', maxWidth: 600 }}>
 
-            {/* score card */}
+            {/* submission confirmation card (no score shown — results are published separately) */}
             <div style={{ background: '#fff', border: '1px solid #E5E3DC', borderRadius: 20, padding: '36px', textAlign: 'center', marginBottom: 24, boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
               <div style={{ height: 4, borderRadius: 4, background: 'linear-gradient(to right,#000 33%,#DD0000 33% 66%,#FFCE00 66%)', marginBottom: 28 }} />
-              <div style={{ width: 80, height: 80, borderRadius: '50%', border: `4px solid ${gradeColor}`, background: `${gradeColor}15`, margin: '0 auto 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>
-                {pct >= 90 ? '🏆' : pct >= 75 ? '🥈' : pct >= 50 ? '✅' : '📚'}
+              <div style={{ width: 80, height: 80, borderRadius: '50%', border: '4px solid #16a34a', background: '#16a34a15', margin: '0 auto 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>
+                ✅
               </div>
-              <div style={{ fontFamily: 'serif', fontSize: 64, fontWeight: 900, color: gradeColor, lineHeight: 1 }}>{pct}%</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#0A0A0A', marginTop: 8 }}>{grade}</div>
-              <div style={{ fontSize: 14, color: '#777', marginTop: 4 }}>{score} von {TOTAL} richtig &nbsp;·&nbsp; {name}</div>
-              <div style={{ fontSize: 12, color: '#aaa', marginTop: 4 }}>{glabId.toUpperCase()} &nbsp;·&nbsp; {examData.title}</div>
+              <div style={{ fontFamily: 'serif', fontSize: 28, fontWeight: 900, color: '#0A0A0A', lineHeight: 1.3 }}>Prüfung eingereicht</div>
+              <div style={{ fontSize: 14, color: '#777', marginTop: 12, lineHeight: 1.6 }}>
+                Danke, {name.split(' ')[0]}! Deine Antworten wurden erfolgreich übermittelt.<br />
+                Die Ergebnisse werden separat von GLAB veröffentlicht.
+              </div>
+              <div style={{ fontSize: 12, color: '#aaa', marginTop: 16 }}>{glabId.toUpperCase()} &nbsp;·&nbsp; {examData.title}</div>
               <div style={{ height: 4, borderRadius: 4, background: 'linear-gradient(to right,#000 33%,#DD0000 33% 66%,#FFCE00 66%)', marginTop: 28 }} />
             </div>
 

@@ -88,6 +88,7 @@
     { "id": 47, "type": "fill", "question": "Sie liebt ___ Mutter. (sie)",    "answer": "ihre",   "hint": "" },
     { "id": 48, "type": "fill", "question": "Er hilft ___ Bruder. (er)",      "answer": "seinem", "hint": "" },
     { "id": 49, "type": "fill", "question": "Das ist ___ Buch. (ich)",        "answer": "mein",   "hint": "" },
-    { "id": 50, "type": "fill", "question": "Wir besuchen ___ Lehrerin. (wir)","answer": "unsere","hint": "" }
+    { "id": 50, "type": "fill", "question": "Wir besuchen ___ Lehrerin. (wir)","answer": "unsere","hint": "" },
+    { "id": 51, "type": "writing", "prompt": "Schreiben Sie eine E-Mail an einen Freund / eine Freundin (circa 40–50 Wörter). Sie möchten sich am Wochenende treffen. Schreiben Sie: - warum Sie schreiben - wann und wo Sie sich treffen möchten - was Sie zusammen machen möchten. Schreiben Sie Ihre Antwort von Hand auf Papier, machen Sie ein Foto oder einen Scan, und laden Sie es über den Link unten hoch.", "driveLink": "https://drive.google.com/drive/folders/1AeH-xeNOjgldE9tL1bSeznwiFIm3Q3_q?usp=sharing" }
   ]
 }

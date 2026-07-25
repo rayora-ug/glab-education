@@ -11,6 +11,13 @@ var STUDENTS_SHEET = 'Students';
 var REGISTRATIONS_SHEET = 'Registrations';
 var BATCH_LINKS_SHEET = 'Batch Links';
 var APPLICATIONS_SHEET = 'Applications';
+var REGISTRATION_PENDING_SHEET = 'Registration Pending';
+var REGISTRATION_PENDING_HEADERS = ['GLAB ID', 'Name', 'Eligible Courses', 'Pending Since'];
+var EXAM_SUBMISSIONS_SHEET = 'Exam Submissions';
+var EXAM_SUBMISSIONS_HEADERS = [
+  'Timestamp', 'GLAB ID', 'Name', 'Exam Code', 'Score', 'Total Scorable',
+  'Percent', 'Writing Uploaded', 'Answers (JSON)', 'Published'
+];
 var REGISTRATIONS_HEADERS = [
   'Timestamp', 'GLAB ID', 'Name', 'Course', 'Batch ID',
   'Payment Method', 'Payment Reference', 'Proof File Link', 'Feedback', 'Status'
@@ -36,6 +43,8 @@ function doPost(e) {
       response = submitRegistration_(body);
     } else if (body.action === 'checkApplication') {
       response = checkApplication_(body.email, body.dob);
+    } else if (body.action === 'submitExam') {
+      response = submitExam_(body);
     } else {
       throw new Error('Unknown action: ' + body.action);
     }
@@ -115,6 +124,98 @@ function findStudent_(glabId) {
     }
   }
   return null;
+}
+
+// Returns a lookup of every GLAB ID (lowercased) that has at least one row
+// in Registrations, regardless of status. Used to find eligible students who
+// have never registered at all — a student who has any prior registration
+// (even for a different course) is intentionally treated as "not pending";
+// this keeps the comparison simple and misses only the repeat-student case
+// of someone newly eligible for another course who hasn't re-registered yet.
+function getRegisteredGlabIds_() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(REGISTRATIONS_SHEET);
+  var ids = {};
+  if (!sheet) return ids;
+
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return ids;
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var idCol = headers.indexOf('glab id');
+  if (idCol === -1) return ids;
+
+  for (var i = 1; i < values.length; i++) {
+    var id = String(values[i][idCol] || '').trim().toLowerCase();
+    if (id) ids[id] = true;
+  }
+  return ids;
+}
+
+// Rebuilds the "Registration Pending" tab: every Students row that's
+// eligible for at least one course but has no Registrations row at all.
+// Run this on a daily time-driven trigger (set up in the Apps Script
+// editor — see apps-script/README.md) so the tab stays current with no
+// manual cross-referencing. Re-running preserves each student's original
+// "Pending Since" date and drops anyone who has since registered.
+function refreshRegistrationPending() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var studentsSheet = ss.getSheetByName(STUDENTS_SHEET);
+  if (!studentsSheet) throw new Error('Students sheet not found');
+
+  var studentValues = studentsSheet.getDataRange().getValues();
+  var headers = studentValues[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var idCol = headers.indexOf('glab id');
+  var nameCol = headers.indexOf('name');
+  if (idCol === -1 || nameCol === -1) {
+    throw new Error('Students sheet must have "GLAB ID" and "Name" columns');
+  }
+  var eligibilityCols = ELIGIBILITY_COLUMNS.map(function (e) {
+    return { col: headers.indexOf(e.header), course: e.course };
+  });
+
+  var registeredIds = getRegisteredGlabIds_();
+
+  var pendingNow = {};
+  for (var i = 1; i < studentValues.length; i++) {
+    var glabId = String(studentValues[i][idCol] || '').trim();
+    if (!glabId) continue;
+    var idKey = glabId.toLowerCase();
+    if (registeredIds[idKey]) continue;
+
+    var eligibleCourses = eligibilityCols
+      .filter(function (e) { return e.col !== -1 && isTruthy_(studentValues[i][e.col]); })
+      .map(function (e) { return e.course; });
+    if (eligibleCourses.length === 0) continue;
+
+    pendingNow[idKey] = { glabId: glabId, name: studentValues[i][nameCol], courses: eligibleCourses.join(', ') };
+  }
+
+  var pendingSheet = ss.getSheetByName(REGISTRATION_PENDING_SHEET) || ss.insertSheet(REGISTRATION_PENDING_SHEET);
+  var existingValues = pendingSheet.getDataRange().getValues();
+  var existingSinceById = {};
+  if (existingValues.length > 1) {
+    var exHeaders = existingValues[0].map(function (h) { return String(h).trim().toLowerCase(); });
+    var exIdCol = exHeaders.indexOf('glab id');
+    var exSinceCol = exHeaders.indexOf('pending since');
+    if (exIdCol !== -1 && exSinceCol !== -1) {
+      for (var j = 1; j < existingValues.length; j++) {
+        var exId = String(existingValues[j][exIdCol] || '').trim().toLowerCase();
+        if (exId) existingSinceById[exId] = existingValues[j][exSinceCol];
+      }
+    }
+  }
+
+  var today = new Date();
+  var rows = Object.keys(pendingNow).sort().map(function (idKey) {
+    var p = pendingNow[idKey];
+    var since = existingSinceById[idKey] || today;
+    return [p.glabId, p.name, p.courses, since];
+  });
+
+  pendingSheet.clearContents();
+  pendingSheet.getRange(1, 1, 1, REGISTRATION_PENDING_HEADERS.length).setValues([REGISTRATION_PENDING_HEADERS]);
+  if (rows.length > 0) {
+    pendingSheet.getRange(2, 1, rows.length, REGISTRATION_PENDING_HEADERS.length).setValues(rows);
+  }
 }
 
 // Returns the most recent Registrations row for this GLAB ID, or null if
@@ -302,4 +403,33 @@ function appendRegistrationRow_(row) {
     sheet.appendRow(REGISTRATIONS_HEADERS);
   }
   sheet.appendRow(row);
+}
+
+// Records an exam submission. Scores are never sent back to the student —
+// the client only learns "submitted successfully". Results stay in this
+// sheet with a blank "Published" column until an admin decides to release
+// them, matching the same manual-confirmation pattern as Registrations.
+function submitExam_(body) {
+  if (!body.name || !body.glabId || !body.examCode) {
+    throw new Error('Name, GLAB ID, and exam code are required.');
+  }
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(EXAM_SUBMISSIONS_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(EXAM_SUBMISSIONS_SHEET);
+    sheet.appendRow(EXAM_SUBMISSIONS_HEADERS);
+  }
+  sheet.appendRow([
+    new Date(),
+    String(body.glabId).trim(),
+    body.name,
+    body.examCode,
+    body.score,
+    body.totalScorable,
+    body.percent,
+    body.writingUploaded ? 'Yes' : 'No',
+    JSON.stringify(body.answers || {}),
+    ''
+  ]);
+  return { success: true };
 }

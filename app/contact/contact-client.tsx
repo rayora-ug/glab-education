@@ -30,7 +30,7 @@ export default function ContactPage() {
     { icon: Facebook, label: 'Facebook Page', desc: 'Follow for daily updates & tips', href: 'https://facebook.com/glab.bd', color: '#1877F2', bg: 'rgba(24,119,242,0.1)' },
     { icon: Users, label: 'Facebook Group', desc: 'Join 1,000+ German learners', href: 'https://facebook.com/groups/glab.bd', color: '#1877F2', bg: 'rgba(24,119,242,0.1)' },
     { icon: MessageCircle, label: 'WhatsApp Community', desc: 'Get instant announcements', href: 'https://chat.whatsapp.com/glab', color: '#16a34a', bg: 'rgba(22,163,74,0.1)' },
-    { icon: Mail, label: 'Email Us', desc: 'info@glab.com.bd', href: 'mailto:info@glab.com.bd', color: '#DD0000', bg: 'rgba(221,0,0,0.1)' },
+    { icon: Mail, label: 'Email Us', desc: 'info@glabeducation.com', href: 'mailto:info@glabeducation.com', color: '#DD0000', bg: 'rgba(221,0,0,0.1)' },
   ]
 
   return (

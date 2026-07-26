@@ -216,7 +216,7 @@ function Footer() {
                     className="w-9 h-9 rounded-lg flex items-center justify-center transition-colors hover:bg-green-600 bg-green-600/10 text-green-600 hover:text-white">
                     <MessageCircle size={16} />
                   </a>
-                  <a href="mailto:info@glab.com.bd"
+                  <a href="mailto:info@glabeducation.com"
                     className="w-9 h-9 rounded-lg flex items-center justify-center transition-colors" style={{background:'rgba(221,0,0,0.1)',color:'#DD0000'}}>
                     <Mail size={16} />
                   </a>
@@ -237,7 +237,7 @@ function Footer() {
                 <ul className="space-y-3">
                   <li className="flex gap-2 text-sm" style={{color:'var(--text-muted)'}}>
                     <Mail size={14} className="flex-shrink-0 mt-0.5" style={{color:'#DD0000'}} />
-                    <span>info@glab.com.bd</span>
+                    <span>info@glabeducation.com</span>
                   </li>
                   <li className="flex gap-2 text-sm" style={{color:'var(--text-muted)'}}>
                     <MessageCircle size={14} className="flex-shrink-0 mt-0.5" style={{color:'#16a34a'}} />
@@ -245,7 +245,7 @@ function Footer() {
                   </li>
                   <li className="flex gap-2 text-sm" style={{color:'var(--text-muted)'}}>
                     <Globe size={14} className="flex-shrink-0 mt-0.5" style={{color:'#2563eb'}} />
-                    <span>www.glab.com.bd</span>
+                    <span>glabeducation.com</span>
                   </li>
                   <li className="flex gap-2 text-sm" style={{color:'var(--text-muted)'}}>
                     <MapPin size={14} className="flex-shrink-0 mt-0.5" style={{color:'#DD0000'}} />

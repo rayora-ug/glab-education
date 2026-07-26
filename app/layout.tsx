@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import NavFooter from '../components/NavFooter'
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://www.glab.com.bd'),
+  metadataBase: new URL('https://glabeducation.com'),
   title: {
     default: 'GLAB – German Language Academy of Bangladesh | Learn German Online',
     template: '%s | GLAB',
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'GLAB – German Language Academy of Bangladesh',
     description: 'Learn German. Build Your Future. Structured online German courses for Bangladeshi students.',
-    url: 'https://www.glab.com.bd',
+    url: 'https://glabeducation.com',
     siteName: 'GLAB',
     locale: 'en_US',
     type: 'website',

@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: ['/admin/', '/api/'],
     },
-    sitemap: 'https://www.glab.com.bd/sitemap.xml',
+    sitemap: 'https://glabeducation.com/sitemap.xml',
   }
 }

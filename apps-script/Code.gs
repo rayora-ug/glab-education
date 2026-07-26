@@ -48,6 +48,8 @@ function doPost(e) {
       response = submitExam_(body);
     } else if (body.action === 'checkExamPermission') {
       response = checkExamPermission_(body.examCode, body.glabId);
+    } else if (body.action === 'uploadWritingProof') {
+      response = uploadWritingProof_(body);
     } else {
       throw new Error('Unknown action: ' + body.action);
     }
@@ -396,6 +398,35 @@ function saveProofFile_(base64, fileName, mimeType) {
   var folder = DriveApp.getFolderById(folderId);
   var file = folder.createFile(blob);
   return file.getUrl();
+}
+
+// Saves a student's handwritten writing-task photo/scan directly to Drive,
+// named with their exam code + GLAB ID + timestamp so it's unambiguous which
+// student it belongs to without relying on them naming the file themselves.
+// Uses its own script property (EXAM_WRITING_FOLDER_ID) — a separate folder
+// from payment proofs — and each upload only touches that one file, so
+// students never see anyone else's submission (unlike a shared Drive folder
+// link, which requires Editor access to upload and therefore also grants
+// view access to everything else already in it).
+function uploadWritingProof_(body) {
+  if (!body.examCode || !body.glabId || !body.fileBase64 || !body.fileName || !body.fileMimeType) {
+    throw new Error('Exam code, GLAB ID, and file are required.');
+  }
+  if (!/^image\//.test(body.fileMimeType) && body.fileMimeType !== 'application/pdf') {
+    throw new Error('File must be an image or a PDF.');
+  }
+  var folderId = PropertiesService.getScriptProperties().getProperty('EXAM_WRITING_FOLDER_ID');
+  if (!folderId) throw new Error('EXAM_WRITING_FOLDER_ID script property not set');
+
+  var bytes = Utilities.base64Decode(body.fileBase64);
+  if (bytes.length > MAX_FILE_BYTES) throw new Error('File too large');
+
+  var ext = String(body.fileName).split('.').pop() || 'jpg';
+  var safeName = body.examCode + '_' + String(body.glabId).trim().toUpperCase() + '_' + new Date().getTime() + '.' + ext;
+  var blob = Utilities.newBlob(bytes, body.fileMimeType, safeName);
+  var folder = DriveApp.getFolderById(folderId);
+  var file = folder.createFile(blob);
+  return { success: true, fileUrl: file.getUrl() };
 }
 
 function appendRegistrationRow_(row) {

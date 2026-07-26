@@ -118,9 +118,22 @@ The `/exam` page (a fully client-side page, separate from `/portal`/`/results` �
 
 **Publishing results is entirely manual, by design** — the student never sees their score. Once you're ready to release results, that's on you to do however you communicate with students (a message, a separate page, whatever) — this tab is just the record. The `Published` column is provided as a place to mark off who you've told, but nothing in the code reads it; it's for your own tracking only.
 
-**The writing question (F51):** students see only the prompt — no answer box — plus a link to a Google Drive upload folder and a self-report checkbox ("I've uploaded my answer") that just affects their own progress indicator in the exam UI, not scoring. Look for their photographed/scanned handwritten answer in the Drive folder, matched by the filename convention (their GLAB ID) — grade it yourself outside this system, same as the score for that question is never auto-computed.
+**The writing question:** students see only the prompt — no auto-graded answer box, same as the score for that question is never auto-computed; grade it yourself outside this system.
 
-Both `/exam` and `/exam-grammar` (the 100-question A2 grammar exam) share the same submission logic and write to this same `Exam Submissions` tab — rows from either exam are told apart by the `Exam Code` column.
+- On **`/exam`** (F51), this is still the original link-based flow: a link to a shared Google Drive upload folder plus a self-report checkbox ("I've uploaded my answer") that only affects their own progress indicator, not scoring. Their photographed/scanned answer is matched by filename convention (their GLAB ID) — this was never changed, see "Exam Writing Uploads folder" below for why `/exam-grammar` no longer works this way.
+- On **`/exam-grammar`** (F101), the student uploads their photo/scan directly from within the exam page itself — no external link or app. This writes straight to Drive via a new `uploadWritingProof` action and automatically fills in `answers[101]` with the resulting file's URL once the upload succeeds, so you can jump straight to it from the `Answers (JSON)` column in `Exam Submissions` instead of hunting through a folder.
+
+Both `/exam` and `/exam-grammar` share the same submission logic and write to this same `Exam Submissions` tab — rows from either exam are told apart by the `Exam Code` column.
+
+## Exam Writing Uploads folder (`/exam-grammar` only)
+
+`/exam-grammar`'s writing question uploads straight to Drive from inside the exam page — no shared folder link, no external Form. This was a deliberate change: a shared Drive folder link needs Editor-level access to let anyone upload to it, and Editor access also lets everyone see (and download) everyone else's uploads — there's no "upload-only" permission on a plain Drive folder. A Google Form was tried as a fix but proved too fiddly for students to use quickly during a timed exam. Uploading directly through the exam page avoids both problems: the server picks the destination and names the file, so students never see each other's answers and never have to type anything extra.
+
+**One-time setup:**
+1. Create a Drive folder (e.g. "GLAB Exam Writing Uploads") and copy its folder ID from the URL, same as you did for the payment-proofs folder in step 2 above.
+2. In the Apps Script editor: **Project Settings → Script Properties → Add script property**, name `EXAM_WRITING_FOLDER_ID`, value = that folder ID.
+
+Files are named `{examCode}_{GLAB ID}_{timestamp}.{extension}` automatically — you don't need students to follow any filename convention themselves.
 
 ## Exam Permissions tab (`/exam-grammar` only)
 

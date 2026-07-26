@@ -9,9 +9,21 @@ type WritingQ = {
   id: number
   type: 'writing'
   prompt: string
-  driveLink: string
+  uploadMode?: 'link' | 'native'
+  driveLink?: string
   uploadButtonLabel?: string
   uploadInstructions?: string
+}
+
+const MAX_WRITING_FILE_BYTES = 5 * 1024 * 1024
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result).split(',')[1] || '')
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
 }
 type Question = ArticleQ | FillQ | WritingQ
 type Screen   = 'login' | 'rules' | 'exam' | 'results'
@@ -111,8 +123,12 @@ export default function ExamEngine({ examData, permissionMode }: { examData: Exa
   const [storageOk, setStorageOk]   = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
+  const [writingUploadStatus, setWritingUploadStatus] = useState<'idle' | 'uploading' | 'done' | 'error'>('idle')
+  const [writingUploadError, setWritingUploadError] = useState('')
   const timerRef  = useRef<ReturnType<typeof setInterval> | null>(null)
   const glabIdRef = useRef('')
+  const submittingRef = useRef(false)
+  const finaliseRef = useRef<() => void>(() => {})
 
   useEffect(() => { setStorageOk(storageAvailable()) }, [])
 
@@ -128,7 +144,7 @@ export default function ExamEngine({ examData, permissionMode }: { examData: Exa
     if (screen !== 'exam' || submitted) return
     timerRef.current = setInterval(() => {
       setTimeLeft(t => {
-        if (t <= 1) { finalise(); return 0 }
+        if (t <= 1) { finaliseRef.current(); return 0 }
         return t - 1
       })
     }, 1000)
@@ -222,7 +238,8 @@ export default function ExamEngine({ examData, permissionMode }: { examData: Exa
   }
 
   async function finalise() {
-    if (submitting) return
+    if (submittingRef.current) return
+    submittingRef.current = true
     setSubmitting(true)
     setSubmitError('')
 
@@ -252,6 +269,7 @@ export default function ExamEngine({ examData, permissionMode }: { examData: Exa
       setSubmitError(err.message || 'Einreichung fehlgeschlagen. Bitte überprüfe deine Internetverbindung und versuche es erneut.')
     }
     setSubmitting(false)
+    submittingRef.current = false
     if (!ok) return
 
     if (timerRef.current) clearInterval(timerRef.current)
@@ -268,11 +286,54 @@ export default function ExamEngine({ examData, permissionMode }: { examData: Exa
     setScreen('results')
   }
 
+  // Keep the timer's auto-submit call pointed at the current closure of
+  // finalise() (current answers, current submitting-guard state), not the
+  // one captured when the timer's setInterval was first created — otherwise
+  // time-out auto-submit sends whatever answers/name existed at the moment
+  // the exam started (i.e. none), not what the student actually entered.
+  useEffect(() => { finaliseRef.current = finalise })
+
   function confirmSubmit() { finalise() }
   function submit() { setSubmitError(''); setShowConfirm(true) }
 
   function setAns(qId: number, val: string) {
     setAnswers(a => ({ ...a, [qId]: val }))
+  }
+
+  async function handleWritingFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !WRITING_Q) return
+    if (!/^image\//.test(file.type) && file.type !== 'application/pdf') {
+      setWritingUploadStatus('error')
+      setWritingUploadError('Bitte lade ein Foto (Bild) oder eine PDF-Datei hoch.')
+      return
+    }
+    if (file.size > MAX_WRITING_FILE_BYTES) {
+      setWritingUploadStatus('error')
+      setWritingUploadError('Die Datei ist zu groß (max. 5MB).')
+      return
+    }
+    setWritingUploadStatus('uploading')
+    setWritingUploadError('')
+    try {
+      const fileBase64 = await fileToBase64(file)
+      const res = await fetch('/api/exam/upload-writing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          examCode: examData.examCode,
+          glabId: glabIdRef.current,
+          fileBase64, fileName: file.name, fileMimeType: file.type,
+        }),
+      })
+      const data = await res.json()
+      if (!data.success) throw new Error(data.error || 'Upload fehlgeschlagen.')
+      setWritingUploadStatus('done')
+      setAns(WRITING_Q.id, data.fileUrl || 'uploaded')
+    } catch (err: any) {
+      setWritingUploadStatus('error')
+      setWritingUploadError(err.message || 'Upload fehlgeschlagen. Bitte überprüfe deine Internetverbindung und versuche es erneut.')
+    }
   }
 
   const answered = Object.keys(answers).length
@@ -530,22 +591,50 @@ export default function ExamEngine({ examData, permissionMode }: { examData: Exa
                   <div style={{ fontSize: 17, fontWeight: 600, color: '#0A0A0A', lineHeight: 1.7, marginBottom: 24, whiteSpace: 'pre-wrap' }}>
                     {(q as WritingQ).prompt}
                   </div>
-                  <div style={{ background: 'rgba(255,206,0,0.12)', border: '1px solid rgba(255,206,0,0.4)', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: '#3A3A3A', marginBottom: 20, lineHeight: 1.6 }}>
-                    {(q as WritingQ).uploadInstructions ? (
-                      (q as WritingQ).uploadInstructions
-                    ) : (
-                      <>✍️ Schreibe deine Antwort von Hand auf Papier, mache ein Foto oder einen Scan, und lade es über den Link unten hoch. Bitte benenne die Datei mit deiner GLAB-ID (z. B. <b>{glabId.toUpperCase() || 'GLAB26F011'}.jpg</b>), damit wir sie zuordnen können.</>
-                    )}
-                  </div>
-                  <a href={(q as WritingQ).driveLink} target="_blank" rel="noopener noreferrer"
-                    style={{ display: 'block', textAlign: 'center', padding: '14px', borderRadius: 12, background: '#0A0A0A', color: 'white', fontSize: 15, fontWeight: 700, textDecoration: 'none', marginBottom: 16 }}>
-                    {(q as WritingQ).uploadButtonLabel || '📤 Zum Google Drive Upload-Ordner'}
-                  </a>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center', fontSize: 13, color: '#3A3A3A', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={!!answers[q.id]} onChange={e => setAns(q.id, e.target.checked ? 'uploaded' : '')}
-                      style={{ width: 18, height: 18 }} />
-                    Ich bestätige, dass ich meine Antwort hochgeladen habe.
-                  </label>
+                  {(q as WritingQ).uploadMode === 'native' ? (
+                    <>
+                      <div style={{ background: 'rgba(255,206,0,0.12)', border: '1px solid rgba(255,206,0,0.4)', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: '#3A3A3A', marginBottom: 20, lineHeight: 1.6 }}>
+                        ✍️ Schreibe deine Antwort von Hand auf Papier, mache dann ein Foto (oder einen Scan) und lade es direkt hier hoch.
+                      </div>
+                      <label style={{ display: 'block', textAlign: 'center', padding: '14px', borderRadius: 12, border: '2px dashed #E5E3DC', background: '#F8F7F2', cursor: 'pointer', marginBottom: 12 }}>
+                        <input type="file" accept="image/*,application/pdf" capture="environment"
+                          onChange={handleWritingFileChange}
+                          disabled={writingUploadStatus === 'uploading'}
+                          style={{ display: 'none' }} />
+                        <span style={{ fontSize: 15, fontWeight: 700, color: '#0A0A0A' }}>
+                          {answers[q.id] ? '📤 Andere Datei wählen' : '📤 Foto oder PDF auswählen'}
+                        </span>
+                      </label>
+                      {writingUploadStatus === 'uploading' && (
+                        <p style={{ textAlign: 'center', fontSize: 13, color: '#777' }}>⏳ Wird hochgeladen…</p>
+                      )}
+                      {writingUploadStatus === 'done' && (
+                        <p style={{ textAlign: 'center', fontSize: 13, color: '#16a34a', fontWeight: 600 }}>✅ Erfolgreich hochgeladen.</p>
+                      )}
+                      {writingUploadStatus === 'error' && (
+                        <p style={{ textAlign: 'center', fontSize: 13, color: '#DD0000' }}>{writingUploadError}</p>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ background: 'rgba(255,206,0,0.12)', border: '1px solid rgba(255,206,0,0.4)', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: '#3A3A3A', marginBottom: 20, lineHeight: 1.6 }}>
+                        {(q as WritingQ).uploadInstructions ? (
+                          (q as WritingQ).uploadInstructions
+                        ) : (
+                          <>✍️ Schreibe deine Antwort von Hand auf Papier, mache ein Foto oder einen Scan, und lade es über den Link unten hoch. Bitte benenne die Datei mit deiner GLAB-ID (z. B. <b>{glabId.toUpperCase() || 'GLAB26F011'}.jpg</b>), damit wir sie zuordnen können.</>
+                        )}
+                      </div>
+                      <a href={(q as WritingQ).driveLink} target="_blank" rel="noopener noreferrer"
+                        style={{ display: 'block', textAlign: 'center', padding: '14px', borderRadius: 12, background: '#0A0A0A', color: 'white', fontSize: 15, fontWeight: 700, textDecoration: 'none', marginBottom: 16 }}>
+                        {(q as WritingQ).uploadButtonLabel || '📤 Zum Google Drive Upload-Ordner'}
+                      </a>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center', fontSize: 13, color: '#3A3A3A', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={!!answers[q.id]} onChange={e => setAns(q.id, e.target.checked ? 'uploaded' : '')}
+                          style={{ width: 18, height: 18 }} />
+                        Ich bestätige, dass ich meine Antwort hochgeladen habe.
+                      </label>
+                    </>
+                  )}
                 </>
               )}
             </div>

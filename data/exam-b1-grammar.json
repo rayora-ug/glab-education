@@ -1,0 +1,135 @@
+{
+  "examCode": "B1GRAM0726",
+  "title": "B1 Intensiv – Grammatikprüfung",
+  "subtitle": "Präteritum, Konjunktiv II, Passiv, Relativsätze, Konjunktionen, Genitiv-Präpositionen",
+  "duration": 90,
+  "questions": [
+    { "id": 1,  "type": "fill", "question": "Er ___ das Auto jeden Tag. (tanken, Präteritum)", "answer": "tankte", "hint": "" },
+    { "id": 2,  "type": "fill", "question": "Sie ___ ihre Tasche im Zug. (lassen, Präteritum)", "answer": "ließ", "hint": "" },
+    { "id": 3,  "type": "fill", "question": "Wir ___ Blumen zur Feier. (bringen, Präteritum)", "answer": "brachten", "hint": "" },
+    { "id": 4,  "type": "fill", "question": "Ich ___ oft an meine Kindheit. (denken, Präteritum)", "answer": "dachte", "hint": "" },
+
+    { "id": 5,  "type": "fill", "question": "Ich war zehn Jahre alt, ___ meine Familie umgezogen ist. (als)", "answer": "als", "hint": "" },
+    { "id": 6,  "type": "fill", "question": "___ ich ankam, regnete es stark. (als)", "answer": "Als", "hint": "" },
+    { "id": 7,  "type": "fill", "question": "Es passierte, ___ ich gerade nicht da war. (als)", "answer": "als", "hint": "" },
+    { "id": 8,  "type": "fill", "question": "___ der Zug losfuhr, winkte sie noch einmal. (als)", "answer": "Als", "hint": "" },
+
+    { "id": 9,  "type": "fill", "question": "Bevor ich ankam, ___ der Film schon begonnen. (haben)", "answer": "hatte", "hint": "" },
+    { "id": 10, "type": "fill", "question": "Sie war müde, weil sie die ganze Nacht nicht geschlafen ___. (haben)", "answer": "hatte", "hint": "" },
+    { "id": 11, "type": "fill", "question": "Nachdem er die Prüfung bestanden ___, feierte er mit Freunden. (haben)", "answer": "hatte", "hint": "" },
+    { "id": 12, "type": "fill", "question": "Ich war schon weg, als sie angekommen ___. (sein)", "answer": "war", "hint": "" },
+
+    { "id": 13, "type": "fill", "question": "Er ging arbeiten, obwohl er krank ___. (sein)", "answer": "war", "hint": "" },
+    { "id": 14, "type": "fill", "question": "Obwohl es spät ___, rief sie noch an. (sein)", "answer": "war", "hint": "" },
+    { "id": 15, "type": "fill", "question": "Sie kaufte das Kleid, obwohl es teuer ___. (sein)", "answer": "war", "hint": "" },
+    { "id": 16, "type": "fill", "question": "Obwohl er müde ___, blieb er wach. (sein)", "answer": "war", "hint": "" },
+
+    { "id": 17, "type": "fill", "question": "Der Mann, ___ dort steht, ist mein Chef. (Nominativ)", "answer": "der", "hint": "" },
+    { "id": 18, "type": "fill", "question": "Die Frau, ___ ich gestern getroffen habe, heißt Lena. (Akkusativ)", "answer": "die", "hint": "" },
+    { "id": 19, "type": "fill", "question": "Das Buch, ___ ich lese, ist spannend. (Akkusativ)", "answer": "das", "hint": "" },
+    { "id": 20, "type": "fill", "question": "Der Kollege, ___ ich geholfen habe, dankt mir. (Dativ)", "answer": "dem", "hint": "" },
+    { "id": 21, "type": "fill", "question": "Die Kinder, ___ Eltern hier arbeiten, spielen draußen. (Genitiv)", "answer": "deren", "hint": "" },
+
+    { "id": 22, "type": "fill", "question": "Das Zimmer muss sofort geputzt ___. (werden)", "answer": "werden", "hint": "" },
+    { "id": 23, "type": "fill", "question": "Der Vertrag sollte heute unterschrieben ___. (werden)", "answer": "werden", "hint": "" },
+    { "id": 24, "type": "fill", "question": "Die Fenster müssen geschlossen ___. (werden)", "answer": "werden", "hint": "" },
+    { "id": 25, "type": "fill", "question": "Das Projekt kann noch verbessert ___. (werden)", "answer": "werden", "hint": "" },
+
+    { "id": 26, "type": "fill", "question": "Das ist das Auto ___ Chefs. (mein)", "answer": "meines", "hint": "" },
+    { "id": 27, "type": "fill", "question": "Der Rat ___ Fachmanns war hilfreich. (ein)", "answer": "eines", "hint": "" },
+    { "id": 28, "type": "fill", "question": "Die Farbe ___ Wand gefällt mir. (die)", "answer": "der", "hint": "" },
+    { "id": 29, "type": "fill", "question": "Das Ende ___ Films war überraschend. (der)", "answer": "des", "hint": "" },
+
+    { "id": 30, "type": "fill", "question": "Wenn ich Zeit ___, würde ich dich besuchen. (haben)", "answer": "hätte", "hint": "" },
+    { "id": 31, "type": "fill", "question": "Wenn er reich ___, würde er reisen. (sein)", "answer": "wäre", "hint": "" },
+    { "id": 32, "type": "fill", "question": "Wenn du mich fragen würdest, ___ ich dir helfen. (werden)", "answer": "würde", "hint": "" },
+    { "id": 33, "type": "fill", "question": "Wenn wir mehr Geld ___, könnten wir das Haus kaufen. (haben)", "answer": "hätten", "hint": "" },
+
+    { "id": 34, "type": "fill", "question": "Wegen ___ Wetters bleiben wir zu Hause. (das)", "answer": "des", "hint": "" },
+    { "id": 35, "type": "fill", "question": "Er kam zu spät wegen ___ Staus. (der)", "answer": "des", "hint": "" },
+    { "id": 36, "type": "fill", "question": "Wegen ___ Krankheit konnte sie nicht kommen. (ihre)", "answer": "ihrer", "hint": "" },
+
+    { "id": 37, "type": "fill", "question": "Es ist wichtig, jeden Tag ___ üben. (zu)", "answer": "zu", "hint": "" },
+    { "id": 38, "type": "fill", "question": "Sie hat keine Zeit, mich ___ besuchen. (zu)", "answer": "zu", "hint": "" },
+    { "id": 39, "type": "fill", "question": "Es ist nicht leicht, eine neue Sprache ___ lernen. (zu)", "answer": "zu", "hint": "" },
+    { "id": 40, "type": "fill", "question": "Er hat vergessen, den Brief ___ schicken. (zu)", "answer": "zu", "hint": "" },
+
+    { "id": 41, "type": "fill", "question": "___ des Urlaubs war das Wetter schön. (während)", "answer": "Während", "hint": "" },
+    { "id": 42, "type": "fill", "question": "___ der Öffnungszeiten können Sie anrufen. (außerhalb)", "answer": "Außerhalb", "hint": "" },
+    { "id": 43, "type": "fill", "question": "___ des Gebäudes gibt es einen Parkplatz. (innerhalb)", "answer": "Innerhalb", "hint": "" },
+    { "id": 44, "type": "fill", "question": "___ der Woche habe ich keine Zeit. (während)", "answer": "Während", "hint": "" },
+
+    { "id": 45, "type": "fill", "question": "Er lernt Deutsch, ___ in Deutschland zu arbeiten. (um)", "answer": "um", "hint": "" },
+    { "id": 46, "type": "fill", "question": "Sie spart Geld, ___ sie ein Auto kaufen kann. (damit)", "answer": "damit", "hint": "" },
+    { "id": 47, "type": "fill", "question": "Ich rufe an, ___ Bescheid zu geben. (um)", "answer": "um", "hint": "" },
+    { "id": 48, "type": "fill", "question": "Wir üben viel, ___ wir die Prüfung bestehen. (damit)", "answer": "damit", "hint": "" },
+
+    { "id": 49, "type": "fill", "question": "Er ging, ___ sich zu verabschieden. (ohne)", "answer": "ohne", "hint": "" },
+    { "id": 50, "type": "fill", "question": "Sie blieb zu Hause, ___ zur Party zu gehen. (statt)", "answer": "statt", "hint": "" },
+    { "id": 51, "type": "fill", "question": "Er half mir, ___ etwas zu sagen. (ohne)", "answer": "ohne", "hint": "" },
+
+    { "id": 52, "type": "fill", "question": "Er ist nicht nur klug, ___ auch freundlich. (sondern)", "answer": "sondern", "hint": "" },
+    { "id": 53, "type": "fill", "question": "Zwar regnet es, ___ wir gehen trotzdem spazieren. (aber)", "answer": "aber", "hint": "" },
+    { "id": 54, "type": "fill", "question": "___ kommst du mit, oder du bleibst hier. (Entweder)", "answer": "Entweder", "hint": "" },
+    { "id": 55, "type": "fill", "question": "Sie ist ___ nur talentiert, sondern auch fleißig. (nicht)", "answer": "nicht", "hint": "" },
+
+    { "id": 56, "type": "fill", "question": "Hätte ich das gewusst, ___ ich anders gehandelt. (haben)", "answer": "hätte", "hint": "" },
+    { "id": 57, "type": "fill", "question": "Wenn er früher gekommen wäre, ___ er den Bus erreicht. (haben)", "answer": "hätte", "hint": "" },
+    { "id": 58, "type": "fill", "question": "Hätte sie mehr gelernt, ___ sie die Prüfung bestanden. (haben)", "answer": "hätte", "hint": "" },
+    { "id": 59, "type": "fill", "question": "Wäre ich reicher gewesen, ___ ich das Haus gekauft. (haben)", "answer": "hätte", "hint": "" },
+
+    { "id": 60, "type": "fill", "question": "Trotz ___ Regens gingen wir spazieren. (das)", "answer": "des", "hint": "" },
+    { "id": 61, "type": "fill", "question": "Trotz ___ Problems blieb er ruhig. (ein)", "answer": "eines", "hint": "" },
+    { "id": 62, "type": "fill", "question": "Trotz ___ Müdigkeit arbeitete sie weiter. (ihre)", "answer": "ihrer", "hint": "" },
+
+    { "id": 63, "type": "fill", "question": "Ruf mich an, ___ du Hilfe brauchst. (falls)", "answer": "falls", "hint": "" },
+    { "id": 64, "type": "fill", "question": "___ es regnet, nehmen wir den Regenschirm. (falls)", "answer": "Falls", "hint": "" },
+    { "id": 65, "type": "fill", "question": "Je mehr er übt, ___ besser wird er. (desto)", "answer": "desto", "hint": "" },
+    { "id": 66, "type": "fill", "question": "Je länger die Reise dauert, ___ müder werden wir. (desto)", "answer": "desto", "hint": "" },
+
+    { "id": 67, "type": "fill", "question": "Das ist der Kollege, ___ dem ich gesprochen habe. (mit)", "answer": "mit", "hint": "" },
+    { "id": 68, "type": "fill", "question": "Das ist die Bekannte, ___ der du erzählt hast. (von)", "answer": "von", "hint": "" },
+    { "id": 69, "type": "fill", "question": "Das ist das Thema, ___ das wir diskutiert haben. (über)", "answer": "über", "hint": "" },
+    { "id": 70, "type": "fill", "question": "Das ist der Freund, ___ den ich mich freue. (auf)", "answer": "auf", "hint": "" },
+
+    { "id": 71, "type": "fill", "question": "Ist das dein Bekannter? Nein, das ist die ___. (bekannt, weiblich)", "answer": "Bekannte", "hint": "" },
+    { "id": 72, "type": "fill", "question": "Er ist ein Deutscher, sie ist eine ___. (deutsch, weiblich)", "answer": "Deutsche", "hint": "" },
+
+    { "id": 73, "type": "fill", "question": "Ich sehe einen ___. (Kollege, Akkusativ)", "answer": "Kollegen", "hint": "" },
+    { "id": 74, "type": "fill", "question": "Ich helfe einem ___. (Kollege, Dativ)", "answer": "Kollegen", "hint": "" },
+    { "id": 75, "type": "fill", "question": "Das ist das Büro meines ___. (Kollege, Genitiv)", "answer": "Kollegen", "hint": "" },
+    { "id": 76, "type": "fill", "question": "Ein ___ hat mir geholfen. (Kollege, Nominativ)", "answer": "Kollege", "hint": "" },
+
+    { "id": 77, "type": "fill", "question": "___ ich koche, hört sie Musik. (während)", "answer": "Während", "hint": "" },
+    { "id": 78, "type": "fill", "question": "___ du gehst, räum bitte auf. (bevor)", "answer": "Bevor", "hint": "" },
+    { "id": 79, "type": "fill", "question": "___ er gegessen hatte, ging er spazieren. (nachdem)", "answer": "Nachdem", "hint": "" },
+    { "id": 80, "type": "fill", "question": "Die Sitzung hatte schon begonnen, ___ sie ankam. (bevor)", "answer": "bevor", "hint": "" },
+
+    { "id": 81, "type": "fill", "question": "Er tut, ___ ob er nichts wüsste. (als)", "answer": "als", "hint": "" },
+    { "id": 82, "type": "fill", "question": "Sie sah aus, ___ ob sie krank wäre. (als)", "answer": "als", "hint": "" },
+    { "id": 83, "type": "fill", "question": "___ ich müde war, ging ich früh schlafen. (da)", "answer": "Da", "hint": "" },
+    { "id": 84, "type": "fill", "question": "Wir blieben zu Hause, ___ es stark regnete. (da)", "answer": "da", "hint": "" },
+
+    { "id": 85, "type": "fill", "question": "Er spricht ___ Englisch als auch Deutsch. (sowohl)", "answer": "sowohl", "hint": "" },
+    { "id": 86, "type": "fill", "question": "Das Essen war sowohl lecker ___ auch gesund. (als)", "answer": "als", "hint": "" },
+    { "id": 87, "type": "fill", "question": "Sie hat ___ Zeit noch Geld. (weder)", "answer": "weder", "hint": "" },
+    { "id": 88, "type": "fill", "question": "Ich mag weder Kaffee ___ Tee. (noch)", "answer": "noch", "hint": "" },
+
+    { "id": 89, "type": "fill", "question": "Morgen ___ ich dich anrufen. (werden)", "answer": "werde", "hint": "" },
+    { "id": 90, "type": "fill", "question": "Sie ___ nächstes Jahr nach Berlin ziehen. (werden)", "answer": "wird", "hint": "" },
+    { "id": 91, "type": "fill", "question": "Wir ___ das Projekt bald beenden. (werden)", "answer": "werden", "hint": "" },
+    { "id": 92, "type": "fill", "question": "___ du mir helfen? (werden)", "answer": "Wirst", "hint": "" },
+
+    { "id": 93, "type": "fill", "question": "___ ich in Berlin wohne, spreche ich besser Deutsch. (seitdem)", "answer": "Seitdem", "hint": "" },
+    { "id": 94, "type": "fill", "question": "Warte hier, ___ ich zurückkomme. (bis)", "answer": "bis", "hint": "" },
+    { "id": 95, "type": "fill", "question": "Er verdient Geld, ___ er online arbeitet. (indem)", "answer": "indem", "hint": "" },
+    { "id": 96, "type": "fill", "question": "Er kam herein, ___ dass jemand ihn sah. (ohne)", "answer": "ohne", "hint": "" },
+
+    { "id": 97, "type": "fill", "question": "Der Verein ist 1990 gegründet ___. (werden, Perfekt)", "answer": "worden", "hint": "" },
+    { "id": 98, "type": "fill", "question": "Sie wurde zur Chefin ___. (wählen, Präteritum Passiv)", "answer": "gewählt", "hint": "" },
+    { "id": 99, "type": "fill", "question": "Alle kamen außer ___ Bruder. (mein)", "answer": "meinem", "hint": "" },
+    { "id": 100, "type": "fill", "question": "Alle waren da außer ___ Chefin. (die)", "answer": "der", "hint": "" },
+
+    { "id": 101, "type": "writing", "prompt": "Schreiben Sie eine E-Mail an Ihren Vermieter / Ihre Vermieterin (ca. 120–150 Wörter). In Ihrer Wohnung gibt es seit einigen Tagen ein Problem (z. B. die Heizung funktioniert nicht, es gibt Lärm von den Nachbarn, oder ein Gerät ist kaputt). Schreiben Sie: - was genau das Problem ist und seit wann es besteht - wie das Problem Ihren Alltag beeinflusst - was Sie bisher unternommen haben, um das Problem zu lösen - was Sie sich von Ihrem Vermieter / Ihrer Vermieterin wünschen und bis wann. Schreiben Sie eine passende Anrede und einen passenden Gruß, und achten Sie auf einen klaren Aufbau (Einleitung, Hauptteil, Schluss). Schreiben Sie Ihre Antwort von Hand auf Papier, machen Sie ein Foto oder einen Scan, und laden Sie es direkt hier hoch.", "uploadMode": "native" }
+  ]
+}

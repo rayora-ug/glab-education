@@ -4,7 +4,7 @@ import { useState } from 'react'
 import ExamEngine, { type ExamData } from '../exam/ExamEngine'
 import { EXAM_REGISTRY } from '../../data/exams/registry'
 
-export default function PrufungClient() {
+export default function PruefungClient() {
   const [code, setCode] = useState('')
   const [err, setErr] = useState('')
   const [examData, setExamData] = useState<ExamData | null>(null)

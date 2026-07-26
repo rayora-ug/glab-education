@@ -1,4 +1,4 @@
-import PrufungClient from './prufung-client'
+import PruefungClient from './pruefung-client'
 
 export const metadata = {
   title: 'GLAB – Prüfung',
@@ -6,5 +6,5 @@ export const metadata = {
 }
 
 export default function Page() {
-  return <PrufungClient />
+  return <PruefungClient />
 }

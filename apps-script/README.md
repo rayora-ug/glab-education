@@ -133,7 +133,7 @@ Both `/exam` and `/exam-grammar` share the same submission logic and write to th
 1. Create a Drive folder (e.g. "GLAB Exam Writing Uploads") and copy its folder ID from the URL, same as you did for the payment-proofs folder in step 2 above.
 2. In the Apps Script editor: **Project Settings → Script Properties → Add script property**, name `EXAM_WRITING_FOLDER_ID`, value = that folder ID.
 
-Files are named `{examCode}_{GLAB ID}_{timestamp}.{extension}` automatically — you don't need students to follow any filename convention themselves.
+You only need to do this once, ever — every exam shares this same parent folder. Inside it, the script automatically creates one subfolder per exam code (e.g. `A2GRAM0725/`) the first time that exam gets a submission, so uploads stay organized per exam without any extra setup for future exams. Files within each subfolder are named `{examCode}_{GLAB ID}_{timestamp}.{extension}` automatically — you don't need students to follow any filename convention themselves.
 
 ## Exam Permissions tab (`/exam-grammar` only)
 

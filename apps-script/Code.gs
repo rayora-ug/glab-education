@@ -415,8 +415,8 @@ function uploadWritingProof_(body) {
   if (!/^image\//.test(body.fileMimeType) && body.fileMimeType !== 'application/pdf') {
     throw new Error('File must be an image or a PDF.');
   }
-  var folderId = PropertiesService.getScriptProperties().getProperty('EXAM_WRITING_FOLDER_ID');
-  if (!folderId) throw new Error('EXAM_WRITING_FOLDER_ID script property not set');
+  var parentFolderId = PropertiesService.getScriptProperties().getProperty('EXAM_WRITING_FOLDER_ID');
+  if (!parentFolderId) throw new Error('EXAM_WRITING_FOLDER_ID script property not set');
 
   var bytes = Utilities.base64Decode(body.fileBase64);
   if (bytes.length > MAX_FILE_BYTES) throw new Error('File too large');
@@ -424,9 +424,20 @@ function uploadWritingProof_(body) {
   var ext = String(body.fileName).split('.').pop() || 'jpg';
   var safeName = body.examCode + '_' + String(body.glabId).trim().toUpperCase() + '_' + new Date().getTime() + '.' + ext;
   var blob = Utilities.newBlob(bytes, body.fileMimeType, safeName);
-  var folder = DriveApp.getFolderById(folderId);
-  var file = folder.createFile(blob);
+  var parentFolder = DriveApp.getFolderById(parentFolderId);
+  var examFolder = getOrCreateSubfolder_(parentFolder, body.examCode);
+  var file = examFolder.createFile(blob);
   return { success: true, fileUrl: file.getUrl() };
+}
+
+// Finds (or creates, on first use) a subfolder named after the exam code
+// inside the given parent — so one script property/folder setup stays
+// organized as one subfolder per exam, without needing new setup steps
+// each time a new exam is created.
+function getOrCreateSubfolder_(parentFolder, name) {
+  var existing = parentFolder.getFoldersByName(name);
+  if (existing.hasNext()) return existing.next();
+  return parentFolder.createFolder(name);
 }
 
 function appendRegistrationRow_(row) {

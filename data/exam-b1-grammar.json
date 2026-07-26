@@ -123,7 +123,7 @@
     { "id": 93, "type": "fill", "question": "___ ich in Berlin wohne, spreche ich besser Deutsch. (Seitdem / Sobald / Bevor)", "answer": "Seitdem", "hint": "" },
     { "id": 94, "type": "fill", "question": "Warte hier, ___ ich zurückkomme. (bis / seit / während)", "answer": "bis", "hint": "" },
     { "id": 95, "type": "fill", "question": "Er verdient Geld, ___ er online arbeitet. (indem / weil / obwohl)", "answer": "indem", "hint": "" },
-    { "id": 96, "type": "fill", "question": "Er kam herein, ___ dass jemand ihn sah. (ohne / sodass)", "answer": "ohne", "hint": "" },
+    { "id": 96, "type": "fill", "question": "Er kam herein, ___ dass jemand ihn sah. (ohne / bevor)", "answer": "ohne", "hint": "" },
 
     { "id": 97,  "type": "fill", "question": "Der Verein ist 1990 gegründet ___. (worden / geworden / werden)", "answer": "worden", "hint": "" },
     { "id": 98,  "type": "fill", "question": "Sie wurde zur Chefin ___. (gewählt / wählen / gewählen)", "answer": "gewählt", "hint": "" },

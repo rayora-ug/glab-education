@@ -5,7 +5,7 @@
   "duration": 90,
   "questions": [
     { "id": 1,  "type": "fill", "question": "Er ___ das Auto jeden Tag. (tanken)", "answer": "tankte", "hint": "" },
-    { "id": 2,  "type": "fill", "question": "Sie ___ ihre Tasche im Zug. (lassen)", "answer": "ließ", "hint": "" },
+    { "id": 2,  "type": "fill", "question": "Meine Kollegin war in Eile, sie ___ ihre Tasche im Zug. (lassen)", "answer": "ließ", "hint": "" },
     { "id": 3,  "type": "fill", "question": "Wir ___ Blumen zur Feier. (bringen)", "answer": "brachten", "hint": "" },
     { "id": 4,  "type": "fill", "question": "Ich ___ oft an meine Kindheit. (denken)", "answer": "dachte", "hint": "" },
 
@@ -116,7 +116,7 @@
     { "id": 88, "type": "fill", "question": "Ich mag weder Kaffee ___ Tee. (noch / oder / als)", "answer": "noch", "hint": "" },
 
     { "id": 89, "type": "fill", "question": "Morgen ___ ich dich anrufen. (werden)", "answer": "werde", "hint": "" },
-    { "id": 90, "type": "fill", "question": "Sie ___ nächstes Jahr nach Berlin ziehen. (werden)", "answer": "wird", "hint": "" },
+    { "id": 90, "type": "fill", "question": "Meine Schwester ist noch in Dhaka. Nächstes Jahr ___ sie nach Berlin ziehen. (werden)", "answer": "wird", "hint": "" },
     { "id": 91, "type": "fill", "question": "Wir ___ das Projekt bald beenden.", "answer": "werden", "hint": "" },
     { "id": 92, "type": "fill", "question": "___ du mir helfen? (werden)", "answer": "Wirst", "hint": "" },
 

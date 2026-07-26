@@ -422,7 +422,9 @@ export default function ExamEngine({ examData, permissionMode, initialExamCode }
             {[
               { label: 'Vollständiger Name', value: name,     set: setName,     placeholder: 'z.B. Fatima Akter', type: 'text' },
               { label: 'GLAB-ID',            value: glabId,   set: setGlabId,   placeholder: 'z.B. GLAB20W001',   type: 'text' },
-              { label: 'Prüfungscode',       value: examCode, set: setExamCode, placeholder: 'Vom Kursleiter',     type: 'password' },
+              ...(initialExamCode ? [] : [
+                { label: 'Prüfungscode', value: examCode, set: setExamCode, placeholder: 'Vom Kursleiter', type: 'password' },
+              ]),
             ].map(({ label, value, set, placeholder, type }) => (
               <div key={label} style={{ marginBottom: 16 }}>
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#3A3A3A', marginBottom: 6 }}>{label}</label>

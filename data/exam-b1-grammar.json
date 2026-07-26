@@ -28,7 +28,7 @@
     { "id": 18, "type": "fill", "question": "Die Frau, ___ ich gestern getroffen habe, heißt Lena. (die / der / das)", "answer": "die", "hint": "" },
     { "id": 19, "type": "fill", "question": "Das Buch, ___ ich lese, ist spannend. (das / den / die)", "answer": "das", "hint": "" },
     { "id": 20, "type": "fill", "question": "Der Kollege, ___ ich geholfen habe, dankt mir. (dem / den / der)", "answer": "dem", "hint": "" },
-    { "id": 21, "type": "fill", "question": "Die Kinder, ___ Eltern hier arbeiten, spielen draußen. (deren / die / denen)", "answer": "deren", "hint": "" },
+    { "id": 21, "type": "fill", "question": "Die Frauen, ___ ich geholfen habe, danken mir. (denen / die / der)", "answer": "denen", "hint": "" },
 
     { "id": 22, "type": "fill", "question": "Das Zimmer muss sofort geputzt ___. (werden / worden / sein)", "answer": "werden", "hint": "" },
     { "id": 23, "type": "fill", "question": "Der Vertrag sollte heute unterschrieben ___. (werden / worden / sein)", "answer": "werden", "hint": "" },

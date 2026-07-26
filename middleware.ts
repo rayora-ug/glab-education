@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-const ALLOWED_PREFIXES = ['/portal', '/api/portal', '/results', '/api/results', '/exam', '/exam-grammar', '/exam-b1', '/api/exam', '/_next', '/favicon.ico', '/manifest.json', '/robots.txt', '/sitemap.xml']
+const ALLOWED_PREFIXES = ['/portal', '/api/portal', '/results', '/api/results', '/exam', '/exam-grammar', '/exam-b1', '/prufung', '/api/exam', '/_next', '/favicon.ico', '/manifest.json', '/robots.txt', '/sitemap.xml']
 
 export function middleware(request: NextRequest) {
   if (process.env.NEXT_PUBLIC_LOCKDOWN_MODE !== 'true') return NextResponse.next()

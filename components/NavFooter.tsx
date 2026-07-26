@@ -272,7 +272,7 @@ function Footer() {
 
 function NavFooterInner({ children }: { children: React.ReactNode }) {
   const p = usePathname()
-  if (p?.startsWith('/exam')) return <>{children}</>
+  if (p?.startsWith('/exam') || p?.startsWith('/prufung')) return <>{children}</>
   return (
     <>
       <Navbar />

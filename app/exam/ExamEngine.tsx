@@ -95,7 +95,7 @@ function useAntiCheat(active: boolean, onViolation: (msg: string) => void) {
   }, [active, onViolation])
 }
 
-export default function ExamEngine({ examData, permissionMode }: { examData: ExamData; permissionMode: PermissionMode }) {
+export default function ExamEngine({ examData, permissionMode, initialExamCode }: { examData: ExamData; permissionMode: PermissionMode; initialExamCode?: string }) {
   const questions = examData.questions
   const TOTAL = questions.length
   const SCORABLE = questions.filter(q => q.type !== 'writing')
@@ -110,7 +110,7 @@ export default function ExamEngine({ examData, permissionMode }: { examData: Exa
   const [screen, setScreen]         = useState<Screen>('login')
   const [name, setName]             = useState('')
   const [glabId, setGlabId]         = useState('')
-  const [examCode, setExamCode]     = useState('')
+  const [examCode, setExamCode]     = useState(initialExamCode ?? '')
   const [loginErr, setLoginErr]     = useState('')
   const [checkingPermission, setCheckingPermission] = useState(false)
   const [current, setCurrent]       = useState(0)

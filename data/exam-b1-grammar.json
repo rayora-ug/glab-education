@@ -78,7 +78,7 @@
     { "id": 58, "type": "fill", "question": "Hätte sie mehr gelernt, ___ sie die Prüfung bestanden. (haben)", "answer": "hätte", "hint": "" },
     { "id": 59, "type": "fill", "question": "Wäre ich reicher gewesen, ___ ich das Haus gekauft. (haben)", "answer": "hätte", "hint": "" },
 
-    { "id": 60, "type": "fill", "question": "Trotz ___ Regens gingen wir spazieren. (das)", "answer": "des", "hint": "" },
+    { "id": 60, "type": "fill", "question": "Trotz ___ Regens gingen wir spazieren. (der)", "answer": "des", "hint": "" },
     { "id": 61, "type": "fill", "question": "Trotz ___ Problems blieb er ruhig. (ein)", "answer": "eines", "hint": "" },
     { "id": 62, "type": "fill", "question": "Trotz ___ Müdigkeit arbeitete sie weiter. (ihre)", "answer": "ihrer", "hint": "" },
 

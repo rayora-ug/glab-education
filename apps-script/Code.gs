@@ -279,9 +279,10 @@ function findWhatsAppLink_(batchId) {
 
 // Finds an A1 application by Email + Date of Birth. Reads the Applications
 // tab by header name — needs "Email" and "Date of Birth" columns at minimum,
-// plus "Name", "Selection Status", "GLAB ID", and "Confirmed Batch" for a
-// full result. "Confirmed Batch" does double duty as both the text shown to
-// the applicant and the key matched against Batch Links — no separate id.
+// plus "Name", "Selection Status", "GLAB ID", "Confirmed Batch", and
+// "Confirmed Batch ID" for a full result. "Confirmed Batch" is the display
+// text shown to the applicant; "Confirmed Batch ID" is the short, stable id
+// (e.g. a1-40-e, matching the a2-36-E convention) matched against Batch Links.
 function findApplication_(email, dob) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(APPLICATIONS_SHEET);
   if (!sheet) throw new Error('Applications sheet not found');
@@ -294,6 +295,7 @@ function findApplication_(email, dob) {
   var statusCol = headers.indexOf('selection status');
   var glabIdCol = headers.indexOf('glab id');
   var batchCol = headers.indexOf('confirmed batch');
+  var batchIdCol = headers.indexOf('confirmed batch id');
   if (emailCol === -1 || dobCol === -1) {
     throw new Error('Applications sheet must have "Email" and "Date of Birth" columns');
   }
@@ -315,7 +317,8 @@ function findApplication_(email, dob) {
         name: nameCol !== -1 ? values[i][nameCol] : '',
         status: status,
         glabId: status === 'selected' && glabIdCol !== -1 ? values[i][glabIdCol] : null,
-        confirmedBatch: status === 'selected' && batchCol !== -1 ? values[i][batchCol] : null
+        confirmedBatch: status === 'selected' && batchCol !== -1 ? values[i][batchCol] : null,
+        confirmedBatchId: status === 'selected' && batchIdCol !== -1 ? values[i][batchIdCol] : null
       };
     }
   }
@@ -331,7 +334,8 @@ function checkApplication_(email, dob) {
     name: application.name,
     status: application.status,
     glabId: application.glabId,
-    confirmedBatch: application.confirmedBatch
+    confirmedBatch: application.confirmedBatch,
+    confirmedBatchId: application.confirmedBatchId
   };
 }
 

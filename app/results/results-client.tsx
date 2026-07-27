@@ -30,6 +30,7 @@ export default function ResultsPage() {
   const [applicantName, setApplicantName] = useState('')
   const [glabId, setGlabId] = useState('')
   const [confirmedBatch, setConfirmedBatch] = useState('')
+  const [confirmedBatchId, setConfirmedBatchId] = useState('')
   const [registration, setRegistration] = useState<Registration | null>(null)
 
   const [paymentMethod, setPaymentMethod] = useState('')
@@ -80,6 +81,7 @@ export default function ResultsPage() {
       setApplicantName(data.name)
       setGlabId(data.glabId)
       setConfirmedBatch(data.confirmedBatch)
+      setConfirmedBatchId(data.confirmedBatchId || data.confirmedBatch)
 
       const lookupRes = await fetch('/api/portal/lookup', {
         method: 'POST',
@@ -121,14 +123,14 @@ export default function ResultsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          glabId, course: confirmedBatch, batchId: confirmedBatch, paymentMethod, paymentReference, feedback,
+          glabId, course: confirmedBatch, batchId: confirmedBatchId, paymentMethod, paymentReference, feedback,
           fileBase64, fileName: file.name, fileMimeType: file.type,
         }),
       })
       const data = await res.json()
       if (!data.success) throw new Error(data.error || 'Something went wrong. Please try again.')
       setRegistration({
-        batchId: confirmedBatch,
+        batchId: confirmedBatchId,
         course: confirmedBatch,
         status: 'Submitted',
         timestamp: new Date().toISOString(),
@@ -151,6 +153,7 @@ export default function ResultsPage() {
     setApplicantName('')
     setGlabId('')
     setConfirmedBatch('')
+    setConfirmedBatchId('')
     setRegistration(null)
     setPaymentMethod('')
     setPaymentReference('')

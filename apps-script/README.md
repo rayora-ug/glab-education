@@ -77,18 +77,19 @@ If a new batch is ever added to the site, it'll get a new id there — add the m
 
 Applicants without a GLAB ID yet (new Foundation+A1 applicants) check whether they were selected on `/results`, using the Email + Date of Birth they gave on the original application form.
 
-**The `Applications` tab** needs your application-form export (Timestamp, Name, Email, Date of Birth, WhatsApp, etc. — whatever you already collect) plus three columns you manage yourself:
+**The `Applications` tab** needs your application-form export (Timestamp, Name, Email, Date of Birth, WhatsApp, etc. — whatever you already collect) plus four columns you manage yourself:
 
 | Column | What it's for |
 |---|---|
 | `Selection Status` | Leave blank while under review. Set to a dropdown (select the column → Data → Data validation → List of items: `Selected`, `Not Selected`) so it's always exactly one of those two once decided. |
 | `GLAB ID` | The GLAB ID you assign this applicant — only fill this in once they're `Selected`. |
-| `Confirmed Batch` | Display text shown to the applicant, e.g. `A1 Intensive — 40th Batch (Evening)`. Doesn't have to match whatever batch they originally requested — this is what you're actually placing them in. This same text is also the lookup key for the WhatsApp link — add a matching row to `Batch Links` with this exact text as the `Batch ID` if you want the link to appear automatically once the applicant's registration is `Confirmed`. |
+| `Confirmed Batch` | Display text shown to the applicant, e.g. `A1 Intensive — 40th Batch (Evening)`. Doesn't have to match whatever batch they originally requested — this is what you're actually placing them in. |
+| `Confirmed Batch ID` | Short, stable id for this batch, matching the same convention as A2/B1 (e.g. `a1-40-e`, see the table above). This is the actual key stored in `Registrations`/`Batch ID` and matched against `Batch Links` — add a matching row there with this id if you want the WhatsApp link to appear automatically once `Confirmed`. If left blank, it falls back to the `Confirmed Batch` text (old behavior), but filling it in keeps `Registrations` consistent with A2/B1 instead of duplicating the `Course` column. |
 
 The `Email` and `Date of Birth` columns must exist with those exact names for lookups to work; everything else is read-only reference data for you.
 
 **Marking someone Selected is two manual steps, not automatic:**
-1. On `Applications`: set `Selection Status` to `Selected`, and fill in `GLAB ID` and `Confirmed Batch`.
+1. On `Applications`: set `Selection Status` to `Selected`, and fill in `GLAB ID`, `Confirmed Batch`, and `Confirmed Batch ID`.
 2. On `Students`: add a new row for them — GLAB ID, Name, and check `Eligible A1`.
 
 Once both are done, `/results` will show them as selected with their GLAB ID and confirmed batch, and they register through the exact same flow (and `Status`/`Confirmed`/WhatsApp-link mechanics) as any A2/B1 student — nothing else to configure.

@@ -279,10 +279,11 @@ function findWhatsAppLink_(batchId) {
 
 // Finds an A1 application by Email + Date of Birth. Reads the Applications
 // tab by header name — needs "Email" and "Date of Birth" columns at minimum,
-// plus "Name", "Selection Status", "GLAB ID", "Confirmed Batch", and
-// "Confirmed Batch ID" for a full result. "Confirmed Batch" is the display
-// text shown to the applicant; "Confirmed Batch ID" is the short, stable id
-// (e.g. a1-40-e, matching the a2-36-E convention) matched against Batch Links.
+// plus "Name", "Selection Status", "GLAB ID", "Confirmed Batch", and a batch
+// id column for a full result. "Confirmed Batch" is the display text shown
+// to the applicant; the batch id column (accepts either "Batch ID" or
+// "Confirmed Batch ID" as the header) is the short, stable id (e.g. a1-40-e,
+// matching the a2-36-E convention) matched against Batch Links.
 function findApplication_(email, dob) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(APPLICATIONS_SHEET);
   if (!sheet) throw new Error('Applications sheet not found');
@@ -296,6 +297,7 @@ function findApplication_(email, dob) {
   var glabIdCol = headers.indexOf('glab id');
   var batchCol = headers.indexOf('confirmed batch');
   var batchIdCol = headers.indexOf('confirmed batch id');
+  if (batchIdCol === -1) batchIdCol = headers.indexOf('batch id');
   if (emailCol === -1 || dobCol === -1) {
     throw new Error('Applications sheet must have "Email" and "Date of Birth" columns');
   }

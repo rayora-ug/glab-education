@@ -4,7 +4,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = 'https://glabeducation.com'
   const routes = [
     '', '/courses', '/registration', '/announcements',
-    '/reviews', '/about', '/hellodeutsch', '/contact',
+    '/reviews', '/books', '/about', '/hellodeutsch', '/contact',
   ]
 
   return routes.map((route) => ({

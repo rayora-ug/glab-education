@@ -1,0 +1,18 @@
+{
+  "courseBooks": [
+    { "level": "A1.1", "title": "Schritte Plus Neu 1", "affiliateLink": "https://www.amazon.com/dp/PLACEHOLDER-A1-1" },
+    { "level": "A1.2", "title": "Schritte Plus Neu 2", "affiliateLink": "https://www.amazon.com/dp/PLACEHOLDER-A1-2" },
+    { "level": "A2.1", "title": "Schritte Plus Neu 3", "affiliateLink": "https://www.amazon.com/dp/PLACEHOLDER-A2-1" },
+    { "level": "A2.2", "title": "Schritte Plus Neu 4", "affiliateLink": "https://www.amazon.com/dp/PLACEHOLDER-A2-2" },
+    { "level": "B1.1", "title": "Schritte Plus Neu 5", "affiliateLink": "https://www.amazon.com/dp/PLACEHOLDER-B1-1" },
+    { "level": "B1.2", "title": "Schritte Plus Neu 6", "affiliateLink": "https://www.amazon.com/dp/PLACEHOLDER-B1-2" }
+  ],
+  "recommendedBooks": [
+    { "title": "Prüfungstraining: Telc Deutsch B1 Zertifikat", "level": "B1", "affiliateLink": "https://www.amazon.com/dp/PLACEHOLDER-REC-1" },
+    { "title": "Grammatik aktiv: Übungsgrammatik A1-B1", "level": "A1-B1", "affiliateLink": "https://www.amazon.com/dp/PLACEHOLDER-REC-2" },
+    { "title": "Sicher! aktuell B2", "level": "B2", "affiliateLink": "https://www.amazon.com/dp/PLACEHOLDER-REC-3" },
+    { "title": "Deutsch intensiv Berufliches Deutsch B2", "level": "B2", "affiliateLink": "https://www.amazon.com/dp/PLACEHOLDER-REC-4" },
+    { "title": "Deutsch intensiv Deutsch für die Pflege B2. Buch", "level": "B2", "affiliateLink": "https://www.amazon.com/dp/PLACEHOLDER-REC-5" },
+    { "title": "Kommunikation im Krankenhaus B1/B2", "level": "B1/B2", "affiliateLink": "https://www.amazon.com/dp/PLACEHOLDER-REC-6" }
+  ]
+}

@@ -21,6 +21,7 @@ const navLinks = [
   { href: '/registration', label: 'Registration' },
   { href: '/announcements', label: 'Announcements' },
   { href: '/reviews', label: 'Reviews' },
+  { href: '/books', label: 'Books' },
   { href: '/hellodeutsch', label: 'HelloDeutsch' },
   { href: '/about', label: 'About' },
   { href: '/contact', label: 'Contact' },
@@ -226,7 +227,7 @@ function Footer() {
               <div>
                 <h3 className="font-semibold mb-4 text-sm uppercase tracking-wider" style={{color:'var(--text-primary)'}}>Quick Links</h3>
                 <ul className="space-y-2">
-                  {[['Courses', '/courses'], ['Registration', '/registration'], ['Announcements', '/announcements'], ['Reviews', '/reviews'], ['HelloDeutsch App', '/hellodeutsch'], ['Verify Certificate', '/verify']].map(([l, h]) => (
+                  {[['Courses', '/courses'], ['Registration', '/registration'], ['Announcements', '/announcements'], ['Reviews', '/reviews'], ['Books', '/books'], ['HelloDeutsch App', '/hellodeutsch'], ['Verify Certificate', '/verify']].map(([l, h]) => (
                     <li key={h}><Link href={h} className="text-sm transition-colors hover:text-red-600" style={{color:'var(--text-muted)'}}>{l}</Link></li>
                   ))}
                 </ul>

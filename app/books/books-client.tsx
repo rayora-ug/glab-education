@@ -1,9 +1,10 @@
 'use client'
 
+import { useState } from 'react'
 import { BookOpen, ExternalLink, ShoppingCart } from 'lucide-react'
 import booksData from '../../data/books.json'
 
-type Book = { level: string; title: string; affiliateLink: string }
+type Book = { level: string; title: string; affiliateLink: string; coverImage?: string }
 
 function groupByLevel(books: Book[]) {
   const groups: Record<string, Book[]> = {}
@@ -15,16 +16,41 @@ function groupByLevel(books: Book[]) {
   return groups
 }
 
+function BookCover({ book }: { book: Book }) {
+  const [broken, setBroken] = useState(false)
+
+  if (!book.coverImage || broken) {
+    return (
+      <div className="w-full aspect-[3/4] rounded-lg mb-4 flex items-center justify-center flex-shrink-0" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+        <BookOpen size={32} style={{ color: 'var(--text-muted)' }} />
+      </div>
+    )
+  }
+
+  return (
+    <div className="w-full aspect-[3/4] rounded-lg mb-4 overflow-hidden flex-shrink-0" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={book.coverImage}
+        alt={`Cover of ${book.title}`}
+        loading="lazy"
+        onError={() => setBroken(true)}
+        className="w-full h-full object-cover"
+      />
+    </div>
+  )
+}
+
 function BookCard({ book }: { book: Book }) {
   return (
     <div className="card p-6 flex flex-col">
+      <BookCover book={book} />
       <div className="flex items-center gap-2 mb-3">
         <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold" style={{ background: 'rgba(0,0,0,0.06)', color: 'var(--text-primary)', letterSpacing: '0.05em' }}>
           {book.level}
         </span>
       </div>
-      <div className="flex items-start gap-3 mb-5 flex-1">
-        <BookOpen size={20} className="mt-0.5 flex-shrink-0" style={{ color: '#DD0000' }} />
+      <div className="mb-5 flex-1">
         <h3 className="font-display font-bold text-lg leading-snug" style={{ color: 'var(--text-primary)' }}>{book.title}</h3>
       </div>
       <a href={book.affiliateLink} target="_blank" rel="noopener noreferrer sponsored" className="btn-primary w-full justify-center">

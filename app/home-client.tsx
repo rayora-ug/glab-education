@@ -4,23 +4,17 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import {
   ArrowRight, Star, Users, BookOpen, Award, Clock, ChevronDown,
-  CheckCircle, Smartphone, Target, TrendingUp,
-  MessageCircle, GraduationCap, Volume2, BarChart2,
-  ChevronLeft, ChevronRight, Quote, Plus, Minus, Download, ShieldCheck
+  CheckCircle, Target, TrendingUp,
+  MessageCircle, GraduationCap,
+  ChevronLeft, ChevronRight, Quote, Plus, Minus, ShieldCheck
 } from 'lucide-react'
 import courses from '../data/courses.json'
 import announcements from '../data/announcements.json'
 import reviews from '../data/reviews.json'
 import faq from '../data/faq.json'
 
-// HelloDeutsch app isn't built yet — flip this to true once it's live to
-// bring back the "Learn Anywhere" showcase section (and every other
-// HelloDeutsch mention gated on this flag) without rewriting them.
-const HELLODEUTSCH_APP_LIVE = false
-
 const TICKER_ITEMS = [
   'A1 Intensive – August 2026', 'Free Pronunciation Workshop – June 20', 'B1 Exam Prep Now Available',
-  ...(HELLODEUTSCH_APP_LIVE ? ['HelloDeutsch App Beta Live'] : []),
   'GLAB x StudyLink Germany Partnership',
 ]
 
@@ -184,7 +178,6 @@ export default function HomePage() {
             {[
               { icon: Target, title: 'CEFR-Aligned Curriculum', desc: 'Our courses follow the Common European Framework of Reference (CEFR), the international standard for language learning.', color: '#DD0000' },
               { icon: Users, title: 'Expert Bangladeshi Instructors', desc: 'Learn from teachers who understand the unique challenges Bangladeshi students face and explain in Bangla when needed.', color: '#FFCE00' },
-              ...(HELLODEUTSCH_APP_LIVE ? [{ icon: Smartphone, title: 'HelloDeutsch App', desc: 'Reinforce your learning with our dedicated mobile app featuring vocabulary trainers, speaking practice, and progress tracking.', color: '#000' }] : []),
               { icon: Award, title: 'Goethe & Telc Exam Ready', desc: 'Every GLAB course is specifically designed to prepare students for the official Goethe-Institut, telc, and TestDaF exams.', color: '#FFCE00' },
               { icon: TrendingUp, title: 'Proven Results', desc: '98% exam pass rate. 5000+ students enrolled. Graduates now studying and working across Germany and Austria.', color: '#000' },
             ].map(({ icon: Icon, title, desc, color }) => (
@@ -315,94 +308,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* HELLODEUTSCH PREVIEW — deactivated until the app is actually live, see HELLODEUTSCH_APP_LIVE */}
-      {HELLODEUTSCH_APP_LIVE && (
-      <section className="section relative overflow-hidden" style={{background:'#000'}}>
-        <div className="container relative z-10">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div>
-              <div className="section-label" style={{color:'#FFCE00'}}>Mobile App</div>
-              <h2 className="font-display font-bold text-4xl md:text-5xl mb-6 text-white">
-                HelloDeutsch<br />
-                <span style={{color:'#FFCE00'}}>Learn Anywhere</span>
-              </h2>
-              <p className="text-lg mb-8 text-gray-300 leading-relaxed">
-                Our dedicated mobile app brings German learning to your fingertips. Vocabulary trainer, speaking practice, and progress tracking – all in one place.
-              </p>
-              <div className="grid grid-cols-2 gap-4 mb-8">
-                {[
-                  { icon: BookOpen, label: 'Vocabulary Trainer', desc: '2,000+ words with audio' },
-                  { icon: Volume2, label: 'Speaking Practice', desc: 'Record & compare' },
-                  { icon: BarChart2, label: 'Progress Tracking', desc: 'Visual dashboards' },
-                  { icon: Target, label: 'Exam Preparation', desc: 'Mock tests & drills' },
-                ].map(({ icon: Icon, label, desc }) => (
-                  <div key={label} className="flex gap-3 items-start">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{background:'rgba(255,206,0,0.2)'}}>
-                      <Icon size={16} style={{color:'#FFCE00'}} />
-                    </div>
-                    <div>
-                      <div className="text-sm font-semibold text-white">{label}</div>
-                      <div className="text-xs text-gray-400">{desc}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <Link href="/hellodeutsch" className="btn-gold">
-                  <Download size={16} /> Download App
-                </Link>
-                <Link href="/hellodeutsch" className="btn-secondary" style={{borderColor:'rgba(255,255,255,0.2)',color:'white'}}>
-                  Learn More <ArrowRight size={14} />
-                </Link>
-              </div>
-            </div>
-
-            <div className="flex justify-center">
-              <div className="relative w-64 h-[480px] rounded-[40px] overflow-hidden shadow-2xl" style={{background:'#1a1a1a',border:'3px solid rgba(255,255,255,0.1)'}}>
-                <div className="absolute top-0 left-0 right-0 h-1" style={{background:'linear-gradient(to right,#000,#DD0000,#FFCE00)'}} />
-                <div className="p-6 pt-10 h-full flex flex-col">
-                  <div className="flex items-center gap-2 mb-6">
-                    <div className="w-8 h-8 rounded-lg overflow-hidden" style={{background:'linear-gradient(135deg,#000 33%,#DD0000 33% 66%,#FFCE00 66%)'}}>
-                      <div className="w-full h-full flex items-center justify-center">
-                        <GraduationCap size={14} color="white" />
-                      </div>
-                    </div>
-                    <span className="font-bold text-white text-sm">HelloDeutsch</span>
-                  </div>
-                  <div className="text-gray-400 mb-3 font-mono uppercase tracking-wider" style={{fontSize:'10px'}}>Today's Vocabulary</div>
-                  <div className="space-y-2 mb-6">
-                    {[['Schule', 'School', '✓'], ['Lernen', 'To Learn', '✓'], ['Sprache', 'Language', '→']].map(([de, en, s]) => (
-                      <div key={de} className="rounded-xl p-3 flex items-center justify-between" style={{background:'rgba(255,255,255,0.06)'}}>
-                        <div>
-                          <div className="text-white text-sm font-semibold">{de}</div>
-                          <div className="text-gray-400 text-xs">{en}</div>
-                        </div>
-                        <span style={{color: s === '✓' ? '#FFCE00' : 'rgba(255,255,255,0.3)', fontSize:'14px'}}>{s}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="rounded-xl p-3 mb-4" style={{background:'rgba(221,0,0,0.15)',border:'1px solid rgba(221,0,0,0.3)'}}>
-                    <div className="text-xs text-gray-400 mb-1">Daily Progress</div>
-                    <div className="progress-bar mb-1">
-                      <div className="progress-fill" style={{width:'65%'}} />
-                    </div>
-                    <div className="text-xs" style={{color:'#FFCE00'}}>13/20 words reviewed</div>
-                  </div>
-                  <div className="mt-auto flex justify-around">
-                    {[BookOpen, Volume2, BarChart2, Target].map((Icon, i) => (
-                      <div key={i} className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background: i===0 ? 'rgba(221,0,0,0.2)' : 'rgba(255,255,255,0.05)'}}>
-                        <Icon size={16} style={{color: i===0 ? '#DD0000' : 'rgba(255,255,255,0.4)'}} />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-      )}
-
       {/* TESTIMONIALS */}
       <section className="section">
         <div className="container">
@@ -471,7 +376,7 @@ export default function HomePage() {
               </h2>
             </div>
             <div className="space-y-3">
-              {(faq as any[]).filter(q => HELLODEUTSCH_APP_LIVE || q.category !== 'HelloDeutsch App').map((q) => (
+              {(faq as any[]).map((q) => (
                 <div key={q.id} className="card overflow-hidden">
                   <button
                     className="w-full text-left px-6 py-5 flex items-center justify-between gap-4"

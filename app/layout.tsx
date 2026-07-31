@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     template: '%s | GLAB',
   },
   description: 'GLAB helps Bangladeshi students learn German and prepare for studies, careers, and life in Germany through structured online courses and digital learning tools.',
-  keywords: ['German language course Bangladesh', 'learn German online', 'A1 A2 B1 B2 German course', 'Goethe Institut exam preparation', 'GLAB', 'HelloDeutsch'],
+  keywords: ['German language course Bangladesh', 'learn German online', 'A1 A2 B1 B2 German course', 'Goethe Institut exam preparation', 'GLAB'],
   authors: [{ name: 'GLAB' }],
   openGraph: {
     title: 'GLAB – German Language Academy of Bangladesh',

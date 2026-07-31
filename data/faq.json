@@ -12,12 +12,6 @@
     "category": "Classes"
   },
   {
-    "id": 3,
-    "question": "What is the HelloDeutsch app?",
-    "answer": "HelloDeutsch is GLAB's own mobile app for learning German. It includes a Vocabulary Trainer with 2,000+ words, Speaking Practice with audio recording, Progress Tracking, and Exam Preparation materials. It is being developed specifically for Bangladeshi German learners and will be available on Google Play and Apple App Store soon.",
-    "category": "HelloDeutsch App"
-  },
-  {
     "id": 4,
     "question": "Can I get a certificate after completing a course?",
     "answer": "Yes! GLAB issues a course completion certificate for each level you complete. However, please note that GLAB certificates are internal course certificates and are separate from official internationally recognized certificates like the Goethe-Institut Zertifikat. We prepare you for those official exams as well.",

@@ -26,7 +26,6 @@ app/
   announcements/            /announcements (search, filter, pagination)
   reviews/                  /reviews
   about/                    /about
-  hellodeutsch/             /hellodeutsch
   contact/                  /contact (form)
   portal/                   /portal (existing-student registration by GLAB ID)
   api/portal/                lookup + submit routes (proxy to Google Apps Script)
@@ -86,7 +85,7 @@ removed from `next.config.js`) — Route Handlers need a server runtime, which
 
 ### Lockdown mode (registration-only site)
 
-Most of the site (Courses, Reviews, About, Announcements, HelloDeutsch, Verify, the
+Most of the site (Courses, Reviews, About, Announcements, Verify, the
 old `/registration` page) still holds placeholder content that shouldn't be shown to
 students during the A2/B1 registration window. Set the env var
 `NEXT_PUBLIC_LOCKDOWN_MODE=true` (in Netlify's environment variables, or `.env.local`

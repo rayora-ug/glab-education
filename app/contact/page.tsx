@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description: 'Get in touch with GLAB for course information, registration help, or partnership inquiries. Reach us via email, WhatsApp, or Facebook.',
   openGraph: {
     title: 'Contact GLAB',
-    description: 'Have a question about courses, registration, or the HelloDeutsch app? We\'re here to help.',
+    description: 'Have a question about courses or registration? We\'re here to help.',
   },
 }
 

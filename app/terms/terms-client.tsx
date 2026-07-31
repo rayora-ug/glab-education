@@ -57,7 +57,7 @@ export default function TermsClient() {
 
       <LegalSection heading="8. Intellectual Property">
         <p>
-          All course materials, the HelloDeutsch app (once released), and the content of this website are the property of Rayora UG or its licensors, and may not be reproduced, redistributed, or shared with individuals not enrolled in the relevant course without our prior written permission. Any third-party trademarks referenced on this website remain the property of their respective owners.
+          All course materials and the content of this website are the property of Rayora UG or its licensors, and may not be reproduced, redistributed, or shared with individuals not enrolled in the relevant course without our prior written permission. Any third-party trademarks referenced on this website remain the property of their respective owners.
         </p>
       </LegalSection>
 

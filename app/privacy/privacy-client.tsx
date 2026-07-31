@@ -80,19 +80,13 @@ export default function PrivacyClient() {
         </p>
       </LegalSection>
 
-      <LegalSection heading="9. HelloDeutsch App">
-        <p>
-          This website may reference HelloDeutsch, a mobile learning app currently in development and not yet publicly released. Visiting informational pages about HelloDeutsch does not involve any additional processing of your personal data. Once released, use of the app itself will be governed by its own, separate privacy terms.
-        </p>
-      </LegalSection>
-
-      <LegalSection heading="10. Storage Duration">
+      <LegalSection heading="9. Storage Duration">
         <p>
           We retain personal data only for as long as necessary for the purpose it was collected for, or as required by applicable statutory retention obligations (for example, German commercial and tax law generally require certain business records to be kept for six to ten years).
         </p>
       </LegalSection>
 
-      <LegalSection heading="11. Your Rights">
+      <LegalSection heading="10. Your Rights">
         <p>Under the GDPR, you have the right to:</p>
         <ul className="list-disc pl-5 space-y-1">
           <li>Request access to the personal data we hold about you (Art. 15)</li>
@@ -107,13 +101,13 @@ export default function PrivacyClient() {
         </p>
       </LegalSection>
 
-      <LegalSection heading="12. Right to Lodge a Complaint">
+      <LegalSection heading="11. Right to Lodge a Complaint">
         <p>
           You have the right to lodge a complaint with a data protection supervisory authority. The authority responsible for us is the Hamburg Commissioner for Data Protection and Freedom of Information (Der Hamburgische Beauftragte für Datenschutz und Informationsfreiheit).
         </p>
       </LegalSection>
 
-      <LegalSection heading="13. Changes to This Privacy Policy">
+      <LegalSection heading="12. Changes to This Privacy Policy">
         <p>
           We may update this Privacy Policy from time to time to reflect changes to our practices or legal requirements. Any changes will be posted on this page.
         </p>

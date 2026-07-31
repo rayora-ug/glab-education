@@ -15,7 +15,7 @@ import {
 const REGISTRATION_DEADLINE = '2026-07-30'
 
 const openCourses = (coursesData as any[]).filter(
-  c => c.registrationOpen && c.level !== 'Pre-A1' && c.level !== 'A1'
+  c => c.registrationOpen && c.level !== 'A1'
 )
 
 const batchOptions = openCourses.flatMap((c: any) =>
@@ -121,7 +121,7 @@ export default function PortalPage() {
       })
       const data = await res.json()
       if (!data.success) throw new Error(data.error || 'Something went wrong. Please try again.')
-      setRegistration({
+      setRegistration(data.alreadyRegistered && data.registration ? data.registration : {
         batchId: selectedBatch.id,
         course: selectedBatch.label,
         status: 'Submitted',

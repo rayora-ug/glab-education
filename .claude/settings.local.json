@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(mkdir -p /Users/mohammadrayhanurrahman/dev/glab/apps-script)",
+      "Bash(npm run *)",
+      "Bash(node /private/tmp/claude-501/-Users-mohammadrayhanurrahman-dev-glab/58737a22-9259-4fc8-8c9d-1be180bfc605/scratchpad/mock-apps-script.js)",
+      "Bash(pkill -f mock-apps-script.js)",
+      "Bash(git fetch *)",
+      "Bash(git pull *)"
     ]
   }
 }

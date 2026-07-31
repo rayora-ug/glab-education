@@ -19,6 +19,8 @@ var EXAM_SUBMISSIONS_HEADERS = [
   'Percent', 'Writing Uploaded', 'Answers (JSON)', 'Published'
 ];
 var EXAM_PERMISSIONS_SHEET = 'Exam Permissions';
+var REVIEWS_SHEET = 'Reviews';
+var CERTIFICATES_SHEET = 'Certificates';
 var REGISTRATIONS_HEADERS = [
   'Timestamp', 'GLAB ID', 'Name', 'Course', 'Batch ID',
   'Payment Method', 'Payment Reference', 'Proof File Link', 'Feedback', 'Status'
@@ -50,6 +52,12 @@ function doPost(e) {
       response = checkExamPermission_(body.examCode, body.glabId);
     } else if (body.action === 'uploadWritingProof') {
       response = uploadWritingProof_(body);
+    } else if (body.action === 'listReviews') {
+      response = listReviews_(body.onlyUnsynced);
+    } else if (body.action === 'markReviewsSynced') {
+      response = markReviewsSynced_(body.ids);
+    } else if (body.action === 'verifyCertificate') {
+      response = verifyCertificate_(body.certificateId);
     } else {
       throw new Error('Unknown action: ' + body.action);
     }
@@ -377,6 +385,18 @@ function submitRegistration_(body) {
   });
   if (!isEligible) throw new Error('Not eligible for this course');
 
+  // Idempotency guard: if this GLAB ID already has a registration on file,
+  // don't append another one — just report success without writing a new
+  // row. Without this, a client retry after an ambiguous network error (the
+  // submission actually succeeded, but the response never confirmed it)
+  // produces a real duplicate row, since this function previously had no
+  // way to tell "first submission" from "resubmission" apart.
+  var existing = findLatestRegistration_(student.glabId);
+  if (existing) {
+    existing.whatsappLink = existing.status === CONFIRMED_STATUS ? findWhatsAppLink_(existing.batchId) : null;
+    return { success: true, alreadyRegistered: true, registration: existing };
+  }
+
   var fileUrl = saveProofFile_(body.fileBase64, body.fileName, body.fileMimeType);
   appendRegistrationRow_([
     new Date(),
@@ -542,4 +562,112 @@ function hasExamSubmission_(needleCodeLower, needleIdLower) {
     if (rowId === needleIdLower && rowCode === needleCodeLower) return true;
   }
   return false;
+}
+
+// Reads the "Reviews" intake tab — staff paste real reviews (from Facebook
+// or elsewhere) here as they collect them. This is a staging area, not
+// connected live to the site: reviews are periodically synced by hand into
+// data/reviews.json in the site repo. Expected columns (any order, matched
+// by header name): Name, Location, Rating, Date, Course, Review Text,
+// Outcome, Featured, Synced. "Synced" is a checkbox column this function's
+// counterpart (markReviewsSynced_) checks off once a review has been copied
+// into the site, so repeat syncs don't reprocess the same rows.
+function listReviews_(onlyUnsynced) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(REVIEWS_SHEET);
+  if (!sheet) throw new Error('Reviews sheet not found');
+
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return { success: true, reviews: [] };
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var col = function (name) { return headers.indexOf(name); };
+  var nameCol = col('name'), locCol = col('location'), ratingCol = col('rating'),
+      dateCol = col('date'), courseCol = col('course'), textCol = col('review text'),
+      outcomeCol = col('outcome'), featuredCol = col('featured'), syncedCol = col('synced');
+
+  var reviews = [];
+  for (var i = 1; i < values.length; i++) {
+    var synced = syncedCol !== -1 && isTruthy_(values[i][syncedCol]);
+    if (onlyUnsynced && synced) continue;
+    var row = values[i];
+    if (!row[nameCol] && !row[textCol]) continue; // skip blank rows
+    reviews.push({
+      row: i + 1, // 1-indexed sheet row, for markReviewsSynced_
+      name: nameCol !== -1 ? row[nameCol] : '',
+      location: locCol !== -1 ? row[locCol] : '',
+      rating: ratingCol !== -1 ? Number(row[ratingCol]) || null : null,
+      date: dateCol !== -1 ? normalizeDate_(row[dateCol]) : '',
+      course: courseCol !== -1 ? row[courseCol] : '',
+      text: textCol !== -1 ? row[textCol] : '',
+      outcome: outcomeCol !== -1 ? row[outcomeCol] : '',
+      featured: featuredCol !== -1 && isTruthy_(row[featuredCol]),
+      synced: synced
+    });
+  }
+  return { success: true, reviews: reviews };
+}
+
+// Checks off "Synced" for the given 1-indexed row numbers (as returned by
+// listReviews_) once they've been copied into data/reviews.json.
+function markReviewsSynced_(rowNumbers) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(REVIEWS_SHEET);
+  if (!sheet) throw new Error('Reviews sheet not found');
+  if (!rowNumbers || !rowNumbers.length) return { success: true, updated: 0 };
+
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+    .map(function (h) { return String(h).trim().toLowerCase(); });
+  var syncedCol = headers.indexOf('synced');
+  if (syncedCol === -1) throw new Error('Reviews sheet has no "Synced" column');
+
+  rowNumbers.forEach(function (r) {
+    sheet.getRange(r, syncedCol + 1).setValue(true);
+  });
+  return { success: true, updated: rowNumbers.length };
+}
+
+// Looks up a single record by its ID (case-insensitive) from the
+// "Certificates" tab. Only the queried record's data is ever returned —
+// deliberately server-side so the full roster (every student's name and
+// status) is never shipped to the browser, unlike the old static-JSON
+// approach this replaced. Expected columns (any order, matched by header
+// name): Certificate ID, Student Name, Course, Starting Date,
+// Completion Date, Issued Date, Status.
+// Status drives what the site shows: "Completed" renders as a full
+// Certificate of Completion; "Enrolled"/"Running" render as a verified
+// current-student/enrollment record instead.
+function verifyCertificate_(certificateId) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CERTIFICATES_SHEET);
+  if (!sheet) throw new Error('Certificates sheet not found');
+
+  var needle = String(certificateId || '').trim().toLowerCase();
+  if (!needle) return { success: true, found: false };
+
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return { success: true, found: false };
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var col = function (name) { return headers.indexOf(name); };
+  var idCol = col('certificate id');
+  if (idCol === -1) throw new Error('Certificates sheet must have a "Certificate ID" column');
+  var nameCol = col('student name'), courseCol = col('course'),
+      startCol = col('starting date'), completionCol = col('completion date'),
+      issuedCol = col('issued date'), statusCol = col('status');
+
+  for (var i = 1; i < values.length; i++) {
+    var row = values[i];
+    if (String(row[idCol] || '').trim().toLowerCase() === needle) {
+      return {
+        success: true,
+        found: true,
+        certificate: {
+          certificateId: row[idCol],
+          studentName: nameCol !== -1 ? row[nameCol] : '',
+          course: courseCol !== -1 ? row[courseCol] : '',
+          startingDate: startCol !== -1 ? normalizeDate_(row[startCol]) : '',
+          completionDate: completionCol !== -1 ? normalizeDate_(row[completionCol]) : '',
+          issuedDate: issuedCol !== -1 ? normalizeDate_(row[issuedCol]) : '',
+          status: statusCol !== -1 ? String(row[statusCol] || '').trim() : ''
+        }
+      };
+    }
+  }
+  return { success: true, found: false };
 }

@@ -129,7 +129,7 @@ export default function ResultsPage() {
       })
       const data = await res.json()
       if (!data.success) throw new Error(data.error || 'Something went wrong. Please try again.')
-      setRegistration({
+      setRegistration(data.alreadyRegistered && data.registration ? data.registration : {
         batchId: confirmedBatchId,
         course: confirmedBatch,
         status: 'Submitted',

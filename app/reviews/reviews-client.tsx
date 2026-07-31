@@ -45,7 +45,7 @@ export default function ReviewsPage() {
                 {[1,2,3,4,5].map(i => <Star key={i} size={20} fill="#FFCE00" style={{color:'#FFCE00'}} />)}
               </div>
               <div className="text-sm font-semibold mb-1" style={{color:'var(--text-primary)'}}>Excellent Rating</div>
-              <div className="text-xs" style={{color:'var(--text-muted)'}}>{data.totalReviews}+ verified reviews</div>
+              <div className="text-xs" style={{color:'var(--text-muted)'}}>{data.totalReviews} verified reviews</div>
             </div>
           </div>
 
@@ -86,7 +86,7 @@ export default function ReviewsPage() {
                     <div className="absolute top-0 left-0 w-1 h-full" style={{background:'linear-gradient(to bottom,#000,#DD0000,#FFCE00)'}} />
                     <Quote size={40} className="absolute top-6 right-6 opacity-5" />
                     <StarDisplay rating={r.rating} />
-                    <p className="text-base italic my-4 leading-relaxed font-display" style={{color:'var(--text-primary)'}}>
+                    <p className="text-base italic my-4 leading-relaxed font-display whitespace-pre-line" style={{color:'var(--text-primary)'}}>
                       "{r.text}"
                     </p>
                     <div className="flex items-center justify-between mt-4 pt-4" style={{borderTop:'1px solid var(--border)'}}>
@@ -95,7 +95,7 @@ export default function ReviewsPage() {
                           {r.name}
                           {r.verified && <CheckCircle size={14} style={{color:'#16a34a'}} />}
                         </div>
-                        <div className="text-xs" style={{color:'var(--text-muted)'}}>{r.level} · {r.location}</div>
+                        <div className="text-xs" style={{color:'var(--text-muted)'}}>{[r.level, r.location].filter(Boolean).join(' · ')}</div>
                       </div>
                       {r.outcome && (
                         <span className="badge badge-gold text-xs">{r.outcome}</span>
@@ -115,7 +115,7 @@ export default function ReviewsPage() {
                   <StarDisplay rating={r.rating} />
                   <span className="text-xs" style={{color:'var(--text-muted)'}}>{new Date(r.date).toLocaleDateString('en-GB', {month:'short',year:'numeric'})}</span>
                 </div>
-                <p className="text-sm italic mb-4 leading-relaxed" style={{color:'var(--text-secondary)'}}>"{r.text}"</p>
+                <p className="text-sm italic mb-4 leading-relaxed whitespace-pre-line" style={{color:'var(--text-secondary)'}}>"{r.text}"</p>
                 <div className="pt-3" style={{borderTop:'1px solid var(--border)'}}>
                   <div className="flex items-center justify-between">
                     <div>
@@ -123,7 +123,7 @@ export default function ReviewsPage() {
                         {r.name}
                         {r.verified && <CheckCircle size={12} style={{color:'#16a34a'}} />}
                       </div>
-                      <div className="text-xs" style={{color:'var(--text-muted)'}}>{r.level} · {r.location}</div>
+                      <div className="text-xs" style={{color:'var(--text-muted)'}}>{[r.level, r.location].filter(Boolean).join(' · ')}</div>
                     </div>
                   </div>
                   {r.outcome && (

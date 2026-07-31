@@ -150,3 +150,41 @@ You only need to do this once, ever — every exam shares this same parent folde
 | `Allowed` | A checkbox (or `TRUE`/`Yes`/`1`). Only checked rows let that student log in to that exam. |
 
 Add one row per student per exam. To revoke access, just uncheck `Allowed` — no need to delete the row. A student not present in this tab at all is treated the same as unchecked (not allowed).
+
+## Reviews tab (staging real testimonials for `/reviews`)
+
+The `/reviews` page reads from a static file in the site repo (`data/reviews.json`), not live from the spreadsheet — so this tab is a **staging area**, not a live data source. You paste real reviews here as you collect them (from the Facebook page or anywhere else); I periodically pull unsynced rows from this tab and copy them into `data/reviews.json` by hand, then mark those rows as synced so they don't get pulled again. Nothing here updates the live site automatically — the actual publish step is still a normal code change + deploy, matching how everything else in this project works.
+
+**You need to create this tab yourself**, named exactly `Reviews`, with these columns:
+
+| Column | What it's for |
+|---|---|
+| `Name` | Reviewer's name as it should appear on the site. |
+| `Location` | City, e.g. `Dhaka`. |
+| `Rating` | 1–5. |
+| `Date` | When the review was posted (any date format Sheets recognizes). |
+| `Course` | Which course/level they took, e.g. `B1 Intensive`. |
+| `Review Text` | The review itself. |
+| `Outcome` | Optional short badge, e.g. `Passed Goethe B1 Exam` — leave blank if there isn't one. |
+| `Featured` | Checkbox — whether this review should appear in the "Featured Stories" spotlight, not just the full list. |
+| `Synced` | Checkbox — leave unchecked when you add a row. Gets checked automatically once the review has been copied into the site; don't check it yourself. |
+
+No script property or redeploy is needed just to add reviews — only the `Code.gs` changes that introduced this tab's `listReviews`/`markReviewsSynced` actions needed a deploy, once.
+
+## Certificates tab (`/verify`)
+
+The `/verify` page looks up certificates **live from the spreadsheet** — one certificate at a time, by the ID the visitor enters. This replaced an older static-file approach where the entire certificate list (every student's name, score, and grade) was bundled into the website itself and readable by anyone; now only the single queried certificate ever leaves the server.
+
+**You need to create this tab yourself**, named exactly `Certificates`, with these columns (any order):
+
+| Column | What it's for |
+|---|---|
+| `Certificate ID` | The unique ID printed on the certificate, e.g. `GLAB-2026-B1-001`. Matching is case-insensitive. |
+| `Student Name` | Name as printed on the certificate. |
+| `Course` | e.g. `B1 Intensive`. |
+| `Starting Date` | When the student's course started. Any date format Sheets recognizes. |
+| `Completion Date` | When they finished — leave blank while the course is still running. |
+| `Issued Date` | When the certificate was issued — leave blank until it is. |
+| `Status` | Dropdown: `Enrolled` / `Running` / `Completed`. This drives what the site shows: `Completed` renders the full Certificate of Completion; `Enrolled` and `Running` render as a verified student/enrollment record (useful for embassies or employers confirming current enrollment) without the completion wording. |
+
+The tab therefore doubles as both the certificate register and a verifiable enrollment record — one row per student per course. Blank date fields are simply hidden on the site rather than shown empty. Changes take effect immediately — no site redeploy needed. Adding this tab required a one-time `Code.gs` redeploy (the `verifyCertificate` action).

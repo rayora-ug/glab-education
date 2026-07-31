@@ -4,12 +4,13 @@ import { Target, Eye, BookOpen, Users, Award, Globe, ArrowRight, Zap } from 'luc
 import Link from 'next/link'
 
 const timeline = [
-  { year: '2023', title: 'GLAB Founded', desc: 'Started with our first A1 batch of 15 students, conducting live online classes via Zoom.', color: '#000' },
-  { year: '2023', title: 'First 50 Students', desc: 'Expanded to A1 and A2 levels. First students began applying to German universities.', color: '#DD0000' },
-  { year: '2024', title: 'B1 & B2 Launched', desc: 'Full curriculum from Pre-A1 to B2 established. First GLAB student arrived in Germany.', color: '#FFCE00' },
-  { year: '2024', title: '200+ Students', desc: 'Partnered with StudyLink Germany. Speaking course and Exam Prep programs launched.', color: '#000' },
-  { year: '2025', title: 'HelloDeutsch App', desc: 'Development of our mobile learning app begins. Beta vocabulary trainer launched.', color: '#DD0000' },
-  { year: '2026', title: '500+ Students', desc: 'GLAB becomes the leading online German language platform for Bangladeshi learners.', color: '#FFCE00' },
+  { year: '2021', title: 'GLAB Founded', desc: 'Launched in June 2021 with a free Foundation-level course for around 35 students, conducting live online classes via Google Meet.', color: '#000' },
+  { year: '2021', title: 'A1 Intensive Launched', desc: 'First A1 batch started on 12 July 2021 with 14 students.', color: '#DD0000' },
+  { year: '2021', title: 'A2 Intensive Launched', desc: 'First A2 batch started on 4 October 2021.', color: '#FFCE00' },
+  { year: '2022', title: 'B1 Intensive Launched', desc: 'First B1 batch started on 18 January 2022.', color: '#000' },
+  { year: '2022', title: 'B2 Intensive Launched', desc: 'First B2 batch started on 16 July 2022.', color: '#DD0000' },
+  { year: '2026', title: '5000+ Students', desc: 'GLAB surpasses 5000+ students enrolled since founding.', color: '#FFCE00' },
+  { year: '2026', title: 'Global Community', desc: 'GLAB becomes a community of 16,000 language learners around the world.', color: '#000' },
 ]
 
 export default function AboutPage() {
@@ -27,13 +28,13 @@ export default function AboutPage() {
                 Future.
               </h1>
               <p className="text-xl leading-relaxed" style={{color:'var(--text-secondary)'}}>
-                GLAB (German Language Academy of Bangladesh) was founded with one mission: to give Bangladeshi students the best possible path to Germany, through structured, expert-taught German language education that's accessible online from anywhere in Bangladesh.
+                GLAB (German Language Academy of Bangladesh) was founded with one mission: to give Bangladeshi students the best possible path to Germany, through structured, expert-taught German language education that's accessible online from anywhere in the world.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               {[
-                {n:'500+',l:'Students Enrolled',c:'#DD0000'},{n:'7',l:'Course Levels',c:'#FFCE00'},
-                {n:'92%',l:'Exam Pass Rate',c:'#000'},{n:'4.9★',l:'Average Rating',c:'#DD0000'},
+                {n:'5000+',l:'Students Enrolled',c:'#DD0000'},{n:'3',l:'Course Levels',c:'#FFCE00'},
+                {n:'98%',l:'Exam Pass Rate',c:'#000'},{n:'4.9★',l:'Average Rating',c:'#DD0000'},
               ].map(({n,l,c}) => (
                 <div key={l} className="card p-5 text-center">
                   <div className="font-display font-black text-4xl mb-1" style={{color:c}}>{n}</div>
@@ -115,10 +116,9 @@ export default function AboutPage() {
           <div className="space-y-6">
             {[
               { title: 'CEFR-Aligned Curriculum', desc: 'Every GLAB course is built around the Common European Framework of Reference (CEFR). This ensures our students\' skills are internationally recognized and comparable to any European standard.' },
-              { title: 'Live Interactive Classes', desc: 'All classes are conducted LIVE via Zoom, not pre-recorded videos. Real-time interaction with teachers and classmates is essential for language learning.' },
-              { title: 'Bangladesh-Specific Approach', desc: 'Our instructors understand the unique challenges Bangladeshi students face when learning German. We explain complex grammar in Bangla when needed and use relatable examples.' },
+              { title: 'Live Interactive Classes', desc: 'All classes are conducted LIVE via Google Meet, not pre-recorded videos. Real-time interaction with the teacher and classmates is essential for language learning.' },
+              { title: 'Bangladesh-Specific Approach', desc: 'Our instructor understands the unique challenges Bangladeshi students face when learning German, explaining complex grammar in Bangla when needed and using relatable examples.' },
               { title: 'Four-Skills Integration', desc: 'Every class develops all four language skills: Reading (Lesen), Writing (Schreiben), Listening (Horen), and Speaking (Sprechen), mirroring official exam structures.' },
-              { title: 'Technology-Augmented Learning', desc: 'The HelloDeutsch app complements classroom learning with vocabulary training, speaking practice, and progress tracking between sessions.' },
             ].map((item, i) => (
               <div key={i} className="flex gap-6 items-start card p-6">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-mono font-bold text-sm" style={{background:'#DD0000',color:'white'}}>
@@ -187,7 +187,7 @@ export default function AboutPage() {
             Join the GLAB Family
           </h2>
           <p className="text-lg mb-8 max-w-xl mx-auto" style={{color:'var(--text-muted)'}}>
-            Start your German learning journey with 500+ students who trust GLAB.
+            Start your German learning journey with 5000+ students who trust GLAB.
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
             <Link href="/courses" className="btn-primary">Explore Courses <ArrowRight size={14} /></Link>

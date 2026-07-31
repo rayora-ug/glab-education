@@ -18,7 +18,7 @@ const WHATSAPP_CHANNEL = 'https://wa.me/message/72NY3RBASOPYI1'
 const navLinks = [
   { href: '/', label: 'Home' },
   { href: '/courses', label: 'Courses' },
-  { href: '/registration', label: 'Registration' },
+  { href: '/portal', label: 'Registration' },
   { href: '/announcements', label: 'Announcements' },
   { href: '/reviews', label: 'Reviews' },
   { href: '/books', label: 'Books' },
@@ -110,13 +110,19 @@ function Navbar() {
             <button onClick={toggleDark} className="p-2 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5" aria-label="Toggle theme">
               {dark ? <Sun size={18} style={{color:'var(--text-secondary)'}} /> : <Moon size={18} style={{color:'var(--text-secondary)'}} />}
             </button>
+            {LOCKDOWN && (
+              <Link href="/portal" className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all border"
+                style={{borderColor:'var(--border)', color:'var(--text-secondary)', background:'var(--card-bg)'}}>
+                <LogIn size={14} /> <span className="hidden sm:inline">Student Portal</span>
+              </Link>
+            )}
             {!LOCKDOWN && (
               <>
                 <Link href="/portal" className="hidden md:flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all border"
                   style={{borderColor:'var(--border)', color:'var(--text-secondary)', background:'var(--card-bg)'}}>
                   <LogIn size={14} /> Student Portal
                 </Link>
-                <Link href="/registration" className="hidden md:flex btn-primary text-sm px-4 py-2">
+                <Link href="/portal" className="hidden md:flex btn-primary text-sm px-4 py-2">
                   Register Now <ArrowRight size={14} />
                 </Link>
                 <button onClick={() => setOpen(!open)} className="lg:hidden p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5" aria-label="Menu">
@@ -142,7 +148,7 @@ function Navbar() {
             <Link href="/portal" onClick={() => setOpen(false)} className="btn-secondary mt-2 text-sm justify-center">
               <LogIn size={14} /> Student Portal
             </Link>
-            <Link href="/registration" onClick={() => setOpen(false)} className="btn-primary text-sm justify-center">
+            <Link href="/portal" onClick={() => setOpen(false)} className="btn-primary text-sm justify-center">
               Register Now <ArrowRight size={14} />
             </Link>
           </div>
@@ -188,6 +194,11 @@ function Footer() {
             <p className="text-xs" style={{color:'var(--text-muted)'}}>
               (c) {new Date().getFullYear()} German Language Academy of Bangladesh (GLAB). All rights reserved.
             </p>
+            <div className="flex items-center gap-3 text-xs mt-2" style={{color:'var(--text-muted)'}}>
+              <Link href="/impressum" className="hover:underline">Impressum</Link>
+              <Link href="/privacy" className="hover:underline">Privacy Policy</Link>
+              <Link href="/terms" className="hover:underline">Terms</Link>
+            </div>
           </div>
         ) : (
           <>
@@ -227,7 +238,7 @@ function Footer() {
               <div>
                 <h3 className="font-semibold mb-4 text-sm uppercase tracking-wider" style={{color:'var(--text-primary)'}}>Quick Links</h3>
                 <ul className="space-y-2">
-                  {[['Courses', '/courses'], ['Registration', '/registration'], ['Announcements', '/announcements'], ['Reviews', '/reviews'], ['Books', '/books'], ['HelloDeutsch App', '/hellodeutsch'], ['Verify Certificate', '/verify']].map(([l, h]) => (
+                  {[['Courses', '/courses'], ['Registration', '/portal'], ['Announcements', '/announcements'], ['Reviews', '/reviews'], ['Books', '/books'], ['HelloDeutsch App', '/hellodeutsch'], ['Verify Certificate', '/verify']].map(([l, h]) => (
                     <li key={h}><Link href={h} className="text-sm transition-colors hover:text-red-600" style={{color:'var(--text-muted)'}}>{l}</Link></li>
                   ))}
                 </ul>
@@ -260,6 +271,11 @@ function Footer() {
               <p className="text-xs text-center md:text-left" style={{color:'var(--text-muted)'}}>
                 (c) {new Date().getFullYear()} German Language Academy of Bangladesh (GLAB). All rights reserved.
               </p>
+              <div className="flex items-center gap-4 text-xs" style={{color:'var(--text-muted)'}}>
+                <Link href="/impressum" className="hover:underline">Impressum</Link>
+                <Link href="/privacy" className="hover:underline">Privacy Policy</Link>
+                <Link href="/terms" className="hover:underline">Terms</Link>
+              </div>
               <div className="flex items-center gap-1 text-xs" style={{color:'var(--text-muted)'}}>
                 <span>Made with care for the Bangladesh–Germany bridge</span>
               </div>

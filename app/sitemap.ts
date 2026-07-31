@@ -3,8 +3,9 @@ import { MetadataRoute } from 'next'
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = 'https://glabeducation.com'
   const routes = [
-    '', '/courses', '/registration', '/announcements',
+    '', '/courses', '/portal', '/announcements',
     '/reviews', '/books', '/about', '/hellodeutsch', '/contact',
+    '/impressum', '/privacy', '/terms',
   ]
 
   return routes.map((route) => ({

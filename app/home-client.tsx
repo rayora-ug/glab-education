@@ -4,14 +4,25 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import {
   ArrowRight, Star, Users, BookOpen, Award, Clock, ChevronDown,
-  CheckCircle, Smartphone, Target, TrendingUp, Globe,
+  CheckCircle, Smartphone, Target, TrendingUp,
   MessageCircle, GraduationCap, Volume2, BarChart2,
-  ChevronLeft, ChevronRight, Quote, Plus, Minus, Download
+  ChevronLeft, ChevronRight, Quote, Plus, Minus, Download, ShieldCheck
 } from 'lucide-react'
 import courses from '../data/courses.json'
 import announcements from '../data/announcements.json'
 import reviews from '../data/reviews.json'
 import faq from '../data/faq.json'
+
+// HelloDeutsch app isn't built yet — flip this to true once it's live to
+// bring back the "Learn Anywhere" showcase section (and every other
+// HelloDeutsch mention gated on this flag) without rewriting them.
+const HELLODEUTSCH_APP_LIVE = false
+
+const TICKER_ITEMS = [
+  'A1 Intensive – August 2026', 'Free Pronunciation Workshop – June 20', 'B1 Exam Prep Now Available',
+  ...(HELLODEUTSCH_APP_LIVE ? ['HelloDeutsch App Beta Live'] : []),
+  'GLAB x StudyLink Germany Partnership',
+]
 
 function useInView(threshold = 0.1) {
   const ref = useRef<HTMLDivElement>(null)
@@ -72,13 +83,10 @@ export default function HomePage() {
                 <Link href="/courses" className="btn-primary text-base px-6 py-3">
                   View Courses <ArrowRight size={16} />
                 </Link>
-                <Link href="/hellodeutsch" className="btn-secondary text-base px-6 py-3">
-                  <Download size={16} /> HelloDeutsch App
-                </Link>
               </div>
 
               <div className="flex flex-wrap gap-6">
-                {[['5000+', 'Students Enrolled'], ['4.9★', 'Average Rating'], ['4', 'Course Levels'], ['92%', 'Exam Pass Rate']].map(([n, l]) => (
+                {[['5000+', 'Students Enrolled'], ['4.9★', 'Average Rating'], ['3', 'Course Levels'], ['98%', 'Exam Pass Rate']].map(([n, l]) => (
                   <div key={l} className="flex flex-col">
                     <span className="font-display font-bold text-2xl" style={{color:'var(--text-primary)'}}>{n}</span>
                     <span className="text-xs" style={{color:'var(--text-muted)'}}>{l}</span>
@@ -95,12 +103,12 @@ export default function HomePage() {
                   </div>
                   <div>
                     <div className="font-semibold text-sm" style={{color:'var(--text-primary)'}}>A1 Intensive Course</div>
-                    <div className="text-xs" style={{color:'var(--text-muted)'}}>6 Weeks · Starting July 10</div>
+                    <div className="text-xs" style={{color:'var(--text-muted)'}}>10 Weeks · August 2026 Batch</div>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="badge badge-gold">Seats Available</span>
-                  <span className="font-bold" style={{color:'#DD0000'}}>BDT 3,500</span>
+                  <span className="badge badge-gold">Application Based</span>
+                  <span className="font-bold" style={{color:'#DD0000'}}>BDT 12,000</span>
                 </div>
               </div>
 
@@ -109,18 +117,22 @@ export default function HomePage() {
                   {Array(5).fill(0).map((_, i) => <Star key={i} size={14} fill="#FFCE00" style={{color:'#FFCE00'}} />)}
                 </div>
                 <p className="text-sm italic mb-2" style={{color:'var(--text-secondary)'}}>
-                  "Passed Goethe B1 with distinction!"
+                  "It was an excellent experience."
                 </p>
-                <div className="text-xs font-semibold" style={{color:'var(--text-muted)'}}>— Nadia Rahman, Dhaka</div>
+                <div className="text-xs font-semibold" style={{color:'var(--text-muted)'}}>— Syed Wahid Arman</div>
               </div>
 
               <div className="absolute bottom-10 right-10 w-64 card p-5 animate-float" style={{animationDelay:'4s'}}>
-                <div className="font-mono uppercase tracking-wider mb-2" style={{color:'var(--text-muted)',fontSize:'10px'}}>HelloDeutsch App</div>
-                <div className="font-semibold mb-1" style={{color:'var(--text-primary)'}}>2,000+ Vocabulary Words</div>
-                <div className="progress-bar mb-2">
-                  <div className="progress-fill" style={{width:'78%'}} />
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background:'rgba(22,163,74,0.1)'}}>
+                    <ShieldCheck size={20} style={{color:'#16a34a'}} />
+                  </div>
+                  <div className="font-semibold text-sm" style={{color:'var(--text-primary)'}}>Certificate Verification</div>
                 </div>
-                <div className="text-xs" style={{color:'var(--text-muted)'}}>A1 Progress: 78% Complete</div>
+                <p className="text-xs mb-2 leading-relaxed" style={{color:'var(--text-secondary)'}}>
+                  Every GLAB certificate can be verified online, instantly.
+                </p>
+                <div className="text-xs font-semibold" style={{color:'#16a34a'}}>✓ Authentic & Trusted</div>
               </div>
 
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full opacity-20 blur-2xl" style={{background:'#FFCE00'}} />
@@ -144,7 +156,7 @@ export default function HomePage() {
         <div className="flex animate-marquee whitespace-nowrap">
           {Array(4).fill(0).map((_, i) => (
             <div key={i} className="flex items-center gap-8 mr-8 text-white text-sm font-medium">
-              {['A1 Intensive – July 2026', 'Free Pronunciation Workshop – June 20', 'B1 Exam Prep Now Available', 'HelloDeutsch App Beta Live', 'GLAB x StudyLink Germany Partnership'].map(t => (
+              {TICKER_ITEMS.map(t => (
                 <span key={t} className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-yellow-300 flex-shrink-0" />
                   {t}
@@ -172,10 +184,9 @@ export default function HomePage() {
             {[
               { icon: Target, title: 'CEFR-Aligned Curriculum', desc: 'Our courses follow the Common European Framework of Reference (CEFR), the international standard for language learning.', color: '#DD0000' },
               { icon: Users, title: 'Expert Bangladeshi Instructors', desc: 'Learn from teachers who understand the unique challenges Bangladeshi students face and explain in Bangla when needed.', color: '#FFCE00' },
-              { icon: Smartphone, title: 'HelloDeutsch App', desc: 'Reinforce your learning with our dedicated mobile app featuring vocabulary trainers, speaking practice, and progress tracking.', color: '#000' },
-              { icon: Globe, title: 'Visa & Study Guidance', desc: 'Beyond language – we guide students on student visa requirements, university applications, and life in Germany.', color: '#DD0000' },
-              { icon: Award, title: 'Goethe Exam Ready', desc: 'Every GLAB course is specifically designed to prepare students for the official Goethe-Institut and TestDaF exams.', color: '#FFCE00' },
-              { icon: TrendingUp, title: 'Proven Results', desc: '92% exam pass rate. 5000+ students enrolled. Graduates now studying and working across Germany and Austria.', color: '#000' },
+              ...(HELLODEUTSCH_APP_LIVE ? [{ icon: Smartphone, title: 'HelloDeutsch App', desc: 'Reinforce your learning with our dedicated mobile app featuring vocabulary trainers, speaking practice, and progress tracking.', color: '#000' }] : []),
+              { icon: Award, title: 'Goethe & Telc Exam Ready', desc: 'Every GLAB course is specifically designed to prepare students for the official Goethe-Institut, telc, and TestDaF exams.', color: '#FFCE00' },
+              { icon: TrendingUp, title: 'Proven Results', desc: '98% exam pass rate. 5000+ students enrolled. Graduates now studying and working across Germany and Austria.', color: '#000' },
             ].map(({ icon: Icon, title, desc, color }) => (
               <div key={title} className="card p-6">
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{background:`${color}15`}}>
@@ -194,10 +205,10 @@ export default function HomePage() {
         <div className="container">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             {[
-              { end: 5000, suffix: '+', label: 'Students Enrolled', sub: 'Since 2023' },
-              { end: 4, suffix: '', label: 'Course Levels', sub: 'Foundation to B1' },
-              { end: 92, suffix: '%', label: 'Exam Pass Rate', sub: 'Goethe & TestDaF' },
-              { end: 247, suffix: '+', label: 'Five-Star Reviews', sub: 'Average 4.9/5' },
+              { end: 5000, suffix: '+', label: 'Students Enrolled', sub: 'Since 2021' },
+              { end: 3, suffix: '', label: 'Course Levels', sub: 'A1 to B1' },
+              { end: 98, suffix: '%', label: 'Exam Pass Rate', sub: 'Goethe & Telc' },
+              { end: (reviews as any).reviews.length, suffix: '', label: 'Five-Star Reviews', sub: 'Average 4.9/5' },
             ].map(({ end, suffix, label, sub }) => (
               <div key={label} className="text-center">
                 <div className="font-display font-black mb-1" style={{fontSize:'3.5rem', lineHeight:1, background:'linear-gradient(135deg,#FFCE00,#FF9900)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',backgroundClip:'text'}}>
@@ -242,12 +253,26 @@ export default function HomePage() {
                 <p className="text-sm mb-4 line-clamp-2" style={{color:'var(--text-muted)'}}>{c.description}</p>
                 <div className="space-y-1.5 mb-5 text-xs" style={{color:'var(--text-muted)'}}>
                   <div className="flex gap-2"><Clock size={12} className="mt-0.5 flex-shrink-0" style={{color:'#DD0000'}} />{c.duration}</div>
-                  <div className="flex gap-2"><BookOpen size={12} className="mt-0.5 flex-shrink-0" style={{color:'#DD0000'}} />{c.schedule}</div>
+                  {c.schedule && (
+                    <div className="flex gap-2"><BookOpen size={12} className="mt-0.5 flex-shrink-0" style={{color:'#DD0000'}} />{c.schedule}</div>
+                  )}
                   <div className="flex gap-2"><Award size={12} className="mt-0.5 flex-shrink-0" style={{color:'#DD0000'}} /><span className="font-bold" style={{color:'var(--text-primary)'}}>{c.fee}</span></div>
                 </div>
-                <Link href="/registration" className={c.registrationOpen ? 'btn-primary text-sm py-2.5 w-full justify-center' : 'btn-secondary text-sm py-2.5 w-full justify-center'}>
-                  {c.registrationOpen ? 'Register Now' : 'Join Waitlist'}
-                </Link>
+                {c.registrationOpen ? (
+                  c.level === 'A1' ? (
+                    <a href={c.googleFormLink} target="_blank" rel="noopener noreferrer" className="btn-primary text-sm py-2.5 w-full justify-center">
+                      Apply Now
+                    </a>
+                  ) : (
+                    <Link href="/contact" className="btn-primary text-sm py-2.5 w-full justify-center">
+                      Book Your Placement Test
+                    </Link>
+                  )
+                ) : (
+                  <Link href="/portal" className="btn-secondary text-sm py-2.5 w-full justify-center">
+                    Join Waitlist
+                  </Link>
+                )}
               </div>
             ))}
           </div>
@@ -290,7 +315,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* HELLODEUTSCH PREVIEW */}
+      {/* HELLODEUTSCH PREVIEW — deactivated until the app is actually live, see HELLODEUTSCH_APP_LIVE */}
+      {HELLODEUTSCH_APP_LIVE && (
       <section className="section relative overflow-hidden" style={{background:'#000'}}>
         <div className="container relative z-10">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
@@ -375,6 +401,7 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      )}
 
       {/* TESTIMONIALS */}
       <section className="section">
@@ -392,13 +419,13 @@ export default function HomePage() {
               <div className="flex gap-1 mb-6">
                 {Array(5).fill(0).map((_,i) => <Star key={i} size={18} fill="#FFCE00" style={{color:'#FFCE00'}} />)}
               </div>
-              <p className="text-xl md:text-2xl font-display italic mb-8 leading-relaxed" style={{color:'var(--text-primary)'}}>
+              <p className="text-xl md:text-2xl font-display italic mb-8 leading-relaxed whitespace-pre-line" style={{color:'var(--text-primary)'}}>
                 "{featuredReviews[testimonialIdx]?.text}"
               </p>
               <div className="flex items-center justify-between">
                 <div>
                   <div className="font-bold" style={{color:'var(--text-primary)'}}>{featuredReviews[testimonialIdx]?.name}</div>
-                  <div className="text-sm" style={{color:'var(--text-muted)'}}>{featuredReviews[testimonialIdx]?.level} • {featuredReviews[testimonialIdx]?.location}</div>
+                  <div className="text-sm" style={{color:'var(--text-muted)'}}>{[featuredReviews[testimonialIdx]?.level, featuredReviews[testimonialIdx]?.location].filter(Boolean).join(' • ')}</div>
                   {featuredReviews[testimonialIdx]?.outcome && (
                     <div className="mt-1 badge badge-gold">{featuredReviews[testimonialIdx].outcome}</div>
                   )}
@@ -444,7 +471,7 @@ export default function HomePage() {
               </h2>
             </div>
             <div className="space-y-3">
-              {(faq as any[]).map((q) => (
+              {(faq as any[]).filter(q => HELLODEUTSCH_APP_LIVE || q.category !== 'HelloDeutsch App').map((q) => (
                 <div key={q.id} className="card overflow-hidden">
                   <button
                     className="w-full text-left px-6 py-5 flex items-center justify-between gap-4"
@@ -476,8 +503,8 @@ export default function HomePage() {
             Join 5000+ students who chose GLAB to build their future in Germany. Registration for the next batch opens soon.
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
-            <Link href="/registration" className="btn-gold text-lg px-8 py-4">
-              Register Now <ArrowRight size={18} />
+            <Link href="/courses" className="btn-gold text-lg px-8 py-4">
+              Get Started <ArrowRight size={18} />
             </Link>
             <Link href="/contact" className="inline-flex items-center gap-2 text-white border-2 border-white/30 px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white/10 transition-colors">
               <MessageCircle size={18} /> Ask a Question

@@ -135,18 +135,18 @@ export function PaymentAndRulesFields({
           <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>GLAB Course Rules</span>
         </div>
         <ol className="text-sm space-y-1.5 mb-4 pl-5" style={{ color: 'var(--text-muted)', listStyleType: 'decimal' }}>
-          <li>Once you have registered for a specific batch, you cannot switch to another batch under any circumstances.</li>
-          <li>The course fee is non-refundable after registration, even if you do not attend any classes or decide to leave the course.</li>
+          <li>Once you have joined a specific batch, you cannot switch to another batch for any reason.</li>
+          <li>You may cancel your registration for a full refund only within 3 calendar days of the date you registered — regardless of whether classes have started. After this 3-day window, no cancellation or refund is possible, even if you have not attended any classes.</li>
           <li>Please register only if you are fully committed to completing the course.</li>
-          <li>A change of mind, dissatisfaction with the teaching style, personal reasons, or a lack of time does not qualify for a refund or batch change.</li>
+          <li>A change of mind, personal reasons, or a lack of time does not qualify for a refund or batch change once the 3-day window has closed.</li>
           <li>If you wish to join a different batch, you must complete a new registration and pay the full course fee again.</li>
-          <li>Keeping your camera on during every class is mandatory.</li>
+          <li>Keeping your video camera on during every class is mandatory.</li>
           <li>If you miss a total of 5 classes and/or homework submissions, you will be removed from the course without further notice.</li>
         </ol>
         <label className="flex items-start gap-2.5 cursor-pointer">
           <input type="checkbox" required className="mt-0.5" style={{ width: 16, height: 16, flexShrink: 0 }} />
           <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
-            I understand that the course fee is non-refundable after registration and that no exceptions will be made due to a change of mind, personal circumstances, dissatisfaction, or discontinuing the course.
+            I understand that the course fee is refundable only if I cancel within 3 calendar days of registering, and that after this window, no exceptions will be made due to a change of mind, personal circumstances, or discontinuing the course.
           </span>
         </label>
       </div>

@@ -21,14 +21,26 @@ function BookCover({ book }: { book: Book }) {
 
   if (!book.coverImage || broken) {
     return (
-      <div className="w-full aspect-[3/4] rounded-lg mb-4 flex items-center justify-center flex-shrink-0" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+      <a
+        href={book.affiliateLink}
+        target="_blank"
+        rel="noopener noreferrer sponsored"
+        className="w-full aspect-[3/4] rounded-lg mb-4 flex items-center justify-center flex-shrink-0"
+        style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+      >
         <BookOpen size={32} style={{ color: 'var(--text-muted)' }} />
-      </div>
+      </a>
     )
   }
 
   return (
-    <div className="w-full aspect-[3/4] rounded-lg mb-4 overflow-hidden flex-shrink-0" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+    <a
+      href={book.affiliateLink}
+      target="_blank"
+      rel="noopener noreferrer sponsored"
+      className="w-full aspect-[3/4] rounded-lg mb-4 overflow-hidden flex-shrink-0"
+      style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+    >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={book.coverImage}
@@ -37,7 +49,7 @@ function BookCover({ book }: { book: Book }) {
         onError={() => setBroken(true)}
         className="w-full h-full object-cover"
       />
-    </div>
+    </a>
   )
 }
 
@@ -64,6 +76,9 @@ export default function BooksPage() {
   const { courseBooks, recommendedBooks } = booksData as { courseBooks: Book[]; recommendedBooks: Book[] }
   const grouped = groupByLevel(courseBooks)
   const levelOrder = ['A1', 'A2', 'B1']
+
+  const b2Books = recommendedBooks.filter(b => b.level === 'B2')
+  const otherRecommendedBooks = recommendedBooks.filter(b => b.level !== 'B2')
 
   return (
     <>
@@ -110,11 +125,32 @@ export default function BooksPage() {
           <h2 className="font-display font-bold text-3xl mb-8" style={{ color: 'var(--text-primary)' }}>
             More Books We Recommend
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {recommendedBooks.map(book => (
-              <BookCard key={book.title} book={book} />
-            ))}
-          </div>
+
+          {b2Books.length > 0 && (
+            <div className="mb-10">
+              <h3 className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: 'var(--text-muted)' }}>
+                B2 Level
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {b2Books.map(book => (
+                  <BookCard key={book.title} book={book} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {otherRecommendedBooks.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: 'var(--text-muted)' }}>
+                Other Books
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {otherRecommendedBooks.map(book => (
+                  <BookCard key={book.title} book={book} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 

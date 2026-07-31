@@ -6,7 +6,7 @@ import {
   CheckCircle, ArrowRight, Clock
 } from 'lucide-react'
 
-const subjects = ['General Inquiry', 'Course Information', 'Registration Help', 'Payment Issue', 'Technical Support (HelloDeutsch)', 'Partnership / Other']
+const subjects = ['General Inquiry', 'Course Information', 'Registration Help', 'Payment Issue', 'Partnership / Other']
 
 export default function ContactPage() {
   const [form, setForm] = useState({ name: '', email: '', subject: subjects[0], message: '' })
@@ -28,7 +28,7 @@ export default function ContactPage() {
 
   const channels = [
     { icon: Facebook, label: 'Facebook Page', desc: 'Follow for daily updates & tips', href: 'https://facebook.com/glab.bd', color: '#1877F2', bg: 'rgba(24,119,242,0.1)' },
-    { icon: Users, label: 'Facebook Group', desc: 'Join 1,000+ German learners', href: 'https://facebook.com/groups/glab.bd', color: '#1877F2', bg: 'rgba(24,119,242,0.1)' },
+    { icon: Users, label: 'Facebook Group', desc: 'Join 15,000+ German learners', href: 'https://facebook.com/groups/glab.bd', color: '#1877F2', bg: 'rgba(24,119,242,0.1)' },
     { icon: MessageCircle, label: 'WhatsApp Community', desc: 'Get instant announcements', href: 'https://chat.whatsapp.com/glab', color: '#16a34a', bg: 'rgba(22,163,74,0.1)' },
     { icon: Mail, label: 'Email Us', desc: 'info@glabeducation.com', href: 'mailto:info@glabeducation.com', color: '#DD0000', bg: 'rgba(221,0,0,0.1)' },
   ]
@@ -43,7 +43,7 @@ export default function ContactPage() {
             Contact Us
           </h1>
           <p className="text-xl max-w-2xl" style={{color:'var(--text-muted)'}}>
-            Have a question about courses, registration, or the HelloDeutsch app? We're here to help.
+            Have a question about courses or registration? We're here to help.
           </p>
         </div>
       </section>
@@ -134,7 +134,7 @@ export default function ContactPage() {
                   <span className="font-semibold text-sm" style={{color:'var(--text-primary)'}}>Operating From</span>
                 </div>
                 <p className="text-sm" style={{color:'var(--text-muted)'}}>
-                  GLAB operates fully online, serving students across all divisions of Bangladesh: Dhaka, Chittagong, Sylhet, Rajshahi, Khulna, and beyond.
+                  GLAB operates fully online, serving Bangladeshi students all over the world.
                 </p>
               </div>
             </div>

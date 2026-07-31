@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { UserPlus, RotateCcw, ArrowRight, ClipboardCheck, LogIn } from 'lucide-react'
+import { UserPlus, RotateCcw, ClipboardCheck, LogIn } from 'lucide-react'
 
 export default function ApplyPage() {
   return (
@@ -31,9 +31,6 @@ export default function ApplyPage() {
               <Link href="/results" className="btn-primary w-full justify-center">
                 <ClipboardCheck size={16} /> Check Application Status
               </Link>
-              <Link href="/courses" className="btn-secondary w-full justify-center">
-                Browse A1 Courses <ArrowRight size={14} />
-              </Link>
             </div>
           </div>
 
@@ -42,10 +39,10 @@ export default function ApplyPage() {
               <RotateCcw size={22} />
             </div>
             <h2 className="font-display font-bold text-2xl mb-2" style={{ color: 'var(--text-primary)' }}>
-              Returning Student (A2 / B1)
+              A2 / B1 Registration
             </h2>
             <p className="text-sm mb-6 flex-1" style={{ color: 'var(--text-muted)' }}>
-              Already have a GLAB ID? Use the Student Portal to register for your next course level and submit your payment.
+              Already have a GLAB ID? Access the Student Portal to choose your batch and complete your registration.
             </p>
             <div className="flex flex-col gap-3">
               <Link href="/portal" className="btn-primary w-full justify-center">

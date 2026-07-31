@@ -18,7 +18,6 @@ const WHATSAPP_CHANNEL = 'https://wa.me/message/72NY3RBASOPYI1'
 const navLinks = [
   { href: '/', label: 'Home' },
   { href: '/courses', label: 'Courses' },
-  { href: '/apply', label: 'Apply' },
   { href: '/reviews', label: 'Reviews' },
   { href: '/about', label: 'About' },
   { href: '/contact', label: 'Contact' },
@@ -39,7 +38,9 @@ function Navbar() {
   const resourcesRef = useRef<HTMLDivElement>(null)
   const pathnameHook = usePathname()
   const [pathname, setPathname] = useState(pathnameHook || '/')
-  const isResourceActive = resourceLinks.some(l => l.href === pathname)
+  const normalize = (p: string) => (p.length > 1 && p.endsWith('/') ? p.slice(0, -1) : p)
+  const isActive = (href: string) => normalize(pathname) === normalize(href)
+  const isResourceActive = resourceLinks.some(l => isActive(l.href))
 
   useEffect(() => {
     const onClickOutside = (e: MouseEvent) => {
@@ -108,13 +109,13 @@ function Navbar() {
 
           {!LOCKDOWN && (
             <div className="hidden lg:flex items-center gap-1">
-              {navLinks.slice(0, 3).map(l => (
+              {navLinks.slice(0, 2).map(l => (
                 <Link key={l.href} href={l.href}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${pathname === l.href ? 'bg-red-50 dark:bg-red-950/30' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${isActive(l.href) ? 'bg-red-50 dark:bg-red-950/30' : 'text-[color:var(--text-secondary)] hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-[#DD0000]'}`}
                   style={{
-                    color: pathname === l.href ? '#DD0000' : 'var(--text-secondary)',
-                    fontWeight: pathname === l.href ? 700 : undefined,
-                    borderBottom: pathname === l.href ? '2px solid #DD0000' : '2px solid transparent',
+                    color: isActive(l.href) ? '#DD0000' : undefined,
+                    fontWeight: isActive(l.href) ? 700 : undefined,
+                    borderBottom: isActive(l.href) ? '2px solid #DD0000' : '2px solid transparent',
                   }}>
                   {l.label}
                 </Link>
@@ -122,9 +123,9 @@ function Navbar() {
 
               <div className="relative" ref={resourcesRef}>
                 <button onClick={() => setResourcesOpen(v => !v)}
-                  className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${isResourceActive ? 'bg-red-50 dark:bg-red-950/30' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}
+                  className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${isResourceActive ? 'bg-red-50 dark:bg-red-950/30' : 'text-[color:var(--text-secondary)] hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-[#DD0000]'}`}
                   style={{
-                    color: isResourceActive ? '#DD0000' : 'var(--text-secondary)',
+                    color: isResourceActive ? '#DD0000' : undefined,
                     fontWeight: isResourceActive ? 700 : undefined,
                     borderBottom: isResourceActive ? '2px solid #DD0000' : '2px solid transparent',
                   }}>
@@ -135,8 +136,8 @@ function Navbar() {
                     style={{ background: 'var(--card-bg)', borderColor: 'var(--border)' }}>
                     {resourceLinks.map(l => (
                       <Link key={l.href} href={l.href} onClick={() => setResourcesOpen(false)}
-                        className="block px-4 py-2.5 text-sm font-medium transition-colors hover:bg-black/5 dark:hover:bg-white/5"
-                        style={{ color: pathname === l.href ? '#DD0000' : 'var(--text-secondary)', fontWeight: pathname === l.href ? 700 : undefined }}>
+                        className={`block px-4 py-2.5 text-sm font-medium transition-colors rounded-lg mx-2 ${isActive(l.href) ? 'bg-red-50 dark:bg-red-950/30' : 'text-[color:var(--text-secondary)] hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-[#DD0000]'}`}
+                        style={{ color: isActive(l.href) ? '#DD0000' : undefined, fontWeight: isActive(l.href) ? 700 : undefined }}>
                         {l.label}
                       </Link>
                     ))}
@@ -144,13 +145,13 @@ function Navbar() {
                 )}
               </div>
 
-              {navLinks.slice(3).map(l => (
+              {navLinks.slice(2).map(l => (
                 <Link key={l.href} href={l.href}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${pathname === l.href ? 'bg-red-50 dark:bg-red-950/30' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${isActive(l.href) ? 'bg-red-50 dark:bg-red-950/30' : 'text-[color:var(--text-secondary)] hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-[#DD0000]'}`}
                   style={{
-                    color: pathname === l.href ? '#DD0000' : 'var(--text-secondary)',
-                    fontWeight: pathname === l.href ? 700 : undefined,
-                    borderBottom: pathname === l.href ? '2px solid #DD0000' : '2px solid transparent',
+                    color: isActive(l.href) ? '#DD0000' : undefined,
+                    fontWeight: isActive(l.href) ? 700 : undefined,
+                    borderBottom: isActive(l.href) ? '2px solid #DD0000' : '2px solid transparent',
                   }}>
                   {l.label}
                 </Link>
@@ -170,10 +171,6 @@ function Navbar() {
             )}
             {!LOCKDOWN && (
               <>
-                <Link href="/portal" className="hidden md:flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all border"
-                  style={{borderColor:'var(--border)', color:'var(--text-secondary)', background:'var(--card-bg)'}}>
-                  <LogIn size={14} /> Student Portal
-                </Link>
                 <Link href="/apply" className="hidden md:flex btn-primary text-sm px-4 py-2">
                   Apply Now <ArrowRight size={14} />
                 </Link>
@@ -189,18 +186,18 @@ function Navbar() {
       {!LOCKDOWN && open && (
         <div className="lg:hidden glass border-t" style={{borderColor:'var(--border)'}}>
           <div className="container py-4 flex flex-col gap-1">
-            {navLinks.slice(0, 3).map(l => (
+            {navLinks.slice(0, 2).map(l => (
               <Link key={l.href} href={l.href}
                 onClick={() => setOpen(false)}
-                className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${pathname === l.href ? 'bg-red-50 dark:bg-red-950/30' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}
-                style={{color: pathname === l.href ? '#DD0000' : 'var(--text-primary)', fontWeight: pathname === l.href ? 700 : undefined, borderLeft: pathname === l.href ? '3px solid #DD0000' : '3px solid transparent'}}>
+                className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${isActive(l.href) ? 'bg-red-50 dark:bg-red-950/30' : 'text-[color:var(--text-primary)] hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-[#DD0000]'}`}
+                style={{color: isActive(l.href) ? '#DD0000' : undefined, fontWeight: isActive(l.href) ? 700 : undefined, borderLeft: isActive(l.href) ? '3px solid #DD0000' : '3px solid transparent'}}>
                 {l.label}
               </Link>
             ))}
 
             <button onClick={() => setMobileResourcesOpen(v => !v)}
-              className={`flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-all ${isResourceActive ? 'bg-red-50 dark:bg-red-950/30' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}
-              style={{color: isResourceActive ? '#DD0000' : 'var(--text-primary)', fontWeight: isResourceActive ? 700 : undefined, borderLeft: isResourceActive ? '3px solid #DD0000' : '3px solid transparent'}}>
+              className={`flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-all ${isResourceActive ? 'bg-red-50 dark:bg-red-950/30' : 'text-[color:var(--text-primary)] hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-[#DD0000]'}`}
+              style={{color: isResourceActive ? '#DD0000' : undefined, fontWeight: isResourceActive ? 700 : undefined, borderLeft: isResourceActive ? '3px solid #DD0000' : '3px solid transparent'}}>
               Resources <ChevronDown size={14} className={`transition-transform ${mobileResourcesOpen ? 'rotate-180' : ''}`} />
             </button>
             {mobileResourcesOpen && (
@@ -208,26 +205,23 @@ function Navbar() {
                 {resourceLinks.map(l => (
                   <Link key={l.href} href={l.href}
                     onClick={() => { setOpen(false); setMobileResourcesOpen(false) }}
-                    className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${pathname === l.href ? 'bg-red-50 dark:bg-red-950/30' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}
-                    style={{color: pathname === l.href ? '#DD0000' : 'var(--text-secondary)', fontWeight: pathname === l.href ? 700 : undefined}}>
+                    className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${isActive(l.href) ? 'bg-red-50 dark:bg-red-950/30' : 'text-[color:var(--text-secondary)] hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-[#DD0000]'}`}
+                    style={{color: isActive(l.href) ? '#DD0000' : undefined, fontWeight: isActive(l.href) ? 700 : undefined}}>
                     {l.label}
                   </Link>
                 ))}
               </div>
             )}
 
-            {navLinks.slice(3).map(l => (
+            {navLinks.slice(2).map(l => (
               <Link key={l.href} href={l.href}
                 onClick={() => setOpen(false)}
-                className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${pathname === l.href ? 'bg-red-50 dark:bg-red-950/30' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}
-                style={{color: pathname === l.href ? '#DD0000' : 'var(--text-primary)', fontWeight: pathname === l.href ? 700 : undefined, borderLeft: pathname === l.href ? '3px solid #DD0000' : '3px solid transparent'}}>
+                className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${isActive(l.href) ? 'bg-red-50 dark:bg-red-950/30' : 'text-[color:var(--text-primary)] hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-[#DD0000]'}`}
+                style={{color: isActive(l.href) ? '#DD0000' : undefined, fontWeight: isActive(l.href) ? 700 : undefined, borderLeft: isActive(l.href) ? '3px solid #DD0000' : '3px solid transparent'}}>
                 {l.label}
               </Link>
             ))}
-            <Link href="/portal" onClick={() => setOpen(false)} className="btn-secondary mt-2 text-sm justify-center">
-              <LogIn size={14} /> Student Portal
-            </Link>
-            <Link href="/apply" onClick={() => setOpen(false)} className="btn-primary text-sm justify-center">
+            <Link href="/apply" onClick={() => setOpen(false)} className="btn-primary mt-2 text-sm justify-center">
               Apply Now <ArrowRight size={14} />
             </Link>
           </div>
@@ -318,7 +312,7 @@ function Footer() {
               <div>
                 <h3 className="font-semibold mb-4 text-sm uppercase tracking-wider" style={{color:'var(--text-primary)'}}>Quick Links</h3>
                 <ul className="space-y-2">
-                  {[['Courses', '/courses'], ['Apply', '/apply'], ['Announcements', '/announcements'], ['Reviews', '/reviews'], ['Books', '/books'], ['HelloDeutsch App', '/hellodeutsch'], ['Verify Certificate', '/verify']].map(([l, h]) => (
+                  {[['Courses', '/courses'], ['Apply', '/apply'], ['Announcements', '/announcements'], ['Reviews', '/reviews'], ['Books', '/books'], ['Verify Certificate', '/verify']].map(([l, h]) => (
                     <li key={h}><Link href={h} className="text-sm transition-colors hover:text-red-600" style={{color:'var(--text-muted)'}}>{l}</Link></li>
                   ))}
                 </ul>

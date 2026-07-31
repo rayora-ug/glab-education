@@ -83,16 +83,16 @@ export default function CoursesPage() {
                 <div className="p-6 pt-0">
                   {c.registrationOpen ? (
                     c.level === 'A1' ? (
-                      <a href={c.googleFormLink} target="_blank" rel="noopener noreferrer" className="btn-primary w-full justify-center">
+                      <button disabled className="btn-primary w-full justify-center opacity-50 cursor-not-allowed">
                         Apply Now – {c.fee} <ArrowRight size={14} />
-                      </a>
+                      </button>
                     ) : (
-                      <Link href="/contact" className="btn-primary w-full justify-center">
+                      <button disabled className="btn-primary w-full justify-center opacity-50 cursor-not-allowed">
                         Book Your Placement Test <ArrowRight size={14} />
-                      </Link>
+                      </button>
                     )
                   ) : (
-                    <Link href="/portal" className="btn-secondary w-full justify-center">
+                    <Link href="/apply" className="btn-secondary w-full justify-center">
                       Join Waitlist <ArrowRight size={14} />
                     </Link>
                   )}
@@ -136,7 +136,7 @@ export default function CoursesPage() {
           <p className="text-lg mb-8" style={{color:'var(--text-muted)'}}>Contact us and we'll help you find the right course for your current level and goals.</p>
           <div className="flex flex-wrap gap-4 justify-center">
             <Link href="/contact" className="btn-primary">Get Guidance <ArrowRight size={14} /></Link>
-            <Link href="/portal" className="btn-secondary">Get Started</Link>
+            <Link href="/apply" className="btn-secondary">Get Started</Link>
           </div>
         </div>
       </section>

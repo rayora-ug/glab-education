@@ -260,16 +260,16 @@ export default function HomePage() {
                 </div>
                 {c.registrationOpen ? (
                   c.level === 'A1' ? (
-                    <a href={c.googleFormLink} target="_blank" rel="noopener noreferrer" className="btn-primary text-sm py-2.5 w-full justify-center">
+                    <button disabled className="btn-primary text-sm py-2.5 w-full justify-center opacity-50 cursor-not-allowed">
                       Apply Now
-                    </a>
+                    </button>
                   ) : (
-                    <Link href="/contact" className="btn-primary text-sm py-2.5 w-full justify-center">
+                    <button disabled className="btn-primary text-sm py-2.5 w-full justify-center opacity-50 cursor-not-allowed">
                       Book Your Placement Test
-                    </Link>
+                    </button>
                   )
                 ) : (
-                  <Link href="/portal" className="btn-secondary text-sm py-2.5 w-full justify-center">
+                  <Link href="/apply" className="btn-secondary text-sm py-2.5 w-full justify-center">
                     Join Waitlist
                   </Link>
                 )}

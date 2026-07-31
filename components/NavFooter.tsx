@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   Moon, Sun, Menu, X, GraduationCap,
   Facebook, MessageCircle, Mail, MapPin, Users,
-  ArrowRight, Globe, ShieldCheck, LogIn
+  ArrowRight, Globe, ShieldCheck, LogIn, ChevronDown
 } from 'lucide-react'
 
 const LOCKDOWN = process.env.NEXT_PUBLIC_LOCKDOWN_MODE === 'true'
@@ -18,22 +18,38 @@ const WHATSAPP_CHANNEL = 'https://wa.me/message/72NY3RBASOPYI1'
 const navLinks = [
   { href: '/', label: 'Home' },
   { href: '/courses', label: 'Courses' },
-  { href: '/portal', label: 'Registration' },
-  { href: '/announcements', label: 'Announcements' },
+  { href: '/apply', label: 'Apply' },
   { href: '/reviews', label: 'Reviews' },
-  { href: '/books', label: 'Books' },
-  { href: '/hellodeutsch', label: 'HelloDeutsch' },
   { href: '/about', label: 'About' },
   { href: '/contact', label: 'Contact' },
-  { href: '/verify', label: 'Verify' },
+]
+
+const resourceLinks = [
+  { href: '/books', label: 'Books' },
+  { href: '/announcements', label: 'Announcements' },
+  { href: '/verify', label: 'Verify Certificate' },
 ]
 
 function Navbar() {
   const [dark, setDark] = useState(false)
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [resourcesOpen, setResourcesOpen] = useState(false)
+  const [mobileResourcesOpen, setMobileResourcesOpen] = useState(false)
+  const resourcesRef = useRef<HTMLDivElement>(null)
   const pathnameHook = usePathname()
   const [pathname, setPathname] = useState(pathnameHook || '/')
+  const isResourceActive = resourceLinks.some(l => l.href === pathname)
+
+  useEffect(() => {
+    const onClickOutside = (e: MouseEvent) => {
+      if (resourcesRef.current && !resourcesRef.current.contains(e.target as Node)) {
+        setResourcesOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [])
 
   useEffect(() => {
     setPathname(window.location.pathname)
@@ -92,7 +108,43 @@ function Navbar() {
 
           {!LOCKDOWN && (
             <div className="hidden lg:flex items-center gap-1">
-              {navLinks.map(l => (
+              {navLinks.slice(0, 3).map(l => (
+                <Link key={l.href} href={l.href}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${pathname === l.href ? 'bg-red-50 dark:bg-red-950/30' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}
+                  style={{
+                    color: pathname === l.href ? '#DD0000' : 'var(--text-secondary)',
+                    fontWeight: pathname === l.href ? 700 : undefined,
+                    borderBottom: pathname === l.href ? '2px solid #DD0000' : '2px solid transparent',
+                  }}>
+                  {l.label}
+                </Link>
+              ))}
+
+              <div className="relative" ref={resourcesRef}>
+                <button onClick={() => setResourcesOpen(v => !v)}
+                  className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${isResourceActive ? 'bg-red-50 dark:bg-red-950/30' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}
+                  style={{
+                    color: isResourceActive ? '#DD0000' : 'var(--text-secondary)',
+                    fontWeight: isResourceActive ? 700 : undefined,
+                    borderBottom: isResourceActive ? '2px solid #DD0000' : '2px solid transparent',
+                  }}>
+                  Resources <ChevronDown size={14} className={`transition-transform ${resourcesOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {resourcesOpen && (
+                  <div className="absolute top-full left-0 mt-1 py-2 rounded-xl shadow-lg border min-w-[200px]"
+                    style={{ background: 'var(--card-bg)', borderColor: 'var(--border)' }}>
+                    {resourceLinks.map(l => (
+                      <Link key={l.href} href={l.href} onClick={() => setResourcesOpen(false)}
+                        className="block px-4 py-2.5 text-sm font-medium transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+                        style={{ color: pathname === l.href ? '#DD0000' : 'var(--text-secondary)', fontWeight: pathname === l.href ? 700 : undefined }}>
+                        {l.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {navLinks.slice(3).map(l => (
                 <Link key={l.href} href={l.href}
                   className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${pathname === l.href ? 'bg-red-50 dark:bg-red-950/30' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}
                   style={{
@@ -111,9 +163,9 @@ function Navbar() {
               {dark ? <Sun size={18} style={{color:'var(--text-secondary)'}} /> : <Moon size={18} style={{color:'var(--text-secondary)'}} />}
             </button>
             {LOCKDOWN && (
-              <Link href="/portal" className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all border"
+              <Link href="/apply" className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all border"
                 style={{borderColor:'var(--border)', color:'var(--text-secondary)', background:'var(--card-bg)'}}>
-                <LogIn size={14} /> <span className="hidden sm:inline">Student Portal</span>
+                <LogIn size={14} /> <span className="hidden sm:inline">Apply</span>
               </Link>
             )}
             {!LOCKDOWN && (
@@ -122,8 +174,8 @@ function Navbar() {
                   style={{borderColor:'var(--border)', color:'var(--text-secondary)', background:'var(--card-bg)'}}>
                   <LogIn size={14} /> Student Portal
                 </Link>
-                <Link href="/portal" className="hidden md:flex btn-primary text-sm px-4 py-2">
-                  Register Now <ArrowRight size={14} />
+                <Link href="/apply" className="hidden md:flex btn-primary text-sm px-4 py-2">
+                  Apply Now <ArrowRight size={14} />
                 </Link>
                 <button onClick={() => setOpen(!open)} className="lg:hidden p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5" aria-label="Menu">
                   {open ? <X size={20} /> : <Menu size={20} />}
@@ -137,7 +189,34 @@ function Navbar() {
       {!LOCKDOWN && open && (
         <div className="lg:hidden glass border-t" style={{borderColor:'var(--border)'}}>
           <div className="container py-4 flex flex-col gap-1">
-            {navLinks.map(l => (
+            {navLinks.slice(0, 3).map(l => (
+              <Link key={l.href} href={l.href}
+                onClick={() => setOpen(false)}
+                className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${pathname === l.href ? 'bg-red-50 dark:bg-red-950/30' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}
+                style={{color: pathname === l.href ? '#DD0000' : 'var(--text-primary)', fontWeight: pathname === l.href ? 700 : undefined, borderLeft: pathname === l.href ? '3px solid #DD0000' : '3px solid transparent'}}>
+                {l.label}
+              </Link>
+            ))}
+
+            <button onClick={() => setMobileResourcesOpen(v => !v)}
+              className={`flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-all ${isResourceActive ? 'bg-red-50 dark:bg-red-950/30' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}
+              style={{color: isResourceActive ? '#DD0000' : 'var(--text-primary)', fontWeight: isResourceActive ? 700 : undefined, borderLeft: isResourceActive ? '3px solid #DD0000' : '3px solid transparent'}}>
+              Resources <ChevronDown size={14} className={`transition-transform ${mobileResourcesOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {mobileResourcesOpen && (
+              <div className="flex flex-col gap-1 pl-4">
+                {resourceLinks.map(l => (
+                  <Link key={l.href} href={l.href}
+                    onClick={() => { setOpen(false); setMobileResourcesOpen(false) }}
+                    className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${pathname === l.href ? 'bg-red-50 dark:bg-red-950/30' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}
+                    style={{color: pathname === l.href ? '#DD0000' : 'var(--text-secondary)', fontWeight: pathname === l.href ? 700 : undefined}}>
+                    {l.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+
+            {navLinks.slice(3).map(l => (
               <Link key={l.href} href={l.href}
                 onClick={() => setOpen(false)}
                 className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${pathname === l.href ? 'bg-red-50 dark:bg-red-950/30' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}
@@ -148,8 +227,8 @@ function Navbar() {
             <Link href="/portal" onClick={() => setOpen(false)} className="btn-secondary mt-2 text-sm justify-center">
               <LogIn size={14} /> Student Portal
             </Link>
-            <Link href="/portal" onClick={() => setOpen(false)} className="btn-primary text-sm justify-center">
-              Register Now <ArrowRight size={14} />
+            <Link href="/apply" onClick={() => setOpen(false)} className="btn-primary text-sm justify-center">
+              Apply Now <ArrowRight size={14} />
             </Link>
           </div>
         </div>
@@ -195,6 +274,7 @@ function Footer() {
               (c) {new Date().getFullYear()} German Language Academy of Bangladesh (GLAB). All rights reserved.
             </p>
             <div className="flex items-center gap-3 text-xs mt-2" style={{color:'var(--text-muted)'}}>
+              <Link href="/apply" className="hover:underline">Apply</Link>
               <Link href="/impressum" className="hover:underline">Impressum</Link>
               <Link href="/privacy" className="hover:underline">Privacy Policy</Link>
               <Link href="/terms" className="hover:underline">Terms</Link>
@@ -238,7 +318,7 @@ function Footer() {
               <div>
                 <h3 className="font-semibold mb-4 text-sm uppercase tracking-wider" style={{color:'var(--text-primary)'}}>Quick Links</h3>
                 <ul className="space-y-2">
-                  {[['Courses', '/courses'], ['Registration', '/portal'], ['Announcements', '/announcements'], ['Reviews', '/reviews'], ['Books', '/books'], ['HelloDeutsch App', '/hellodeutsch'], ['Verify Certificate', '/verify']].map(([l, h]) => (
+                  {[['Courses', '/courses'], ['Apply', '/apply'], ['Announcements', '/announcements'], ['Reviews', '/reviews'], ['Books', '/books'], ['HelloDeutsch App', '/hellodeutsch'], ['Verify Certificate', '/verify']].map(([l, h]) => (
                     <li key={h}><Link href={h} className="text-sm transition-colors hover:text-red-600" style={{color:'var(--text-muted)'}}>{l}</Link></li>
                   ))}
                 </ul>

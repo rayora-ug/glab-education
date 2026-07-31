@@ -21,6 +21,8 @@ var EXAM_SUBMISSIONS_HEADERS = [
 var EXAM_PERMISSIONS_SHEET = 'Exam Permissions';
 var REVIEWS_SHEET = 'Reviews';
 var CERTIFICATES_SHEET = 'Certificates';
+var CONTACT_MESSAGES_SHEET = 'Contact Messages';
+var CONTACT_MESSAGES_HEADERS = ['Timestamp', 'Name', 'Email', 'Subject', 'Message'];
 var REGISTRATIONS_HEADERS = [
   'Timestamp', 'GLAB ID', 'Name', 'Course', 'Batch ID',
   'Payment Method', 'Payment Reference', 'Proof File Link', 'Feedback', 'Status'
@@ -58,6 +60,8 @@ function doPost(e) {
       response = markReviewsSynced_(body.ids);
     } else if (body.action === 'verifyCertificate') {
       response = verifyCertificate_(body.certificateId);
+    } else if (body.action === 'submitContact') {
+      response = submitContact_(body);
     } else {
       throw new Error('Unknown action: ' + body.action);
     }
@@ -474,6 +478,30 @@ function appendRegistrationRow_(row) {
     sheet.appendRow(REGISTRATIONS_HEADERS);
   }
   sheet.appendRow(row);
+}
+
+// Records a /contact form submission. The site previously only simulated
+// this (a fake setTimeout with no backend call at all), so messages were
+// silently discarded — this makes it a real submission, landing in its own
+// sheet for manual follow-up, same pattern as Registrations/Exam Submissions.
+function submitContact_(body) {
+  if (!body.name || !body.email || !body.message) {
+    throw new Error('Name, email, and message are required.');
+  }
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(CONTACT_MESSAGES_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(CONTACT_MESSAGES_SHEET);
+    sheet.appendRow(CONTACT_MESSAGES_HEADERS);
+  }
+  sheet.appendRow([
+    new Date(),
+    body.name,
+    body.email,
+    body.subject || '',
+    body.message
+  ]);
+  return { success: true };
 }
 
 // Records an exam submission. Scores are never sent back to the student —

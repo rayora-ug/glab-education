@@ -8,12 +8,9 @@ import {
   Facebook, MessageCircle, Mail, MapPin, Users,
   ArrowRight, Globe, ShieldCheck, LogIn, ChevronDown
 } from 'lucide-react'
+import { FACEBOOK_PAGE, FACEBOOK_GROUP, WHATSAPP_CHANNEL } from '@/lib/social'
 
 const LOCKDOWN = process.env.NEXT_PUBLIC_LOCKDOWN_MODE === 'true'
-
-const FACEBOOK_PAGE = 'https://www.facebook.com/share/18sKb3EnVh/?mibextid=wwXIfr'
-const FACEBOOK_GROUP = 'https://www.facebook.com/share/g/1DQJXE4QrQ/?mibextid=wwXIfr'
-const WHATSAPP_CHANNEL = 'https://wa.me/message/72NY3RBASOPYI1'
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -294,11 +291,11 @@ function Footer() {
                   Helping Bangladeshi students learn German and build their future in Germany through structured online courses and digital learning tools.
                 </p>
                 <div className="flex gap-3">
-                  <a href="https://facebook.com/glab.bd" target="_blank" rel="noopener noreferrer"
+                  <a href={FACEBOOK_PAGE} target="_blank" rel="noopener noreferrer"
                     className="w-9 h-9 rounded-lg flex items-center justify-center transition-colors hover:bg-blue-600 bg-blue-600/10 text-blue-600 hover:text-white">
                     <Facebook size={16} />
                   </a>
-                  <a href="https://chat.whatsapp.com/glab" target="_blank" rel="noopener noreferrer"
+                  <a href={WHATSAPP_CHANNEL} target="_blank" rel="noopener noreferrer"
                     className="w-9 h-9 rounded-lg flex items-center justify-center transition-colors hover:bg-green-600 bg-green-600/10 text-green-600 hover:text-white">
                     <MessageCircle size={16} />
                   </a>

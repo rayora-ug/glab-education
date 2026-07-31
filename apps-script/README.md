@@ -188,3 +188,9 @@ The `/verify` page looks up certificates **live from the spreadsheet** — one c
 | `Status` | Dropdown: `Enrolled` / `Running` / `Completed`. This drives what the site shows: `Completed` renders the full Certificate of Completion; `Enrolled` and `Running` render as a verified student/enrollment record (useful for embassies or employers confirming current enrollment) without the completion wording. |
 
 The tab therefore doubles as both the certificate register and a verifiable enrollment record — one row per student per course. Blank date fields are simply hidden on the site rather than shown empty. Changes take effect immediately — no site redeploy needed. Adding this tab required a one-time `Code.gs` redeploy (the `verifyCertificate` action).
+
+## Contact Messages tab (`/contact`)
+
+The `/contact` form used to only *look* like it sent something — it faked a delay and showed "Message Sent!" with no backend call at all, so every message was silently lost. It now submits for real via a `submitContact` action, writing each message to a `Contact Messages` tab: `Timestamp`, `Name`, `Email`, `Subject`, `Message`.
+
+The Web App creates this tab automatically on first submission, same as `Exam Submissions` — you don't need to create it yourself. There's no notification when a new message arrives, so check the tab periodically (or set up a Sheets email-notification rule on new rows if you want to be alerted immediately). Adding this required a `Code.gs` redeploy.

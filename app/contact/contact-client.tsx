@@ -5,6 +5,7 @@ import {
   Mail, MessageCircle, Facebook, Users, MapPin, Send,
   CheckCircle, ArrowRight, Clock
 } from 'lucide-react'
+import { FACEBOOK_PAGE, FACEBOOK_GROUP, WHATSAPP_CHANNEL } from '@/lib/social'
 
 const subjects = ['General Inquiry', 'Course Information', 'Registration Help', 'Payment Issue', 'Partnership / Other']
 
@@ -12,24 +13,36 @@ export default function ContactPage() {
   const [form, setForm] = useState({ name: '', email: '', subject: subjects[0], message: '' })
   const [submitted, setSubmitted] = useState(false)
   const [sending, setSending] = useState(false)
+  const [submitError, setSubmitError] = useState('')
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSending(true)
-    setTimeout(() => {
-      setSending(false)
+    setSubmitError('')
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      const data = await res.json()
+      if (!data.success) throw new Error(data.error || 'Failed to send message. Please try again.')
       setSubmitted(true)
-    }, 900)
+    } catch (err: any) {
+      setSubmitError(err.message || 'Failed to send message. Please check your connection and try again.')
+    } finally {
+      setSending(false)
+    }
   }
 
   const channels = [
-    { icon: Facebook, label: 'Facebook Page', desc: 'Follow for daily updates & tips', href: 'https://facebook.com/glab.bd', color: '#1877F2', bg: 'rgba(24,119,242,0.1)' },
-    { icon: Users, label: 'Facebook Group', desc: 'Join 15,000+ German learners', href: 'https://facebook.com/groups/glab.bd', color: '#1877F2', bg: 'rgba(24,119,242,0.1)' },
-    { icon: MessageCircle, label: 'WhatsApp Community', desc: 'Get instant announcements', href: 'https://chat.whatsapp.com/glab', color: '#16a34a', bg: 'rgba(22,163,74,0.1)' },
+    { icon: Facebook, label: 'Facebook Page', desc: 'Follow for daily updates & tips', href: FACEBOOK_PAGE, color: '#1877F2', bg: 'rgba(24,119,242,0.1)' },
+    { icon: Users, label: 'Facebook Group', desc: 'Join 15,000+ German learners', href: FACEBOOK_GROUP, color: '#1877F2', bg: 'rgba(24,119,242,0.1)' },
+    { icon: MessageCircle, label: 'WhatsApp Community', desc: 'Get instant announcements', href: WHATSAPP_CHANNEL, color: '#16a34a', bg: 'rgba(22,163,74,0.1)' },
     { icon: Mail, label: 'Email Us', desc: 'info@glabeducation.com', href: 'mailto:info@glabeducation.com', color: '#DD0000', bg: 'rgba(221,0,0,0.1)' },
   ]
 
@@ -93,6 +106,9 @@ export default function ContactPage() {
                         <textarea name="message" required rows={6} value={form.message} onChange={handleChange}
                           placeholder="Tell us how we can help..." className="input" style={{resize:'vertical'}} />
                       </div>
+                      {submitError && (
+                        <p className="text-sm" style={{color:'#DD0000'}}>{submitError}</p>
+                      )}
                       <button type="submit" disabled={sending} className="btn-primary w-full justify-center text-base py-3.5 disabled:opacity-60">
                         {sending ? 'Sending...' : <>Send Message <Send size={16} /></>}
                       </button>

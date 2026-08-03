@@ -71,6 +71,13 @@ Eligibility is **not** hierarchical in the code — if a student finishes A2 and
 
 (The `-M`/`-E` suffix marks Morning/Evening, matching the actual batch time — not the batch number.)
 
+A1 batches aren't in `data/courses.json` — they're assigned manually per applicant via the `Batch ID` column on `Applications` (see "A1 applications" below), so add a `Batch Links` row whenever a new one is confirmed:
+
+| Batch ID | Batch |
+|---|---|
+| `a1-39-m` | A1 Intensive — 39th Batch (Morning) |
+| `a1-40-e` | A1 Intensive — 40th Batch (Evening) |
+
 If a new batch is ever added to the site, it'll get a new id there — add the matching row here whenever that happens.
 
 ## A1 applications (`/results`)

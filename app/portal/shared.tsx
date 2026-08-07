@@ -43,7 +43,7 @@ export type Registration = {
 export function BatchLinks({ registration }: { registration: Registration }) {
   const links = [
     { href: registration.whatsappLink, label: 'Join WhatsApp Group', icon: MessageCircle },
-    { href: registration.classroomLink, label: 'Open Google Classroom', icon: GraduationCap },
+    { href: registration.classroomLink, label: 'Join Google Classroom', icon: GraduationCap },
     { href: registration.meetLink, label: 'Join Google Meet', icon: Video },
   ].filter(l => l.href)
 

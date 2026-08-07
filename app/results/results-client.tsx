@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import {
   WHATSAPP_CHANNEL, STATUS_INFO, formatDate, fileToBase64, validateProofFile,
-  PaymentInfoCard, PaymentAndRulesFields, type Registration,
+  PaymentInfoCard, PaymentAndRulesFields, BatchLinks, type Registration,
 } from '../portal/shared'
 import coursesData from '../../data/courses.json'
 
@@ -337,17 +337,7 @@ export default function ResultsPage() {
                 Registered for: <strong style={{ color: 'var(--text-primary)' }}>{registration.course}</strong>
               </p>
 
-              {registration.status === 'Confirmed' && (
-                registration.whatsappLink ? (
-                  <a href={registration.whatsappLink} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center gap-2">
-                    <MessageCircle size={16} /> Join WhatsApp Group
-                  </a>
-                ) : (
-                  <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                    Your WhatsApp group link will be added shortly. Check back soon.
-                  </p>
-                )
-              )}
+              {registration.status === 'Confirmed' && <BatchLinks registration={registration} />}
 
               <div className="mt-6">
                 <button onClick={resetForm} className="text-sm underline inline-flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>

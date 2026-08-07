@@ -266,27 +266,41 @@ function findLatestRegistration_(glabId) {
   return latest;
 }
 
-// Looks up the WhatsApp group link for a batch from the Batch Links sheet.
-// Returns null if the sheet, the batch row, or the link itself is missing.
-function findWhatsAppLink_(batchId) {
+// Looks up a batch's WhatsApp group, Google Classroom, and Google Meet
+// links from the Batch Links sheet. Returns an object with all three (each
+// null if missing) so a student who logs back in — days or weeks after
+// these were only shared in the WhatsApp group itself — can still find
+// them; chat history isn't visible to anyone who joins the group late.
+function findBatchLinks_(batchId) {
+  var empty = { whatsappLink: null, classroomLink: null, meetLink: null };
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(BATCH_LINKS_SHEET);
-  if (!sheet || !batchId) return null;
+  if (!sheet || !batchId) return empty;
 
   var values = sheet.getDataRange().getValues();
   var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
   var idCol = headers.indexOf('batch id');
-  var linkCol = headers.indexOf('whatsapp group link');
-  if (idCol === -1 || linkCol === -1) return null;
+  var whatsappCol = headers.indexOf('whatsapp group link');
+  var classroomCol = headers.indexOf('google classroom link');
+  var meetCol = headers.indexOf('google meet link');
+  if (idCol === -1) return empty;
 
   var needle = String(batchId).trim().toLowerCase();
+  var cell = function (row, col) {
+    if (col === -1) return null;
+    var v = String(row[col] || '').trim();
+    return v || null;
+  };
   for (var i = 1; i < values.length; i++) {
-    var cell = String(values[i][idCol] || '').trim().toLowerCase();
-    if (cell === needle) {
-      var link = String(values[i][linkCol] || '').trim();
-      return link || null;
+    var rowId = String(values[i][idCol] || '').trim().toLowerCase();
+    if (rowId === needle) {
+      return {
+        whatsappLink: cell(values[i], whatsappCol),
+        classroomLink: cell(values[i], classroomCol),
+        meetLink: cell(values[i], meetCol)
+      };
     }
   }
-  return null;
+  return empty;
 }
 
 // Finds an A1 application by Email + Date of Birth. Reads the Applications
@@ -359,7 +373,10 @@ function lookupStudent_(glabId) {
 
   var registration = findLatestRegistration_(student.glabId);
   if (registration && registration.status === CONFIRMED_STATUS) {
-    registration.whatsappLink = findWhatsAppLink_(registration.batchId);
+    var links = findBatchLinks_(registration.batchId);
+    registration.whatsappLink = links.whatsappLink;
+    registration.classroomLink = links.classroomLink;
+    registration.meetLink = links.meetLink;
   }
 
   return {
@@ -397,7 +414,12 @@ function submitRegistration_(body) {
   // way to tell "first submission" from "resubmission" apart.
   var existing = findLatestRegistration_(student.glabId);
   if (existing) {
-    existing.whatsappLink = existing.status === CONFIRMED_STATUS ? findWhatsAppLink_(existing.batchId) : null;
+    var existingLinks = existing.status === CONFIRMED_STATUS
+      ? findBatchLinks_(existing.batchId)
+      : { whatsappLink: null, classroomLink: null, meetLink: null };
+    existing.whatsappLink = existingLinks.whatsappLink;
+    existing.classroomLink = existingLinks.classroomLink;
+    existing.meetLink = existingLinks.meetLink;
     return { success: true, alreadyRegistered: true, registration: existing };
   }
 

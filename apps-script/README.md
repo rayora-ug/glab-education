@@ -9,7 +9,7 @@ Open the spreadsheet that already has the GLAB ID ↔ Name roster.
 - Make sure the tab with that data has a header row containing columns named exactly **`GLAB ID`** and **`Name`** (any other columns, any order, are fine — the script only looks for these by name). Rename the tab to **`Students`** if it isn't already.
 - Add three more columns: **`Eligible A1`**, **`Eligible A2`**, and **`Eligible B1`**. These control who can register for what — see "Marking students eligible" below. Leave them blank for students who aren't eligible for anything yet.
 - You don't need to create the `Registrations` tab yourself — the script creates it automatically on the first submission, with headers: Timestamp, GLAB ID, Name, Course, Batch ID, Payment Method, Payment Reference, Proof File Link, Feedback, Status.
-- You do need to create a **`Batch Links`** tab yourself, with two columns: **`Batch ID`** and **`WhatsApp Group Link`**. This is how a confirmed student gets their batch's WhatsApp group link automatically — see "Assigning WhatsApp group links" below.
+- You do need to create a **`Batch Links`** tab yourself, with four columns: **`Batch ID`**, **`WhatsApp Group Link`**, **`Google Classroom Link`**, and **`Google Meet Link`**. This is how a confirmed student gets their batch's class links automatically — see "Assigning batch links" below.
 - If you're using `/results` (A1 application results), you also need an **`Applications`** tab — see "A1 applications" below.
 
 ## 2. Drive folder for payment proofs
@@ -60,23 +60,29 @@ Eligibility is **not** hierarchical in the code — if a student finishes A2 and
 
 **Fixing a mistake.** Just edit the `Status` cell back to whichever value is correct — there's no history/audit trail, the cell's current value is the live status.
 
-**Assigning WhatsApp group links.** On the `Batch Links` tab, add one row per batch: the `Batch ID` and its `WhatsApp Group Link`. The portal only shows this link to a student once their registration is `Confirmed` — never before. You can add or change these links at any time, no redeploy needed. Current batch ids (from `data/courses.json` in the site repo):
+**Assigning batch links.** On the `Batch Links` tab, add one row per batch: its `Batch ID`, `WhatsApp Group Link`, `Google Classroom Link`, and `Google Meet Link`. The portal only shows these to a student once their registration is `Confirmed` — never before, and any missing link (e.g. Classroom not set up yet) is simply skipped rather than shown broken. You can add or change these at any time, no redeploy needed.
 
-| Batch ID | Batch |
-|---|---|
-| `a2-36-E` | A2 Intensive — 36th Batch (Evening) |
-| `a2-37-M` | A2 Intensive — 37th Batch (Morning) |
-| `b1-32-M` | B1 Intensive — 32nd Batch (Morning) |
-| `b1-33-E` | B1 Intensive — 33rd Batch (Evening) |
+This is deliberately the *only* place these links live — not just shared once in the WhatsApp group — because a student who joins the group after a link was posted has no way to see it in chat history. Putting it on the confirmation page means logging back in with their GLAB ID always shows the current links, no matter when they join.
+
+Current batch ids (from `data/courses.json` in the site repo) and their links as of the August 2026 batches:
+
+| Batch ID | Batch | Google Classroom | Google Meet |
+|---|---|---|---|
+| `a2-36-E` | A2 Intensive — 36th Batch (Evening) | https://classroom.google.com/c/ODcxOTAzMjE2OTEz?cjc=mzfxjfhd | https://meet.google.com/veu-erme-rvz |
+| `a2-37-M` | A2 Intensive — 37th Batch (Morning) | https://classroom.google.com/c/ODE5OTIyNzIzNTg4?cjc=hr76ldtm | https://meet.google.com/njj-zgsv-zmt |
+| `b1-32-M` | B1 Intensive — 32nd Batch (Morning) | https://classroom.google.com/c/ODcxODk4NzI4NjQw?cjc=krlgtntr | https://meet.google.com/mos-gkud-rfm |
+| `b1-33-E` | B1 Intensive — 33rd Batch (Evening) | https://classroom.google.com/c/ODcxOTAyODMwNTY3?cjc=jbbg2h6u | https://meet.google.com/fix-nkgx-aaw |
 
 (The `-M`/`-E` suffix marks Morning/Evening, matching the actual batch time — not the batch number.)
 
 A1 batches aren't in `data/courses.json` — they're assigned manually per applicant via the `Batch ID` column on `Applications` (see "A1 applications" below), so add a `Batch Links` row whenever a new one is confirmed:
 
-| Batch ID | Batch |
-|---|---|
-| `a1-39-m` | A1 Intensive — 39th Batch (Morning) |
-| `a1-40-e` | A1 Intensive — 40th Batch (Evening) |
+| Batch ID | Batch | Google Classroom | Google Meet |
+|---|---|---|---|
+| `a1-39-m` | A1 Intensive — 39th Batch (Morning) | https://classroom.google.com/c/ODcxODkzNDQzMDkz?cjc=bkc7wyhd | https://meet.google.com/sgj-gzjc-sqx |
+| `a1-40-e` | A1 Intensive — 40th Batch (Evening) | https://classroom.google.com/c/ODcxOTAyNDExMTA3?cjc=ujdgw663 | https://meet.google.com/yxh-rzfw-aod |
+
+WhatsApp group links for all six batches should already be in the `WhatsApp Group Link` column. If a specific confirmed student still doesn't see their WhatsApp link despite the row being correct, check their row on `Registrations` — `Batch ID` there is written once at submission time and won't update retroactively just because `Applications` or `Batch Links` changed afterward; you'd need to fix that cell directly to match.
 
 If a new batch is ever added to the site, it'll get a new id there — add the matching row here whenever that happens.
 

@@ -3,7 +3,7 @@
 // GLAB ID and a batch to register for. Keeping this in one place means a
 // future tweak (copy, validation, styling) only has to land once.
 
-import { Upload, Paperclip, Landmark, AlertTriangle } from 'lucide-react'
+import { Upload, Paperclip, Landmark, AlertTriangle, MessageCircle, GraduationCap, Video } from 'lucide-react'
 
 export const WHATSAPP_CHANNEL = 'https://wa.me/message/72NY3RBASOPYI1'
 export const MAX_FILE_BYTES = 3 * 1024 * 1024
@@ -22,8 +22,8 @@ export const BANK_DETAILS = [
 ]
 
 export const STATUS_INFO: Record<string, string> = {
-  Submitted: 'Your registration has been submitted successfully and is awaiting payment verification. The WhatsApp group link will become available after your registration has been confirmed.',
-  Confirmed: 'Your payment has been verified and your registration has been confirmed successfully. You can now join your batch’s official WhatsApp group.',
+  Submitted: 'Your registration has been submitted successfully and is awaiting payment verification. Your class links will become available here once your registration has been confirmed.',
+  Confirmed: 'Your payment has been verified and your registration has been confirmed successfully. You can now access your batch’s class links below.',
 }
 
 export type Registration = {
@@ -32,6 +32,38 @@ export type Registration = {
   status: string
   timestamp: string | null
   whatsappLink?: string | null
+  classroomLink?: string | null
+  meetLink?: string | null
+}
+
+// Shown once a registration is Confirmed. All three links live here, on the
+// page a student can always log back into with their GLAB ID — unlike a
+// WhatsApp group, where anything shared before someone joins is invisible
+// to them, this page has no "history" problem.
+export function BatchLinks({ registration }: { registration: Registration }) {
+  const links = [
+    { href: registration.whatsappLink, label: 'Join WhatsApp Group', icon: MessageCircle },
+    { href: registration.classroomLink, label: 'Open Google Classroom', icon: GraduationCap },
+    { href: registration.meetLink, label: 'Join Google Meet', icon: Video },
+  ].filter(l => l.href)
+
+  if (links.length === 0) {
+    return (
+      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+        Your class links will be added shortly. Check back soon.
+      </p>
+    )
+  }
+
+  return (
+    <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3">
+      {links.map(({ href, label, icon: Icon }) => (
+        <a key={label} href={href!} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center gap-2">
+          <Icon size={16} /> {label}
+        </a>
+      ))}
+    </div>
+  )
 }
 
 export function fileToBase64(file: File): Promise<string> {

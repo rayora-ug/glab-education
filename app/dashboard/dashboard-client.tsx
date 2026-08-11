@@ -8,7 +8,7 @@ import {
   ArrowRight, RotateCcw, Quote, ClipboardList,
 } from 'lucide-react'
 import coursesData from '../../data/courses.json'
-import { COURSE_RULES, formatDate } from '../portal/shared'
+import { COURSE_RULES, formatDate, useRegistrationOpen } from '../portal/shared'
 
 type BatchInfo = {
   whatsappLink: string | null
@@ -65,6 +65,7 @@ function weekProgress(startDate: string | null, endDate: string | null) {
 }
 
 export default function DashboardPage() {
+  const registrationOpen = useRegistrationOpen()
   const [glabId, setGlabId] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -113,10 +114,16 @@ export default function DashboardPage() {
   // on the student's actual Eligible A2/Eligible B1 flag once they click
   // through, so duplicating that check here would only ever hide the CTA
   // from someone /portal would in fact let register.
+  //
+  // Also checks the admin panel's global registration switch (registrationOpen
+  // above, from useRegistrationOpen) alongside the per-course static flag —
+  // the two are separate mechanisms (one build-time in courses.json, one live
+  // via Script Property), and the CTA needs to respect both: no point telling
+  // a student to go register somewhere the admin has just paused sitewide.
   const NEXT_LEVEL: Record<string, string> = { A1: 'A2', A2: 'B1' }
   const currentCourse = data ? coursesData.find(c => data.registration?.course.startsWith(c.title)) : null
   const nextLevel = currentCourse ? NEXT_LEVEL[currentCourse.level] : null
-  const nextLevelCourses = data && nextLevel
+  const nextLevelCourses = data && nextLevel && registrationOpen
     ? coursesData.filter(c => c.level === nextLevel && c.registrationOpen)
     : []
 

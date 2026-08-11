@@ -2,11 +2,39 @@
 // the payment/proof/rules step is identical for both once someone has a
 // GLAB ID and a batch to register for. Keeping this in one place means a
 // future tweak (copy, validation, styling) only has to land once.
+'use client'
 
-import { Upload, Paperclip, Landmark, AlertTriangle, MessageCircle, GraduationCap, Video } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Upload, Paperclip, Landmark, AlertTriangle, PauseCircle } from 'lucide-react'
 
 export const WHATSAPP_CHANNEL = 'https://wa.me/message/72NY3RBASOPYI1'
 export const MAX_FILE_BYTES = 3 * 1024 * 1024
+
+// Reflects the admin panel's global registration on/off switch. This is
+// purely a UX signal — the real enforcement happens server-side in
+// submitRegistration_, so even if this check is skipped or stale, no
+// registration can actually go through while the switch is off.
+export function useRegistrationOpen() {
+  const [open, setOpen] = useState<boolean | null>(null)
+  useEffect(() => {
+    fetch('/api/registration-status').then(r => r.json()).then(d => {
+      if (d.success) setOpen(d.open)
+    }).catch(() => setOpen(true))
+  }, [])
+  return open
+}
+
+export function RegistrationClosedBanner() {
+  return (
+    <div className="rounded-xl p-5 mb-6 flex items-start gap-3"
+      style={{ background: 'rgba(221,0,0,0.08)', border: '1px solid rgba(221,0,0,0.25)' }}>
+      <PauseCircle size={20} style={{ color: '#DD0000', flexShrink: 0, marginTop: 2 }} />
+      <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
+        Registration is currently closed. Please check back later or contact GLAB for more information.
+      </p>
+    </div>
+  )
+}
 
 export function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -21,9 +49,19 @@ export const BANK_DETAILS = [
   { label: 'Branch', value: 'Joydebpur (Gazipur)' },
 ]
 
+export const COURSE_RULES = [
+  'Once you have joined a specific batch, you cannot switch to another batch for any reason.',
+  'You may cancel your registration for a full refund only within 3 calendar days of the date you registered — regardless of whether classes have started. After this 3-day window, no cancellation or refund is possible, even if you have not attended any classes.',
+  'Please register only if you are fully committed to completing the course.',
+  'A change of mind, personal reasons, or a lack of time does not qualify for a refund or batch change once the 3-day window has closed.',
+  'If you wish to join a different batch, you must complete a new registration and pay the full course fee again.',
+  'Keeping your video camera on during every class is mandatory.',
+  'If you miss a total of 5 classes and/or homework submissions, you will be removed from the course without further notice.',
+]
+
 export const STATUS_INFO: Record<string, string> = {
-  Submitted: 'Your registration has been submitted successfully and is awaiting payment verification. Your class links will become available here once your registration has been confirmed.',
-  Confirmed: 'Your payment has been verified and your registration has been confirmed successfully. You can now access your batch’s class links below.',
+  Submitted: 'Your registration has been submitted successfully and is awaiting payment verification. Your class links will become available on MyGLAB once your registration has been confirmed.',
+  Confirmed: 'Your payment has been verified and your registration has been confirmed successfully. You can now access your batch’s class links on MyGLAB.',
 }
 
 export type Registration = {
@@ -34,36 +72,6 @@ export type Registration = {
   whatsappLink?: string | null
   classroomLink?: string | null
   meetLink?: string | null
-}
-
-// Shown once a registration is Confirmed. All three links live here, on the
-// page a student can always log back into with their GLAB ID — unlike a
-// WhatsApp group, where anything shared before someone joins is invisible
-// to them, this page has no "history" problem.
-export function BatchLinks({ registration }: { registration: Registration }) {
-  const links = [
-    { href: registration.whatsappLink, label: 'Join WhatsApp Group', icon: MessageCircle },
-    { href: registration.classroomLink, label: 'Join Google Classroom', icon: GraduationCap },
-    { href: registration.meetLink, label: 'Join Google Meet', icon: Video },
-  ].filter(l => l.href)
-
-  if (links.length === 0) {
-    return (
-      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-        Your class links will be added shortly. Check back soon.
-      </p>
-    )
-  }
-
-  return (
-    <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3">
-      {links.map(({ href, label, icon: Icon }) => (
-        <a key={label} href={href!} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center gap-2">
-          <Icon size={16} /> {label}
-        </a>
-      ))}
-    </div>
-  )
 }
 
 export function fileToBase64(file: File): Promise<string> {
@@ -167,13 +175,7 @@ export function PaymentAndRulesFields({
           <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>GLAB Course Rules</span>
         </div>
         <ol className="text-sm space-y-1.5 mb-4 pl-5" style={{ color: 'var(--text-muted)', listStyleType: 'decimal' }}>
-          <li>Once you have joined a specific batch, you cannot switch to another batch for any reason.</li>
-          <li>You may cancel your registration for a full refund only within 3 calendar days of the date you registered — regardless of whether classes have started. After this 3-day window, no cancellation or refund is possible, even if you have not attended any classes.</li>
-          <li>Please register only if you are fully committed to completing the course.</li>
-          <li>A change of mind, personal reasons, or a lack of time does not qualify for a refund or batch change once the 3-day window has closed.</li>
-          <li>If you wish to join a different batch, you must complete a new registration and pay the full course fee again.</li>
-          <li>Keeping your video camera on during every class is mandatory.</li>
-          <li>If you miss a total of 5 classes and/or homework submissions, you will be removed from the course without further notice.</li>
+          {COURSE_RULES.map((rule, i) => <li key={i}>{rule}</li>)}
         </ol>
         <label className="flex items-start gap-2.5 cursor-pointer">
           <input type="checkbox" required className="mt-0.5" style={{ width: 16, height: 16, flexShrink: 0 }} />

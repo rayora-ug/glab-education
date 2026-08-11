@@ -23,6 +23,8 @@ var REVIEWS_SHEET = 'Reviews';
 var CERTIFICATES_SHEET = 'Certificates';
 var CONTACT_MESSAGES_SHEET = 'Contact Messages';
 var CONTACT_MESSAGES_HEADERS = ['Timestamp', 'Name', 'Email', 'Subject', 'Message'];
+var ATTENDANCE_SHEET = 'Attendance';
+var STUDENT_FEEDBACK_SHEET = 'Student Feedback';
 var REGISTRATIONS_HEADERS = [
   'Timestamp', 'GLAB ID', 'Name', 'Course', 'Batch ID',
   'Payment Method', 'Payment Reference', 'Proof File Link', 'Feedback', 'Status'
@@ -62,6 +64,20 @@ function doPost(e) {
       response = verifyCertificate_(body.certificateId);
     } else if (body.action === 'submitContact') {
       response = submitContact_(body);
+    } else if (body.action === 'getDashboard') {
+      response = getDashboard_(body.glabId);
+    } else if (body.action === 'getRegistrationStatus') {
+      response = { success: true, open: isRegistrationOpen_() };
+    } else if (body.action === 'adminSetRegistrationOpen') {
+      response = adminSetRegistrationOpen_(body.open);
+    } else if (body.action === 'adminSetStudentBlocked') {
+      response = adminSetStudentBlocked_(body.glabId, body.blocked);
+    } else if (body.action === 'adminFindStudent') {
+      response = adminFindStudent_(body.glabId);
+    } else if (body.action === 'adminListSubmittedRegistrations') {
+      response = adminListSubmittedRegistrations_();
+    } else if (body.action === 'adminConfirmRegistration') {
+      response = adminConfirmRegistration_(body.glabId, body.timestamp);
     } else {
       throw new Error('Unknown action: ' + body.action);
     }
@@ -127,6 +143,7 @@ function findStudent_(glabId) {
   var eligibilityCols = ELIGIBILITY_COLUMNS.map(function (e) {
     return { col: headers.indexOf(e.header), course: e.course };
   });
+  var blockedCol = headers.indexOf('blocked');
 
   var needle = String(glabId || '').trim().toLowerCase();
   if (!needle) return null;
@@ -137,7 +154,8 @@ function findStudent_(glabId) {
       var eligibleCourses = eligibilityCols
         .filter(function (e) { return e.col !== -1 && isTruthy_(values[i][e.col]); })
         .map(function (e) { return e.course; });
-      return { glabId: values[i][idCol], name: values[i][nameCol], eligibleCourses: eligibleCourses };
+      var blocked = blockedCol !== -1 && isTruthy_(values[i][blockedCol]);
+      return { glabId: values[i][idCol], name: values[i][nameCol], eligibleCourses: eligibleCourses, blocked: blocked };
     }
   }
   return null;
@@ -266,13 +284,14 @@ function findLatestRegistration_(glabId) {
   return latest;
 }
 
-// Looks up a batch's WhatsApp group, Google Classroom, and Google Meet
-// links from the Batch Links sheet. Returns an object with all three (each
-// null if missing) so a student who logs back in — days or weeks after
-// these were only shared in the WhatsApp group itself — can still find
-// them; chat history isn't visible to anyone who joins the group late.
-function findBatchLinks_(batchId) {
-  var empty = { whatsappLink: null, classroomLink: null, meetLink: null };
+// Looks up a batch's WhatsApp group, Google Classroom, Google Meet, and
+// start/end dates from the Batch Links sheet — the single source of truth
+// for per-batch info across A1/A2/B1. Returns an object with all fields
+// (each null if missing) so a student who logs back in — days or weeks
+// after links were only shared in the WhatsApp group itself — can still
+// find them; chat history isn't visible to anyone who joins the group late.
+function findBatchInfo_(batchId) {
+  var empty = { whatsappLink: null, classroomLink: null, meetLink: null, startDate: null, endDate: null };
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(BATCH_LINKS_SHEET);
   if (!sheet || !batchId) return empty;
 
@@ -282,6 +301,8 @@ function findBatchLinks_(batchId) {
   var whatsappCol = headers.indexOf('whatsapp group link');
   var classroomCol = headers.indexOf('google classroom link');
   var meetCol = headers.indexOf('google meet link');
+  var startCol = headers.indexOf('start date');
+  var endCol = headers.indexOf('end date');
   if (idCol === -1) return empty;
 
   var needle = String(batchId).trim().toLowerCase();
@@ -296,7 +317,9 @@ function findBatchLinks_(batchId) {
       return {
         whatsappLink: cell(values[i], whatsappCol),
         classroomLink: cell(values[i], classroomCol),
-        meetLink: cell(values[i], meetCol)
+        meetLink: cell(values[i], meetCol),
+        startDate: startCol !== -1 ? (normalizeDate_(values[i][startCol]) || null) : null,
+        endDate: endCol !== -1 ? (normalizeDate_(values[i][endCol]) || null) : null
       };
     }
   }
@@ -370,10 +393,11 @@ function checkApplication_(email, dob) {
 function lookupStudent_(glabId) {
   var student = findStudent_(glabId);
   if (!student) return { success: true, found: false };
+  if (student.blocked) return { success: true, found: true, blocked: true, name: student.name };
 
   var registration = findLatestRegistration_(student.glabId);
   if (registration && registration.status === CONFIRMED_STATUS) {
-    var links = findBatchLinks_(registration.batchId);
+    var links = findBatchInfo_(registration.batchId);
     registration.whatsappLink = links.whatsappLink;
     registration.classroomLink = links.classroomLink;
     registration.meetLink = links.meetLink;
@@ -389,8 +413,11 @@ function lookupStudent_(glabId) {
 }
 
 function submitRegistration_(body) {
+  if (!isRegistrationOpen_()) throw new Error('Registration is currently closed. Please check back later.');
+
   var student = findStudent_(body.glabId);
   if (!student) throw new Error('GLAB ID not found');
+  if (student.blocked) throw new Error('This account has been restricted. Please contact GLAB.');
 
   if (!body.course) throw new Error('Course is required');
   if (!body.batchId) throw new Error('Batch is required');
@@ -415,7 +442,7 @@ function submitRegistration_(body) {
   var existing = findLatestRegistration_(student.glabId);
   if (existing) {
     var existingLinks = existing.status === CONFIRMED_STATUS
-      ? findBatchLinks_(existing.batchId)
+      ? findBatchInfo_(existing.batchId)
       : { whatsappLink: null, classroomLink: null, meetLink: null };
     existing.whatsappLink = existingLinks.whatsappLink;
     existing.classroomLink = existingLinks.classroomLink;
@@ -720,4 +747,241 @@ function verifyCertificate_(certificateId) {
     }
   }
   return { success: true, found: false };
+}
+
+// Counts a student's attendance for one batch from the shared Attendance
+// tab (one tab covers every batch, disambiguated by a Batch ID column).
+// Each numbered column (1, 2, 3, ...) is one class session; a checkbox cell
+// is a real boolean (TRUE/FALSE) once the teacher has recorded that session
+// for that student, and blank ("") if it hasn't been recorded yet — so
+// "total" only counts sessions actually marked for this student, not every
+// numbered column that exists in the sheet (which may be ahead of this
+// particular batch's own pace).
+function findAttendance_(glabId, batchId) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ATTENDANCE_SHEET);
+  if (!sheet || !glabId || !batchId) return null;
+
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return null;
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var idCol = headers.indexOf('glab id');
+  var batchCol = headers.indexOf('batch id');
+  if (idCol === -1) return null;
+
+  var classCols = [];
+  for (var c = 0; c < headers.length; c++) {
+    if (/^\d+$/.test(headers[c])) classCols.push(c);
+  }
+
+  var needleId = String(glabId).trim().toLowerCase();
+  var needleBatch = String(batchId).trim().toLowerCase();
+  for (var i = 1; i < values.length; i++) {
+    var rowId = String(values[i][idCol] || '').trim().toLowerCase();
+    var rowBatch = batchCol !== -1 ? String(values[i][batchCol] || '').trim().toLowerCase() : '';
+    if (rowId === needleId && rowBatch === needleBatch) {
+      var present = 0, total = 0;
+      for (var j = 0; j < classCols.length; j++) {
+        var cell = values[i][classCols[j]];
+        if (typeof cell === 'boolean') {
+          total++;
+          if (cell) present++;
+        }
+      }
+      return { present: present, missed: total - present, total: total };
+    }
+  }
+  return null;
+}
+
+// Reads a free-text note the instructor has left for this student, from the
+// Student Feedback tab (one row per GLAB ID, overwritten whenever there's
+// something new to say — no history, just the current note).
+function findFeedback_(glabId) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(STUDENT_FEEDBACK_SHEET);
+  if (!sheet || !glabId) return null;
+
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return null;
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var idCol = headers.indexOf('glab id');
+  var noteCol = headers.indexOf('note');
+  if (idCol === -1 || noteCol === -1) return null;
+
+  var needle = String(glabId).trim().toLowerCase();
+  for (var i = 1; i < values.length; i++) {
+    var rowId = String(values[i][idCol] || '').trim().toLowerCase();
+    if (rowId === needle) {
+      var note = String(values[i][noteCol] || '').trim();
+      return note || null;
+    }
+  }
+  return null;
+}
+
+// Assembles the full MyGLAB dashboard for a confirmed student: batch info
+// (course, dates, links), attendance, published exam results, and any
+// instructor feedback. A student who exists but isn't Confirmed yet still
+// gets a response (so the page can say "not confirmed yet" rather than
+// "not found") — just without any of the confirmed-only data attached.
+function getDashboard_(glabId) {
+  var student = findStudent_(glabId);
+  if (!student) return { success: true, found: false };
+  if (student.blocked) return { success: true, found: true, blocked: true, name: student.name };
+
+  var registration = findLatestRegistration_(student.glabId);
+  var confirmed = !!registration && registration.status === CONFIRMED_STATUS;
+
+  var response = {
+    success: true,
+    found: true,
+    name: student.name,
+    glabId: student.glabId,
+    eligibleCourses: student.eligibleCourses,
+    confirmed: confirmed,
+    registration: registration
+  };
+
+  if (confirmed) {
+    var batchInfo = findBatchInfo_(registration.batchId);
+    response.batchInfo = batchInfo;
+    response.attendance = findAttendance_(student.glabId, registration.batchId);
+    response.feedback = findFeedback_(student.glabId);
+  }
+
+  return response;
+}
+
+// ===== Admin: registration on/off switch =====
+// A single global pause switch stored as a Script Property (Project
+// Settings > Script Properties > REGISTRATION_OPEN), not a sheet — there's
+// only one value, and this way it can be flipped instantly from the admin
+// panel with no sheet lookup on every registration attempt. Defaults to
+// open (true) if the property has never been set, so a fresh setup doesn't
+// accidentally start locked.
+function isRegistrationOpen_() {
+  var v = PropertiesService.getScriptProperties().getProperty('REGISTRATION_OPEN');
+  return v === null || v === 'true';
+}
+
+function adminSetRegistrationOpen_(open) {
+  PropertiesService.getScriptProperties().setProperty('REGISTRATION_OPEN', open ? 'true' : 'false');
+  return { success: true, open: !!open };
+}
+
+// ===== Admin: block/unblock a student =====
+// Blocking sets a checkbox on the Students tab; every student-facing entry
+// point (lookupStudent_, submitRegistration_, getDashboard_) checks it via
+// findStudent_ and refuses access without revealing anything else about
+// their record. A blocked student's row and history are never deleted —
+// this only gates the site, not their data.
+function adminSetStudentBlocked_(glabId, blocked) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(STUDENTS_SHEET);
+  if (!sheet) throw new Error('Students sheet not found');
+  if (!glabId) throw new Error('GLAB ID is required');
+
+  var values = sheet.getDataRange().getValues();
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var idCol = headers.indexOf('glab id');
+  var blockedCol = headers.indexOf('blocked');
+  if (idCol === -1) throw new Error('Students sheet must have a "GLAB ID" column');
+  if (blockedCol === -1) throw new Error('Students sheet must have a "Blocked" column');
+
+  var needle = String(glabId).trim().toLowerCase();
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][idCol] || '').trim().toLowerCase() === needle) {
+      sheet.getRange(i + 1, blockedCol + 1).setValue(!!blocked);
+      return { success: true, glabId: values[i][idCol], blocked: !!blocked };
+    }
+  }
+  throw new Error('GLAB ID not found');
+}
+
+// Admin-only student lookup — unlike lookupStudent_, this always returns
+// full info (including current Blocked state and registration) regardless
+// of whether the student is blocked, since an admin needs to see that
+// state in order to change it.
+function adminFindStudent_(glabId) {
+  var student = findStudent_(glabId);
+  if (!student) return { success: true, found: false };
+
+  var registration = findLatestRegistration_(student.glabId);
+  return {
+    success: true,
+    found: true,
+    glabId: student.glabId,
+    name: student.name,
+    eligibleCourses: student.eligibleCourses,
+    blocked: student.blocked,
+    registration: registration
+  };
+}
+
+// ===== Admin: confirm a registration (payment verification queue) =====
+// Lists every Registrations row still at the default Submitted status, so
+// an admin can review the attached payment proof and confirm from one
+// place instead of switching to the Registrations sheet for every student.
+function adminListSubmittedRegistrations_() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(REGISTRATIONS_SHEET);
+  if (!sheet) return { success: true, registrations: [] };
+
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return { success: true, registrations: [] };
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var col = function (name) { return headers.indexOf(name); };
+  var timestampCol = col('timestamp'), idCol = col('glab id'), nameCol = col('name'),
+      courseCol = col('course'), batchIdCol = col('batch id'), methodCol = col('payment method'),
+      refCol = col('payment reference'), proofCol = col('proof file link'),
+      feedbackCol = col('feedback'), statusCol = col('status');
+  if (idCol === -1 || statusCol === -1) return { success: true, registrations: [] };
+
+  var registrations = [];
+  for (var i = 1; i < values.length; i++) {
+    var status = String(values[i][statusCol] || DEFAULT_STATUS).trim();
+    if (status !== DEFAULT_STATUS) continue;
+    var ts = timestampCol !== -1 ? values[i][timestampCol] : null;
+    registrations.push({
+      timestamp: ts instanceof Date ? ts.toISOString() : String(ts || ''),
+      glabId: idCol !== -1 ? values[i][idCol] : '',
+      name: nameCol !== -1 ? values[i][nameCol] : '',
+      course: courseCol !== -1 ? values[i][courseCol] : '',
+      batchId: batchIdCol !== -1 ? values[i][batchIdCol] : '',
+      paymentMethod: methodCol !== -1 ? values[i][methodCol] : '',
+      paymentReference: refCol !== -1 ? values[i][refCol] : '',
+      proofFileLink: proofCol !== -1 ? values[i][proofCol] : '',
+      feedback: feedbackCol !== -1 ? values[i][feedbackCol] : ''
+    });
+  }
+  return { success: true, registrations: registrations };
+}
+
+// Confirms one specific Registrations row, identified by GLAB ID + its
+// exact Timestamp (compared by millisecond value, not string, since a
+// sheet cell round-trips as a Date object while the client only ever saw
+// the ISO string from adminListSubmittedRegistrations_) — a GLAB ID alone
+// isn't unique enough if a student has more than one row over time.
+function adminConfirmRegistration_(glabId, timestamp) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(REGISTRATIONS_SHEET);
+  if (!sheet) throw new Error('Registrations sheet not found');
+  if (!glabId || !timestamp) throw new Error('GLAB ID and timestamp are required');
+
+  var values = sheet.getDataRange().getValues();
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var idCol = headers.indexOf('glab id');
+  var timestampCol = headers.indexOf('timestamp');
+  var statusCol = headers.indexOf('status');
+  if (idCol === -1 || timestampCol === -1 || statusCol === -1) {
+    throw new Error('Registrations sheet must have "GLAB ID", "Timestamp", and "Status" columns');
+  }
+
+  var needleId = String(glabId).trim().toLowerCase();
+  var needleTime = new Date(timestamp).getTime();
+  for (var i = 1; i < values.length; i++) {
+    var rowId = String(values[i][idCol] || '').trim().toLowerCase();
+    var rowTime = new Date(values[i][timestampCol]).getTime();
+    if (rowId === needleId && rowTime === needleTime) {
+      sheet.getRange(i + 1, statusCol + 1).setValue(CONFIRMED_STATUS);
+      return { success: true };
+    }
+  }
+  throw new Error('Matching registration not found');
 }

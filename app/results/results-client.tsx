@@ -1,13 +1,15 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import {
   Search, ShieldCheck, ShieldX, PartyPopper, CheckCircle, Clock,
-  MessageCircle, RotateCcw, Info, CalendarClock,
+  MessageCircle, RotateCcw, Info, CalendarClock, LayoutDashboard,
 } from 'lucide-react'
 import {
   WHATSAPP_CHANNEL, STATUS_INFO, formatDate, fileToBase64, validateProofFile,
-  PaymentInfoCard, PaymentAndRulesFields, BatchLinks, type Registration,
+  PaymentInfoCard, PaymentAndRulesFields, useRegistrationOpen, RegistrationClosedBanner,
+  type Registration,
 } from '../portal/shared'
 import coursesData from '../../data/courses.json'
 
@@ -19,6 +21,7 @@ function feeForBatch(confirmedBatch: string) {
 }
 
 export default function ResultsPage() {
+  const registrationOpen = useRegistrationOpen()
   const [step, setStep] = useState<'lookup' | 'form' | 'status'>('lookup')
 
   const [email, setEmail] = useState('')
@@ -89,6 +92,10 @@ export default function ResultsPage() {
         body: JSON.stringify({ glabId: data.glabId }),
       })
       const lookupData = await lookupRes.json()
+      if (lookupData.blocked) {
+        setLookupError('Your account access has been restricted. Please contact GLAB for help.')
+        return
+      }
       if (lookupData.success && lookupData.registration) {
         setRegistration(lookupData.registration)
         setStep('status')
@@ -183,6 +190,7 @@ export default function ResultsPage() {
 
       <section className="section">
         <div className="container max-w-2xl mx-auto">
+          {registrationOpen === false && <RegistrationClosedBanner />}
           {step === 'lookup' && (
             <div className="card p-8 md:p-10">
               <div className="space-y-4 mb-2">
@@ -309,8 +317,8 @@ export default function ResultsPage() {
                   <p className="text-sm" style={{ color: '#DD0000' }}>{submitError}</p>
                 )}
 
-                <button type="submit" disabled={submitting} className="btn-primary w-full justify-center text-base py-3.5 disabled:opacity-60">
-                  {submitting ? 'Submitting...' : 'Submit Registration'}
+                <button type="submit" disabled={submitting || registrationOpen === false} className="btn-primary w-full justify-center text-base py-3.5 disabled:opacity-60">
+                  {submitting ? 'Submitting...' : registrationOpen === false ? 'Registration Closed' : 'Submit Registration'}
                 </button>
               </form>
             </div>
@@ -328,7 +336,7 @@ export default function ResultsPage() {
               </div>
               <div className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Welcome back, {applicantName}</div>
               <h2 className="font-display font-bold text-2xl mb-3" style={{ color: 'var(--text-primary)' }}>
-                {registration.status}
+                {registration.status === 'Confirmed' ? 'Your registration is confirmed' : registration.status}
               </h2>
               <p className="mb-4 max-w-md mx-auto" style={{ color: 'var(--text-muted)' }}>
                 {STATUS_INFO[registration.status] || 'Contact us on WhatsApp for the latest update on your registration.'}
@@ -337,7 +345,11 @@ export default function ResultsPage() {
                 Registered for: <strong style={{ color: 'var(--text-primary)' }}>{registration.course}</strong>
               </p>
 
-              {registration.status === 'Confirmed' && <BatchLinks registration={registration} />}
+              {registration.status === 'Confirmed' && (
+                <Link href="/dashboard" className="btn-primary inline-flex items-center gap-2">
+                  <LayoutDashboard size={16} /> Go to MyGLAB
+                </Link>
+              )}
 
               <div className="mt-6">
                 <button onClick={resetForm} className="text-sm underline inline-flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>

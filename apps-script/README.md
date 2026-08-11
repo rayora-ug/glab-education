@@ -9,7 +9,8 @@ Open the spreadsheet that already has the GLAB ID ↔ Name roster.
 - Make sure the tab with that data has a header row containing columns named exactly **`GLAB ID`** and **`Name`** (any other columns, any order, are fine — the script only looks for these by name). Rename the tab to **`Students`** if it isn't already.
 - Add three more columns: **`Eligible A1`**, **`Eligible A2`**, and **`Eligible B1`**. These control who can register for what — see "Marking students eligible" below. Leave them blank for students who aren't eligible for anything yet.
 - You don't need to create the `Registrations` tab yourself — the script creates it automatically on the first submission, with headers: Timestamp, GLAB ID, Name, Course, Batch ID, Payment Method, Payment Reference, Proof File Link, Feedback, Status.
-- You do need to create a **`Batch Links`** tab yourself, with four columns: **`Batch ID`**, **`WhatsApp Group Link`**, **`Google Classroom Link`**, and **`Google Meet Link`**. This is how a confirmed student gets their batch's class links automatically — see "Assigning batch links" below.
+- You do need to create a **`Batch Links`** tab yourself, with six columns: **`Batch ID`**, **`WhatsApp Group Link`**, **`Google Classroom Link`**, **`Google Meet Link`**, **`Start Date`**, and **`End Date`**. This is how a confirmed student gets their batch's class links and course dates automatically — see "Assigning batch links" below.
+- For the MyGLAB dashboard (`/dashboard`), you also need an **`Attendance`** tab and a **`Student Feedback`** tab — see "MyGLAB dashboard" below.
 - If you're using `/results` (A1 application results), you also need an **`Applications`** tab — see "A1 applications" below.
 
 ## 2. Drive folder for payment proofs
@@ -50,17 +51,17 @@ That's the entire Google-side setup. Any time you edit `Code.gs` in the Apps Scr
 
 ## Ongoing admin tasks
 
-There's no separate admin webpage — you do all of this directly in the spreadsheet.
+Most of this is still done directly in the spreadsheet. A few things have moved to a password-gated `/admin` page on the site instead — see "Admin panel" further down — but the sheet remains the source of truth for everything.
 
 **Marking students eligible.** On the `Students` tab, set `Eligible A1`, `Eligible A2`, and/or `Eligible B1` to any of `TRUE`, `Yes`, `Y`, `1` (or use a real checkbox column via Format → Checkboxes) to grant access. A student only ever sees batches for the courses they're marked eligible for on `/portal`.
 
 Eligibility is **not** hierarchical in the code — if a student finishes A2 and becomes eligible for B1, and you still want them able to register for A2 again (e.g. a repeat), you need to keep `Eligible A2` checked too. The script won't infer that for you; it's just whatever the two columns say.
 
-**Confirming a payment.** On the `Registrations` tab, every new submission starts with `Status` = `Submitted`. Once you've verified the payment, change that cell to exactly `Confirmed` — the student will see this next time they check `/portal` with their GLAB ID, and (if a WhatsApp link is assigned — see below) get a "Join WhatsApp Group" button.
+**Confirming a payment.** On the `Registrations` tab, every new submission starts with `Status` = `Submitted`. Once you've verified the payment, change that cell to exactly `Confirmed` — the student will see this next time they check `/portal` with their GLAB ID, and (if a WhatsApp link is assigned — see below) get a "Join WhatsApp Group" button. The `/admin` panel's "Pending Payment Verification" list does the same thing with a button instead of editing the cell, and links straight to the uploaded payment proof — see "Admin panel" below.
 
 **Fixing a mistake.** Just edit the `Status` cell back to whichever value is correct — there's no history/audit trail, the cell's current value is the live status.
 
-**Assigning batch links.** On the `Batch Links` tab, add one row per batch: its `Batch ID`, `WhatsApp Group Link`, `Google Classroom Link`, and `Google Meet Link`. The portal only shows these to a student once their registration is `Confirmed` — never before, and any missing link (e.g. Classroom not set up yet) is simply skipped rather than shown broken. You can add or change these at any time, no redeploy needed.
+**Assigning batch links.** On the `Batch Links` tab, add one row per batch: its `Batch ID`, `WhatsApp Group Link`, `Google Classroom Link`, `Google Meet Link`, `Start Date`, and `End Date`. The portal (and the MyGLAB dashboard) only shows these to a student once their registration is `Confirmed` — never before, and any missing value (e.g. Classroom not set up yet, or dates not filled in) is simply skipped rather than shown broken/blank. You can add or change these at any time, no redeploy needed. `Start Date`/`End Date` can be any date format Sheets recognizes.
 
 This is deliberately the *only* place these links live — not just shared once in the WhatsApp group — because a student who joins the group after a link was posted has no way to see it in chat history. Putting it on the confirmation page means logging back in with their GLAB ID always shows the current links, no matter when they join.
 
@@ -207,3 +208,29 @@ The tab therefore doubles as both the certificate register and a verifiable enro
 The `/contact` form used to only *look* like it sent something — it faked a delay and showed "Message Sent!" with no backend call at all, so every message was silently lost. It now submits for real via a `submitContact` action, writing each message to a `Contact Messages` tab: `Timestamp`, `Name`, `Email`, `Subject`, `Message`.
 
 The Web App creates this tab automatically on first submission, same as `Exam Submissions` — you don't need to create it yourself. There's no notification when a new message arrives, so check the tab periodically (or set up a Sheets email-notification rule on new rows if you want to be alerted immediately). Adding this required a `Code.gs` redeploy.
+
+## MyGLAB dashboard (`/dashboard`)
+
+A confirmed student's home base: course info + dates (from `Batch Links`), attendance, class links (same three as the confirmation page), an A2/B1 "register now" prompt once they're eligible and it's open, and a free-text note from you. Logs in with GLAB ID only — no separate account, same identity as everywhere else on the site. (Exam results are not shown here for now.)
+
+**You need to create two tabs yourself:**
+
+**`Attendance`** — one shared tab covering every batch, columns: `GLAB ID`, `Name`, `Batch ID`, then one column per class session named just the number (`1`, `2`, `3`, ...) as a checkbox column — checked means present. Add a new numbered column each time you hold a class, and check the box for whoever attended. A student's total/missed count on the dashboard only includes columns where their own checkbox has actually been set (checked *or* unchecked) — so a column that doesn't apply yet to a given batch (e.g. that batch hasn't had that many sessions) doesn't count against them just because other batches share the same sheet. If a student passes 5 missed classes, that's the same number as the "removed from the course" rule in the Course Rules shown on both the registration and dashboard pages — the dashboard doesn't enforce anything automatically, it just makes the number visible to the student themselves.
+
+**`Student Feedback`** — columns: `GLAB ID`, `Note`. One row per student. Whatever you type in `Note` shows up on their dashboard as "Note from Your Instructor" — overwrite it whenever you have something new to say (there's no history, just the current note). Leave a row's `Note` blank (or don't add the row at all) and nothing shows.
+
+None of this requires a `Code.gs` redeploy for day-to-day use (editing sheet data never does) — the redeploy was only needed once, to add the `getDashboard` action itself.
+
+## Admin panel (`/admin`)
+
+A password-gated page — one shared admin password, set as `ADMIN_PASSWORD` in Netlify's environment variables (not in Apps Script; the password check happens entirely in the Next.js server, Code.gs never sees it). You also need `ADMIN_SESSION_SECRET`, any long random string used only to sign the login cookie — generate one with `openssl rand -hex 32` and never reuse it elsewhere. Both go in the same place as `GLAB_SCRIPT_URL`/`GLAB_SCRIPT_TOKEN`.
+
+Three things live here for now:
+
+**Registration on/off.** One global switch, stored as a Script Property (`REGISTRATION_OPEN`) rather than a sheet — Project Settings → Script Properties in the Apps Script editor, though you'll normally never need to touch it there since the admin panel itself sets it. Defaults to open if never set. When off: every registration page shows a "Registration is currently closed" banner and disables the submit button, *and* the backend itself refuses new submissions regardless of what the page shows — so even a cached/stale page can't slip a registration through. This is a single global switch, not per-course — see the note in the site repo if you want per-course control later.
+
+**Block / unblock a student.** Add a `Blocked` checkbox column to the `Students` tab yourself. A blocked student's row and history are never touched or deleted — this only gates the site. Search their GLAB ID in the admin panel and toggle it; the effect is immediate on `/portal`, `/results`, and `/dashboard` (all three refuse access with a "contact GLAB" message once blocked, without revealing anything else about their record).
+
+**Confirm registrations (payment verification queue).** Lists every `Registrations` row still at the default `Submitted` status — name, GLAB ID, course/batch, payment method/reference, and a link to the uploaded payment proof — so you can review the screenshot and click Confirm from one place instead of switching to the sheet (and the Drive folder) for every student. Confirming sets that row's `Status` to `Confirmed` directly, same as editing the cell by hand.
+
+Adding this required a `Code.gs` redeploy (six new actions: `getRegistrationStatus`, `adminSetRegistrationOpen`, `adminSetStudentBlocked`, `adminFindStudent`, `adminListSubmittedRegistrations`, `adminConfirmRegistration`).

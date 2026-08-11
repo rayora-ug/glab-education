@@ -42,11 +42,11 @@ export default function ApplyPage() {
               A2 / B1 Registration
             </h2>
             <p className="text-sm mb-6 flex-1" style={{ color: 'var(--text-muted)' }}>
-              Already have a GLAB ID? Access the Student Portal to choose your batch and complete your registration.
+              Already have a GLAB ID? Access the Registration Portal to choose your batch and complete your registration.
             </p>
             <div className="flex flex-col gap-3">
               <Link href="/portal" className="btn-primary w-full justify-center">
-                <LogIn size={16} /> Go to Student Portal
+                <LogIn size={16} /> Go to Registration Portal
               </Link>
             </div>
           </div>

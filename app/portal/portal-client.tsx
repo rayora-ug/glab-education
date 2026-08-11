@@ -1,14 +1,16 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import {
   Search, ShieldCheck, ShieldX, UserCheck, CheckCircle, Clock,
-  MessageCircle, RotateCcw, CalendarClock
+  MessageCircle, RotateCcw, CalendarClock, LayoutDashboard
 } from 'lucide-react'
 import coursesData from '../../data/courses.json'
 import {
   WHATSAPP_CHANNEL, paymentMethods, STATUS_INFO, formatDate,
-  fileToBase64, validateProofFile, PaymentInfoCard, PaymentAndRulesFields, BatchLinks,
+  fileToBase64, validateProofFile, PaymentInfoCard, PaymentAndRulesFields,
+  useRegistrationOpen, RegistrationClosedBanner,
   type Registration,
 } from './shared'
 
@@ -35,6 +37,7 @@ function orderBatchesForEligibility(batches: typeof batchOptions, eligible: stri
 }
 
 export default function PortalPage() {
+  const registrationOpen = useRegistrationOpen()
   const [step, setStep] = useState<'id' | 'form' | 'status'>('id')
 
   const [glabId, setGlabId] = useState('')
@@ -70,6 +73,8 @@ export default function PortalPage() {
       if (!data.success) throw new Error(data.error || 'Something went wrong. Please try again.')
       if (!data.found) {
         setVerifyError(`We couldn't find "${glabId}" in our records.`)
+      } else if (data.blocked) {
+        setVerifyError('Your account access has been restricted. Please contact GLAB for help.')
       } else if (data.registration) {
         setStudentName(data.name)
         setRegistration(data.registration)
@@ -159,7 +164,7 @@ export default function PortalPage() {
           <div className="german-stripe mb-8 rounded-full" />
           <div className="section-label">Existing Students</div>
           <h1 className="font-display font-black text-5xl md:text-6xl mb-4" style={{ color: 'var(--text-primary)' }}>
-            Student Portal
+            Registration Portal
           </h1>
           <p className="text-xl max-w-2xl mb-5" style={{ color: 'var(--text-muted)' }}>
             Already a GLAB student? Register for your next course with just your GLAB ID, no need to fill out a new form.
@@ -172,6 +177,7 @@ export default function PortalPage() {
 
       <section className="section">
         <div className="container max-w-2xl mx-auto">
+          {registrationOpen === false && <RegistrationClosedBanner />}
           {step === 'id' && (
             <div className="card p-8 md:p-10">
               <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
@@ -285,8 +291,8 @@ export default function PortalPage() {
                       <p className="text-sm" style={{ color: '#DD0000' }}>{submitError}</p>
                     )}
 
-                    <button type="submit" disabled={submitting} className="btn-primary w-full justify-center text-base py-3.5 disabled:opacity-60">
-                      {submitting ? 'Submitting...' : 'Submit Registration'}
+                    <button type="submit" disabled={submitting || registrationOpen === false} className="btn-primary w-full justify-center text-base py-3.5 disabled:opacity-60">
+                      {submitting ? 'Submitting...' : registrationOpen === false ? 'Registration Closed' : 'Submit Registration'}
                     </button>
                   </form>
                 </>
@@ -306,7 +312,7 @@ export default function PortalPage() {
               </div>
               <div className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Welcome back, {studentName}</div>
               <h2 className="font-display font-bold text-2xl mb-3" style={{ color: 'var(--text-primary)' }}>
-                {registration.status}
+                {registration.status === 'Confirmed' ? 'Your registration is confirmed' : registration.status}
               </h2>
               <p className="mb-4 max-w-md mx-auto" style={{ color: 'var(--text-muted)' }}>
                 {STATUS_INFO[registration.status] || 'Contact us on WhatsApp for the latest update on your registration.'}
@@ -315,7 +321,11 @@ export default function PortalPage() {
                 Registered for: <strong style={{ color: 'var(--text-primary)' }}>{registeredBatch?.label || registration.course}</strong>
               </p>
 
-              {registration.status === 'Confirmed' && <BatchLinks registration={registration} />}
+              {registration.status === 'Confirmed' && (
+                <Link href="/dashboard" className="btn-primary inline-flex items-center gap-2">
+                  <LayoutDashboard size={16} /> Go to MyGLAB
+                </Link>
+              )}
 
               <div className="mt-6">
                 <button onClick={resetForm} className="text-sm underline inline-flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>

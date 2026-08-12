@@ -341,6 +341,9 @@ export default function ResultsPage() {
               <p className="mb-4 max-w-md mx-auto" style={{ color: 'var(--text-muted)' }}>
                 {STATUS_INFO[registration.status] || 'Contact us on WhatsApp for the latest update on your registration.'}
               </p>
+              <p className="text-sm mb-1" style={{ color: 'var(--text-muted)' }}>
+                Your GLAB ID: <strong style={{ color: 'var(--text-primary)' }}>{glabId}</strong>
+              </p>
               <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>
                 Registered for: <strong style={{ color: 'var(--text-primary)' }}>{registration.course}</strong>
               </p>

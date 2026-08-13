@@ -165,9 +165,9 @@ You only need to do this once, ever — every exam shares this same parent folde
 
 Add one row per student per exam. To revoke access, just uncheck `Allowed` — no need to delete the row. A student not present in this tab at all is treated the same as unchecked (not allowed).
 
-## Reviews tab (staging real testimonials for `/reviews`)
+## Reviews tab (live testimonials for `/reviews`, publishable from `/admin`)
 
-The `/reviews` page reads from a static file in the site repo (`data/reviews.json`), not live from the spreadsheet — so this tab is a **staging area**, not a live data source. You paste real reviews here as you collect them (from the Facebook page or anywhere else); I periodically pull unsynced rows from this tab and copy them into `data/reviews.json` by hand, then mark those rows as synced so they don't get pulled again. Nothing here updates the live site automatically — the actual publish step is still a normal code change + deploy, matching how everything else in this project works.
+`/reviews` and the homepage spotlight now read from **both** the static `data/reviews.json` (the reviews collected before this tab existed — a frozen historical archive, edited only via a code change) **and** this `Reviews` tab's `Synced` rows, live, merged together on every request. The easiest way to add a new review is the "Add Review" form on `/admin` — it appends a row here already marked `Synced`, so it's live on the site within seconds, no code change or redeploy.
 
 **You need to create this tab yourself**, named exactly `Reviews`, with these columns:
 
@@ -181,9 +181,9 @@ The `/reviews` page reads from a static file in the site repo (`data/reviews.jso
 | `Review Text` | The review itself. |
 | `Outcome` | Optional short badge, e.g. `Passed Goethe B1 Exam` — leave blank if there isn't one. |
 | `Featured` | Checkbox — whether this review should appear in the "Featured Stories" spotlight, not just the full list. |
-| `Synced` | Checkbox — leave unchecked when you add a row. Gets checked automatically once the review has been copied into the site; don't check it yourself. |
+| `Synced` | Checkbox — doubles as the publish flag. The admin panel's Add Review form checks it automatically. If you paste a row in directly (e.g. bulk-copying several from Facebook at once), leave it unchecked until you're ready to publish it, then check it by hand — it'll appear on the site right away, no deploy needed. |
 
-No script property or redeploy is needed just to add reviews — only the `Code.gs` changes that introduced this tab's `listReviews`/`markReviewsSynced` actions needed a deploy, once.
+No script property or redeploy is needed just to add reviews — only the `Code.gs` changes that introduced this tab's `getPublishedReviews`/`adminAddReview` actions needed a deploy, once.
 
 ## Certificates tab (`/verify`)
 

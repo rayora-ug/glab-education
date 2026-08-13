@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import {
   Lock, ShieldX, Search, Ban, CheckCircle, Power,
-  ExternalLink, RefreshCw, LogOut, Loader2,
+  ExternalLink, RefreshCw, LogOut, Loader2, Star, PlusCircle,
 } from 'lucide-react'
 
 type Student = {
@@ -47,6 +47,18 @@ export default function AdminPage() {
   const [pendingError, setPendingError] = useState('')
   const [loadingPending, setLoadingPending] = useState(false)
   const [confirmingKey, setConfirmingKey] = useState('')
+
+  const [reviewName, setReviewName] = useState('')
+  const [reviewLocation, setReviewLocation] = useState('')
+  const [reviewRating, setReviewRating] = useState(5)
+  const [reviewDate, setReviewDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [reviewLevel, setReviewLevel] = useState('')
+  const [reviewText, setReviewText] = useState('')
+  const [reviewOutcome, setReviewOutcome] = useState('')
+  const [reviewFeatured, setReviewFeatured] = useState(false)
+  const [submittingReview, setSubmittingReview] = useState(false)
+  const [reviewError, setReviewError] = useState('')
+  const [reviewSuccess, setReviewSuccess] = useState('')
 
   useEffect(() => {
     fetch('/api/admin/session').then(r => r.json()).then(d => {
@@ -178,6 +190,38 @@ export default function AdminPage() {
       }
     } finally {
       setConfirmingKey('')
+    }
+  }
+
+  const submitReview = async () => {
+    if (!reviewName.trim() || !reviewText.trim()) return
+    setSubmittingReview(true)
+    setReviewError('')
+    setReviewSuccess('')
+    try {
+      const res = await fetch('/api/admin/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: reviewName, location: reviewLocation, rating: reviewRating, date: reviewDate,
+          level: reviewLevel, text: reviewText, outcome: reviewOutcome, featured: reviewFeatured,
+        }),
+      })
+      const data = await res.json()
+      if (!data.success) throw new Error(data.error || 'Failed to publish review.')
+      setReviewSuccess('Published — it will appear on the site immediately.')
+      setReviewName('')
+      setReviewLocation('')
+      setReviewRating(5)
+      setReviewDate(new Date().toISOString().slice(0, 10))
+      setReviewLevel('')
+      setReviewText('')
+      setReviewOutcome('')
+      setReviewFeatured(false)
+    } catch (err: any) {
+      setReviewError(err.message || 'Failed to publish review.')
+    } finally {
+      setSubmittingReview(false)
     }
   }
 
@@ -334,6 +378,41 @@ export default function AdminPage() {
               })}
             </div>
           )}
+        </div>
+
+        {/* Add review */}
+        <div className="card p-6">
+          <div className="font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+            <Star size={16} /> Add Review
+          </div>
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input type="text" value={reviewName} onChange={e => setReviewName(e.target.value)} placeholder="Name" className="input" />
+              <input type="text" value={reviewLocation} onChange={e => setReviewLocation(e.target.value)} placeholder="Location (optional)" className="input" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <select value={reviewRating} onChange={e => setReviewRating(Number(e.target.value))} className="input">
+                {[5, 4, 3, 2, 1].map(n => <option key={n} value={n}>{n} star{n === 1 ? '' : 's'}</option>)}
+              </select>
+              <input type="date" value={reviewDate} onChange={e => setReviewDate(e.target.value)} className="input" />
+              <input type="text" value={reviewLevel} onChange={e => setReviewLevel(e.target.value)} placeholder="Level, e.g. B1 Intensive" className="input" />
+            </div>
+            <textarea value={reviewText} onChange={e => setReviewText(e.target.value)} placeholder="Review text" rows={4} className="input" />
+            <input type="text" value={reviewOutcome} onChange={e => setReviewOutcome(e.target.value)} placeholder="Outcome badge, e.g. Passed Goethe B1 Exam (optional)" className="input" />
+            <label className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-primary)' }}>
+              <input type="checkbox" checked={reviewFeatured} onChange={e => setReviewFeatured(e.target.checked)} />
+              Feature this review (shows in the homepage spotlight)
+            </label>
+            {reviewError && <p className="text-sm" style={{ color: '#DD0000' }}>{reviewError}</p>}
+            {reviewSuccess && <p className="text-sm flex items-center gap-1.5" style={{ color: '#16a34a' }}><CheckCircle size={14} /> {reviewSuccess}</p>}
+            <button
+              onClick={submitReview}
+              disabled={submittingReview || !reviewName.trim() || !reviewText.trim()}
+              className="btn-primary inline-flex items-center gap-2 disabled:opacity-50"
+            >
+              <PlusCircle size={14} /> {submittingReview ? 'Publishing...' : 'Publish Review'}
+            </button>
+          </div>
         </div>
       </div>
     </section>

@@ -60,6 +60,10 @@ function doPost(e) {
       response = listReviews_(body.onlyUnsynced);
     } else if (body.action === 'markReviewsSynced') {
       response = markReviewsSynced_(body.ids);
+    } else if (body.action === 'getPublishedReviews') {
+      response = getPublishedReviews_();
+    } else if (body.action === 'adminAddReview') {
+      response = adminAddReview_(body);
     } else if (body.action === 'verifyCertificate') {
       response = verifyCertificate_(body.certificateId);
     } else if (body.action === 'submitContact') {
@@ -699,6 +703,69 @@ function markReviewsSynced_(rowNumbers) {
     sheet.getRange(r, syncedCol + 1).setValue(true);
   });
   return { success: true, updated: rowNumbers.length };
+}
+
+// Returns every "Synced" review from the Reviews tab, for live display on
+// the public site. "Synced" now doubles as the publish flag — checking it
+// (via the admin panel's Add Review form, which checks it automatically, or
+// by hand on a row someone pasted in directly) makes a review appear on
+// /reviews and the homepage immediately, no code deploy needed. This is what
+// replaced the old fully-manual "paste into this tab, then hand-copy into
+// data/reviews.json" workflow described in apps-script/README.md.
+function getPublishedReviews_() {
+  var all = listReviews_(false).reviews;
+  var published = all.filter(function (r) { return r.synced; });
+  return {
+    success: true,
+    reviews: published.map(function (r) {
+      return {
+        id: 'sheet-' + r.row,
+        name: r.name,
+        location: r.location,
+        rating: r.rating,
+        date: r.date,
+        level: r.course,
+        text: r.text,
+        outcome: r.outcome,
+        featured: r.featured,
+        verified: true
+      };
+    })
+  };
+}
+
+// Admin: appends a new review to the Reviews tab, already marked Synced —
+// i.e. published live immediately. This is the "Add Review" form on /admin,
+// for one-off reviews (e.g. copied from a Facebook comment) without needing
+// a code change.
+function adminAddReview_(body) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(REVIEWS_SHEET);
+  if (!sheet) throw new Error('Reviews sheet not found');
+  if (!body.name || !body.text) throw new Error('Name and review text are required.');
+
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+    .map(function (h) { return String(h).trim().toLowerCase(); });
+  var col = function (name) { return headers.indexOf(name); };
+  var nameCol = col('name'), locCol = col('location'), ratingCol = col('rating'),
+      dateCol = col('date'), courseCol = col('course'), textCol = col('review text'),
+      outcomeCol = col('outcome'), featuredCol = col('featured'), syncedCol = col('synced');
+  if (nameCol === -1 || textCol === -1 || syncedCol === -1) {
+    throw new Error('Reviews sheet must have "Name", "Review Text", and "Synced" columns');
+  }
+
+  var row = new Array(headers.length).fill('');
+  row[nameCol] = body.name;
+  if (locCol !== -1) row[locCol] = body.location || '';
+  if (ratingCol !== -1) row[ratingCol] = body.rating || 5;
+  if (dateCol !== -1) row[dateCol] = body.date || normalizeDate_(new Date());
+  if (courseCol !== -1) row[courseCol] = body.level || '';
+  row[textCol] = body.text;
+  if (outcomeCol !== -1) row[outcomeCol] = body.outcome || '';
+  if (featuredCol !== -1) row[featuredCol] = !!body.featured;
+  row[syncedCol] = true;
+
+  sheet.appendRow(row);
+  return { success: true };
 }
 
 // Looks up a single record by its ID (case-insensitive) from the

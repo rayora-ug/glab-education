@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import ReviewsPage from './reviews-client'
+import { getReviews } from '@/lib/reviews'
 
 export const metadata: Metadata = {
   title: 'Student Reviews',
@@ -10,6 +11,7 @@ export const metadata: Metadata = {
   },
 }
 
-export default function Page() {
-  return <ReviewsPage />
+export default async function Page() {
+  const reviews = await getReviews()
+  return <ReviewsPage reviews={reviews} />
 }

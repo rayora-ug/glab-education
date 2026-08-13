@@ -2,9 +2,7 @@
 
 import { useState } from 'react'
 import { Star, ExternalLink, CheckCircle, Quote, Filter } from 'lucide-react'
-import reviewsData from '../../data/reviews.json'
-
-const data = reviewsData as any
+import type { ReviewsData } from '@/lib/reviews'
 
 function StarDisplay({ rating }: { rating: number }) {
   return (
@@ -16,10 +14,10 @@ function StarDisplay({ rating }: { rating: number }) {
   )
 }
 
-export default function ReviewsPage() {
+export default function ReviewsPage({ reviews: data }: { reviews: ReviewsData }) {
   const [filter, setFilter] = useState('All')
-  const levels = ['All', ...Array.from(new Set(data.reviews.map((r: any) => r.level)))] as string[]
-  const filtered = filter === 'All' ? data.reviews : data.reviews.filter((r: any) => r.level === filter)
+  const levels = ['All', ...Array.from(new Set(data.reviews.map(r => r.level)))] as string[]
+  const filtered = filter === 'All' ? data.reviews : data.reviews.filter(r => r.level === filter)
 
   return (
     <>

@@ -85,7 +85,7 @@ removed from `next.config.js`) — Route Handlers need a server runtime, which
 
 ## MyGLAB (`/dashboard`) and Admin (`/admin`)
 
-`/dashboard` is a confirmed student's ongoing home base (attendance, class links, course dates, instructor notes) — same GLAB ID login as `/portal`, no separate account. `/admin` is a password-gated page for registration on/off, blocking a student, and confirming payments. Both proxy to the same Apps Script backend as `/portal`; `/admin` additionally needs:
+`/dashboard` is a confirmed student's ongoing home base (attendance, class links, course dates, instructor notes) — same GLAB ID login as `/portal`, no separate account. `/admin` is a password-gated page for registration on/off, blocking a student, confirming payments, and publishing reviews. Both proxy to the same Apps Script backend as `/portal`; `/admin` additionally needs:
 - `ADMIN_PASSWORD` — the shared admin password
 - `ADMIN_SESSION_SECRET` — any long random string used only to sign the login cookie (`openssl rand -hex 32`)
 

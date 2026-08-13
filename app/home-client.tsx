@@ -10,8 +10,8 @@ import {
 } from 'lucide-react'
 import courses from '../data/courses.json'
 import announcements from '../data/announcements.json'
-import reviews from '../data/reviews.json'
 import faq from '../data/faq.json'
+import type { ReviewsData } from '@/lib/reviews'
 
 const TICKER_ITEMS = [
   'A1 Intensive – August 2026', 'Free Pronunciation Workshop – June 20', 'B1 Exam Prep Now Available',
@@ -46,10 +46,10 @@ function CountUp({ end, duration = 2000 }: { end: number; duration?: number }) {
   return <span ref={ref}>{count}</span>
 }
 
-export default function HomePage() {
+export default function HomePage({ reviews }: { reviews: ReviewsData }) {
   const [faqOpen, setFaqOpen] = useState<number | null>(0)
   const [testimonialIdx, setTestimonialIdx] = useState(0)
-  const featuredReviews = (reviews as any).reviews.filter((r: any) => r.featured)
+  const featuredReviews = reviews.reviews.filter(r => r.featured)
 
   return (
     <>
@@ -201,7 +201,7 @@ export default function HomePage() {
               { end: 5000, suffix: '+', label: 'Students Enrolled', sub: 'Since 2021' },
               { end: 3, suffix: '', label: 'Course Levels', sub: 'A1 to B1' },
               { end: 98, suffix: '%', label: 'Exam Pass Rate', sub: 'Goethe & Telc' },
-              { end: (reviews as any).reviews.length, suffix: '', label: 'Five-Star Reviews', sub: 'Average 4.9/5' },
+              { end: reviews.totalReviews, suffix: '', label: 'Five-Star Reviews', sub: `Average ${reviews.averageRating}/5` },
             ].map(({ end, suffix, label, sub }) => (
               <div key={label} className="text-center">
                 <div className="font-display font-black mb-1" style={{fontSize:'3.5rem', lineHeight:1, background:'linear-gradient(135deg,#FFCE00,#FF9900)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',backgroundClip:'text'}}>

@@ -249,6 +249,7 @@ export default function PortalPage() {
                   <div>
                     <div className="text-xs uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Welcome back</div>
                     <div className="font-display font-bold text-xl" style={{ color: 'var(--text-primary)' }}>{studentName}</div>
+                    <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{glabId}</div>
                   </div>
                 </div>
                 <button onClick={resetForm} className="text-sm underline inline-flex items-center gap-1.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
@@ -319,6 +320,9 @@ export default function PortalPage() {
               </h2>
               <p className="mb-4 max-w-md mx-auto" style={{ color: 'var(--text-muted)' }}>
                 {STATUS_INFO[registration.status] || 'Contact us on WhatsApp for the latest update on your registration.'}
+              </p>
+              <p className="text-sm mb-1" style={{ color: 'var(--text-muted)' }}>
+                Your GLAB ID: <strong style={{ color: 'var(--text-primary)' }}>{glabId}</strong>
               </p>
               <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>
                 Registered for: <strong style={{ color: 'var(--text-primary)' }}>{registeredBatch?.label || registration.course}</strong>

@@ -1116,6 +1116,9 @@ function sendConfirmationEmail_(email, name, course, batchId, glabId) {
 
     MailApp.sendEmail({ to: email, subject: 'GLAB Registration Confirmed — ' + course, body: lines.join('\n'), name: 'GLAB Team' });
   } catch (err) {
-    // A failed email should never fail the confirmation itself.
+    // A failed email should never fail the confirmation itself — but log it
+    // (View > Executions > this run > Logs in the Apps Script editor) so a
+    // silent failure is still diagnosable instead of just vanishing.
+    console.error('sendConfirmationEmail_ failed: ' + err.message);
   }
 }

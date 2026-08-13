@@ -1116,9 +1116,14 @@ function sendConfirmationEmail_(email, name, course, batchId, glabId) {
 
     MailApp.sendEmail({ to: email, subject: 'GLAB Registration Confirmed — ' + course, body: lines.join('\n'), name: 'GLAB Team' });
   } catch (err) {
-    // A failed email should never fail the confirmation itself — but log it
-    // (View > Executions > this run > Logs in the Apps Script editor) so a
-    // silent failure is still diagnosable instead of just vanishing.
-    console.error('sendConfirmationEmail_ failed: ' + err.message);
+    // A failed email should never fail the confirmation itself — but record
+    // it somewhere reachable without digging through the Executions log:
+    // Project Settings (gear icon) > Script Properties, key
+    // LAST_EMAIL_ERROR. Gets overwritten by the next failure, so it's only
+    // ever the most recent one.
+    PropertiesService.getScriptProperties().setProperty(
+      'LAST_EMAIL_ERROR',
+      new Date().toISOString() + ' — ' + err.message
+    );
   }
 }

@@ -1091,8 +1091,17 @@ function adminConfirmRegistration_(glabId, timestamp) {
 // confirmation itself: the payment being marked Confirmed is what matters,
 // the email is a courtesy on top of it.
 function sendConfirmationEmail_(email, name, course, batchId, glabId) {
+  email = String(email || '').trim();
+  // Unconditional trace, written before anything else can go wrong or bail
+  // out early — so it's possible to tell "this never even ran" apart from
+  // "it ran but the row had no email" apart from "it ran, had an email, and
+  // MailApp itself threw." Safe to remove once email delivery is confirmed
+  // working; doesn't affect behavior, only Script Properties.
+  PropertiesService.getScriptProperties().setProperty(
+    'LAST_CONFIRM_ATTEMPT',
+    new Date().toISOString() + ' — glabId=' + glabId + ' email="' + email + '" course=' + course + ' batchId=' + batchId
+  );
   try {
-    email = String(email || '').trim();
     if (!email) return;
 
     var links = findBatchInfo_(batchId);
@@ -1115,6 +1124,10 @@ function sendConfirmationEmail_(email, name, course, batchId, glabId) {
     lines.push('— GLAB Team');
 
     MailApp.sendEmail({ to: email, subject: 'GLAB Registration Confirmed — ' + course, body: lines.join('\n'), name: 'GLAB Team' });
+    PropertiesService.getScriptProperties().setProperty(
+      'LAST_EMAIL_SENT',
+      new Date().toISOString() + ' — sent to ' + email + ' via ' + Session.getEffectiveUser().getEmail()
+    );
   } catch (err) {
     // A failed email should never fail the confirmation itself — but record
     // it somewhere reachable without digging through the Executions log:

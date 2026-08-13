@@ -48,6 +48,7 @@ export default function PortalPage() {
   const [registration, setRegistration] = useState<Registration | null>(null)
 
   const [selectedBatchId, setSelectedBatchId] = useState('')
+  const [email, setEmail] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('')
   const [paymentReference, setPaymentReference] = useState('')
   const [feedback, setFeedback] = useState('')
@@ -120,7 +121,7 @@ export default function PortalPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          glabId, course: selectedBatch.label, batchId: selectedBatch.id, paymentMethod, paymentReference, feedback,
+          glabId, course: selectedBatch.label, batchId: selectedBatch.id, email, paymentMethod, paymentReference, feedback,
           fileBase64, fileName: file.name, fileMimeType: file.type,
         }),
       })
@@ -149,6 +150,7 @@ export default function PortalPage() {
     setEligibleCourses([])
     setRegistration(null)
     setSelectedBatchId('')
+    setEmail('')
     setPaymentMethod('')
     setPaymentReference('')
     setFeedback('')
@@ -281,6 +283,7 @@ export default function PortalPage() {
                     </div>
 
                     <PaymentAndRulesFields
+                      email={email} setEmail={setEmail}
                       paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod}
                       paymentReference={paymentReference} setPaymentReference={setPaymentReference}
                       file={file} fileError={fileError} onFileChange={handleFileChange}

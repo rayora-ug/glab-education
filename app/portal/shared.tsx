@@ -113,11 +113,14 @@ export function PaymentInfoCard() {
 }
 
 export function PaymentAndRulesFields({
+  email, setEmail,
   paymentMethod, setPaymentMethod,
   paymentReference, setPaymentReference,
   file, fileError, onFileChange,
   feedback, setFeedback,
 }: {
+  email: string
+  setEmail: (v: string) => void
   paymentMethod: string
   setPaymentMethod: (v: string) => void
   paymentReference: string
@@ -130,6 +133,15 @@ export function PaymentAndRulesFields({
 }) {
   return (
     <>
+      <div>
+        <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Email Address</label>
+        <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
+          placeholder="you@example.com" className="input" />
+        <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
+          We'll use this to confirm your registration once your payment is verified.
+        </p>
+      </div>
+
       <div className="grid sm:grid-cols-2 gap-5">
         <div>
           <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Paying From</label>

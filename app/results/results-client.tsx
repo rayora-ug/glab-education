@@ -130,7 +130,7 @@ export default function ResultsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          glabId, course: confirmedBatch, batchId: confirmedBatchId, paymentMethod, paymentReference, feedback,
+          glabId, course: confirmedBatch, batchId: confirmedBatchId, email, paymentMethod, paymentReference, feedback,
           fileBase64, fileName: file.name, fileMimeType: file.type,
         }),
       })
@@ -307,6 +307,7 @@ export default function ResultsPage() {
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <PaymentAndRulesFields
+                  email={email} setEmail={setEmail}
                   paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod}
                   paymentReference={paymentReference} setPaymentReference={setPaymentReference}
                   file={file} fileError={fileError} onFileChange={handleFileChange}

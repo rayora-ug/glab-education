@@ -26,7 +26,7 @@ var CONTACT_MESSAGES_HEADERS = ['Timestamp', 'Name', 'Email', 'Subject', 'Messag
 var ATTENDANCE_SHEET = 'Attendance';
 var STUDENT_FEEDBACK_SHEET = 'Student Feedback';
 var REGISTRATIONS_HEADERS = [
-  'Timestamp', 'GLAB ID', 'Name', 'Course', 'Batch ID',
+  'Timestamp', 'GLAB ID', 'Name', 'Course', 'Batch ID', 'Email',
   'Payment Method', 'Payment Reference', 'Proof File Link', 'Feedback', 'Status'
 ];
 var DEFAULT_STATUS = 'Submitted';
@@ -425,6 +425,7 @@ function submitRegistration_(body) {
 
   if (!body.course) throw new Error('Course is required');
   if (!body.batchId) throw new Error('Batch is required');
+  if (!body.email) throw new Error('Email is required');
   if (!body.paymentMethod) throw new Error('Payment method is required');
   if (!body.fileBase64 || !body.fileName || !body.fileMimeType) {
     throw new Error('Payment proof file is required');
@@ -455,18 +456,19 @@ function submitRegistration_(body) {
   }
 
   var fileUrl = saveProofFile_(body.fileBase64, body.fileName, body.fileMimeType);
-  appendRegistrationRow_([
-    new Date(),
-    student.glabId,
-    student.name,
-    body.course,
-    body.batchId,
-    body.paymentMethod,
-    body.paymentReference || '',
-    fileUrl,
-    body.feedback || '',
-    DEFAULT_STATUS
-  ]);
+  appendRegistrationRow_({
+    'Timestamp': new Date(),
+    'GLAB ID': student.glabId,
+    'Name': student.name,
+    'Course': body.course,
+    'Batch ID': body.batchId,
+    'Email': body.email,
+    'Payment Method': body.paymentMethod,
+    'Payment Reference': body.paymentReference || '',
+    'Proof File Link': fileUrl,
+    'Feedback': body.feedback || '',
+    'Status': DEFAULT_STATUS
+  });
   return { success: true };
 }
 
@@ -523,13 +525,25 @@ function getOrCreateSubfolder_(parentFolder, name) {
   return parentFolder.createFolder(name);
 }
 
-function appendRegistrationRow_(row) {
+// Appends one Registrations row, matching each field to its column by
+// header name (case-insensitive) rather than a fixed position — so adding a
+// column to the live sheet (like "Email") works regardless of where you put
+// it, without needing this function updated to match. Any field with no
+// matching column is silently dropped.
+function appendRegistrationRow_(fields) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(REGISTRATIONS_SHEET);
   if (!sheet) {
     sheet = ss.insertSheet(REGISTRATIONS_SHEET);
     sheet.appendRow(REGISTRATIONS_HEADERS);
   }
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+    .map(function (h) { return String(h).trim().toLowerCase(); });
+  var row = new Array(headers.length).fill('');
+  Object.keys(fields).forEach(function (key) {
+    var col = headers.indexOf(key.toLowerCase());
+    if (col !== -1) row[col] = fields[key];
+  });
   sheet.appendRow(row);
 }
 
@@ -1036,6 +1050,10 @@ function adminConfirmRegistration_(glabId, timestamp) {
   var idCol = headers.indexOf('glab id');
   var timestampCol = headers.indexOf('timestamp');
   var statusCol = headers.indexOf('status');
+  var nameCol = headers.indexOf('name');
+  var courseCol = headers.indexOf('course');
+  var batchIdCol = headers.indexOf('batch id');
+  var emailCol = headers.indexOf('email');
   if (idCol === -1 || timestampCol === -1 || statusCol === -1) {
     throw new Error('Registrations sheet must have "GLAB ID", "Timestamp", and "Status" columns');
   }
@@ -1047,8 +1065,57 @@ function adminConfirmRegistration_(glabId, timestamp) {
     var rowTime = new Date(values[i][timestampCol]).getTime();
     if (rowId === needleId && rowTime === needleTime) {
       sheet.getRange(i + 1, statusCol + 1).setValue(CONFIRMED_STATUS);
+      sendConfirmationEmail_(
+        emailCol !== -1 ? values[i][emailCol] : '',
+        nameCol !== -1 ? values[i][nameCol] : '',
+        courseCol !== -1 ? values[i][courseCol] : '',
+        batchIdCol !== -1 ? values[i][batchIdCol] : '',
+        values[i][idCol]
+      );
       return { success: true };
     }
   }
   throw new Error('Matching registration not found');
+}
+
+// Emails a student the moment their registration is confirmed — this is
+// what replaced silence as the only signal a student got. Students kept
+// assuming a confirmation email would arrive and missed the first class or
+// two waiting for one that was never going to come; this closes that gap.
+// The email address comes straight off the Registrations row being
+// confirmed (an "Email" field on the /portal and /results registration
+// forms, required going forward) — not a separate lookup anywhere, so
+// there's nothing to keep in sync. Registrations submitted before that
+// field existed simply won't have one on file yet; this just skips the
+// email for those, same as any other missing-email case. Never blocks the
+// confirmation itself: the payment being marked Confirmed is what matters,
+// the email is a courtesy on top of it.
+function sendConfirmationEmail_(email, name, course, batchId, glabId) {
+  try {
+    email = String(email || '').trim();
+    if (!email) return;
+
+    var links = findBatchInfo_(batchId);
+    var lines = [
+      'Hi ' + (name || 'there') + ',',
+      '',
+      'Your registration for ' + course + ' has been confirmed. Welcome aboard!',
+      ''
+    ];
+    if (links.startDate) lines.push('Batch starts: ' + links.startDate);
+    if (links.whatsappLink) lines.push('WhatsApp group: ' + links.whatsappLink);
+    if (links.classroomLink) lines.push('Google Classroom: ' + links.classroomLink);
+    if (links.meetLink) lines.push('Google Meet: ' + links.meetLink);
+    if (!links.whatsappLink && !links.classroomLink) {
+      lines.push('Your class links will be posted here and on MyGLAB (glabeducation.com/dashboard) closer to the start date.');
+    }
+    lines.push('');
+    lines.push('You can check your batch, class links, and attendance anytime at glabeducation.com/dashboard with your GLAB ID: ' + glabId);
+    lines.push('');
+    lines.push('— GLAB Team');
+
+    MailApp.sendEmail({ to: email, subject: 'GLAB Registration Confirmed — ' + course, body: lines.join('\n'), name: 'GLAB Team' });
+  } catch (err) {
+    // A failed email should never fail the confirmation itself.
+  }
 }

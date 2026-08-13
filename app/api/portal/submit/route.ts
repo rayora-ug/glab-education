@@ -15,10 +15,13 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json()
-  const { glabId, course, batchId, paymentMethod, paymentReference, feedback, fileBase64, fileName, fileMimeType } = body
+  const { glabId, course, batchId, email, paymentMethod, paymentReference, feedback, fileBase64, fileName, fileMimeType } = body
 
   if (!glabId || !course || !batchId || !paymentMethod) {
     return NextResponse.json({ success: false, error: 'GLAB ID, course, batch, and payment method are required.' }, { status: 400 })
+  }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return NextResponse.json({ success: false, error: 'A valid email address is required.' }, { status: 400 })
   }
   if (!fileBase64 || !fileName || !fileMimeType) {
     return NextResponse.json({ success: false, error: 'Please attach your payment proof.' }, { status: 400 })
@@ -38,6 +41,7 @@ export async function POST(request: Request) {
       glabId: String(glabId).trim(),
       course,
       batchId,
+      email: String(email).trim(),
       paymentMethod,
       paymentReference: paymentReference || '',
       feedback: feedback || '',

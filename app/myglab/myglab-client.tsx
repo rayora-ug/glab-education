@@ -64,7 +64,7 @@ function weekProgress(startDate: string | null, endDate: string | null) {
   return { current: Math.max(1, elapsedWeeks), total: totalWeeks }
 }
 
-export default function DashboardPage() {
+export default function MyGlabPage() {
   const registrationOpen = useRegistrationOpen()
   const [glabId, setGlabId] = useState('')
   const [loading, setLoading] = useState(false)
@@ -76,7 +76,7 @@ export default function DashboardPage() {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch('/api/dashboard', {
+      const res = await fetch('/api/myglab', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ glabId }),

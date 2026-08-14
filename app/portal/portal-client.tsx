@@ -329,7 +329,7 @@ export default function PortalPage() {
               </p>
 
               {registration.status === 'Confirmed' && (
-                <Link href="/dashboard" className="btn-primary inline-flex items-center gap-2">
+                <Link href="/myglab" className="btn-primary inline-flex items-center gap-2">
                   <LayoutDashboard size={16} /> Go to MyGLAB
                 </Link>
               )}

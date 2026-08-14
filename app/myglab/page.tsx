@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import DashboardPage from './dashboard-client'
+import MyGlabPage from './myglab-client'
 
 export const metadata: Metadata = {
   title: 'MyGLAB',
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 }
 
 export default function Page() {
-  return <DashboardPage />
+  return <MyGlabPage />
 }

@@ -4,7 +4,7 @@ export async function POST(request: Request) {
   const scriptUrl = process.env.GLAB_SCRIPT_URL
   const token = process.env.GLAB_SCRIPT_TOKEN
   if (!scriptUrl || !token) {
-    return NextResponse.json({ success: false, error: 'The dashboard is not configured yet.' }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'MyGLAB is not configured yet.' }, { status: 500 })
   }
 
   const { glabId } = await request.json()

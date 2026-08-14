@@ -83,9 +83,9 @@ This is why the site is no longer a pure static export (`output: 'export'` was
 removed from `next.config.js`) — Route Handlers need a server runtime, which
 `netlify.toml`'s `@netlify/plugin-nextjs` already provides via Netlify Functions.
 
-## MyGLAB (`/dashboard`) and Admin (`/admin`)
+## MyGLAB (`/myglab`) and Admin (`/admin`)
 
-`/dashboard` is a confirmed student's ongoing home base (attendance, class links, course dates, instructor notes) — same GLAB ID login as `/portal`, no separate account. `/admin` is a password-gated page for registration on/off, blocking a student, confirming payments, and publishing reviews. Both proxy to the same Apps Script backend as `/portal`; `/admin` additionally needs:
+`/myglab` is a confirmed student's ongoing home base (attendance, class links, course dates, instructor notes) — same GLAB ID login as `/portal`, no separate account. `/admin` is a password-gated page for registration on/off, blocking a student, confirming payments, and publishing reviews. Both proxy to the same Apps Script backend as `/portal`; `/admin` additionally needs:
 - `ADMIN_PASSWORD` — the shared admin password
 - `ADMIN_SESSION_SECRET` — any long random string used only to sign the login cookie (`openssl rand -hex 32`)
 

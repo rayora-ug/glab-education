@@ -1116,17 +1116,26 @@ function sendConfirmationEmail_(email, name, course, batchId, glabId) {
     if (links.classroomLink) lines.push('Google Classroom: ' + links.classroomLink);
     if (links.meetLink) lines.push('Google Meet: ' + links.meetLink);
     if (!links.whatsappLink && !links.classroomLink) {
-      lines.push('Your class links will be posted here and on MyGLAB (glabeducation.com/dashboard) closer to the start date.');
+      lines.push('Your class links will be posted here and on MyGLAB (glabeducation.com/myglab) closer to the start date.');
     }
     lines.push('');
-    lines.push('You can check your batch, class links, and attendance anytime at glabeducation.com/dashboard with your GLAB ID: ' + glabId);
+    lines.push('You can check your batch, class links, and attendance anytime at glabeducation.com/myglab with your GLAB ID: ' + glabId);
     lines.push('');
     lines.push('— GLAB Team');
 
-    MailApp.sendEmail({ to: email, subject: 'GLAB Registration Confirmed — ' + course, body: lines.join('\n'), name: 'GLAB Team' });
+    // Sends as info@glabeducation.com rather than the script owner's
+    // personal Gmail — requires that address to be verified as a "Send
+    // mail as" alias on the account this script runs under (Gmail
+    // Settings > Accounts and Import), and a different OAuth scope
+    // (gmail.send) than MailApp needed, so this may prompt for
+    // re-authorization the first time it runs after this change.
+    GmailApp.sendEmail(email, 'GLAB Registration Confirmed — ' + course, lines.join('\n'), {
+      name: 'GLAB Team',
+      from: 'info@glabeducation.com'
+    });
     PropertiesService.getScriptProperties().setProperty(
       'LAST_EMAIL_SENT',
-      new Date().toISOString() + ' — sent to ' + email + ' via ' + Session.getEffectiveUser().getEmail()
+      new Date().toISOString() + ' — sent to ' + email + ' from info@glabeducation.com'
     );
   } catch (err) {
     // A failed email should never fail the confirmation itself — but record

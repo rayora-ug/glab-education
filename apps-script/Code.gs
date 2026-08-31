@@ -25,6 +25,8 @@ var CONTACT_MESSAGES_SHEET = 'Contact Messages';
 var CONTACT_MESSAGES_HEADERS = ['Timestamp', 'Name', 'Email', 'Subject', 'Message'];
 var ATTENDANCE_SHEET = 'Attendance';
 var STUDENT_FEEDBACK_SHEET = 'Student Feedback';
+var INTEREST_SHEET = 'Next Level Interest';
+var INTEREST_HEADERS = ['Timestamp', 'GLAB ID', 'Name', 'Level', 'Processed'];
 var REGISTRATIONS_HEADERS = [
   'Timestamp', 'GLAB ID', 'Name', 'Course', 'Batch ID', 'Email',
   'Payment Method', 'Payment Reference', 'Proof File Link', 'Feedback', 'Status'
@@ -82,6 +84,12 @@ function doPost(e) {
       response = adminListSubmittedRegistrations_();
     } else if (body.action === 'adminConfirmRegistration') {
       response = adminConfirmRegistration_(body.glabId, body.timestamp);
+    } else if (body.action === 'submitInterest') {
+      response = submitInterest_(body);
+    } else if (body.action === 'adminListInterest') {
+      response = adminListInterest_();
+    } else if (body.action === 'adminApproveInterest') {
+      response = adminApproveInterest_(body.glabId, body.timestamp, body.level);
     } else {
       throw new Error('Unknown action: ' + body.action);
     }
@@ -1148,4 +1156,144 @@ function sendConfirmationEmail_(email, name, course, batchId, glabId) {
       new Date().toISOString() + ' — ' + err.message
     );
   }
+}
+
+// ===== Next-level interest (MyGLAB "I'm interested" button) =====
+// A student who's confirmed for one level but not yet marked Eligible for
+// the next one has no way to signal "I want in" — admin previously had no
+// visibility into who actually wants to move up, only who's already been
+// marked eligible. This is a lightweight request queue: student taps
+// "I'm Interested" on MyGLAB, it lands here, and an admin reviewing it in
+// /admin can approve with one click, which flips the matching Eligible
+// column on Students so the student can then self-serve register via
+// /portal exactly like any other eligible student — nothing here grants
+// eligibility on its own, it's just a signal for a human to act on.
+function submitInterest_(body) {
+  var student = findStudent_(body.glabId);
+  if (!student) throw new Error('GLAB ID not found');
+  if (student.blocked) throw new Error('This account has been restricted. Please contact GLAB.');
+
+  var level = String(body.level || '').trim().toUpperCase();
+  if (level !== 'A2' && level !== 'B1') throw new Error('Level must be A2 or B1');
+
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(INTEREST_SHEET);
+  if (!sheet) {
+    sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet(INTEREST_SHEET);
+    sheet.appendRow(INTEREST_HEADERS);
+  }
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+    .map(function (h) { return String(h).trim().toLowerCase(); });
+  var col = function (name) { return headers.indexOf(name); };
+  var idCol = col('glab id'), levelCol = col('level'), processedCol = col('processed');
+
+  // Idempotency guard: don't add a second row if this student already has
+  // an unprocessed request for the same level on file.
+  if (idCol !== -1 && levelCol !== -1) {
+    var values = sheet.getDataRange().getValues();
+    var needleId = student.glabId.trim().toLowerCase();
+    for (var i = 1; i < values.length; i++) {
+      var rowId = String(values[i][idCol] || '').trim().toLowerCase();
+      var rowLevel = String(values[i][levelCol] || '').trim().toUpperCase();
+      var rowProcessed = processedCol !== -1 && isTruthy_(values[i][processedCol]);
+      if (rowId === needleId && rowLevel === level && !rowProcessed) {
+        return { success: true, alreadySubmitted: true };
+      }
+    }
+  }
+
+  var row = new Array(headers.length).fill('');
+  if (col('timestamp') !== -1) row[col('timestamp')] = new Date();
+  if (idCol !== -1) row[idCol] = student.glabId;
+  if (col('name') !== -1) row[col('name')] = student.name;
+  if (levelCol !== -1) row[levelCol] = level;
+  sheet.appendRow(row);
+  return { success: true };
+}
+
+// Lists every unprocessed interest request, for the /admin panel.
+function adminListInterest_() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(INTEREST_SHEET);
+  if (!sheet) return { success: true, requests: [] };
+
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return { success: true, requests: [] };
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var col = function (name) { return headers.indexOf(name); };
+  var tsCol = col('timestamp'), idCol = col('glab id'), nameCol = col('name'), levelCol = col('level'), processedCol = col('processed');
+
+  var requests = [];
+  for (var i = 1; i < values.length; i++) {
+    var row = values[i];
+    if (idCol === -1 || !row[idCol]) continue;
+    if (processedCol !== -1 && isTruthy_(row[processedCol])) continue;
+    requests.push({
+      timestamp: tsCol !== -1 ? new Date(row[tsCol]).toISOString() : null,
+      glabId: row[idCol],
+      name: nameCol !== -1 ? row[nameCol] : '',
+      level: levelCol !== -1 ? row[levelCol] : ''
+    });
+  }
+  return { success: true, requests: requests };
+}
+
+// Approves one interest request: marks the matching Eligible {level}
+// column on Students, then marks this request row Processed so it drops
+// out of the pending list. Identified by GLAB ID + Timestamp together,
+// same reasoning as adminConfirmRegistration_ — a GLAB ID alone isn't
+// unique enough if a student has requested more than one level over time.
+function adminApproveInterest_(glabId, timestamp, level) {
+  if (!glabId || !timestamp || !level) throw new Error('GLAB ID, timestamp, and level are required');
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(INTEREST_SHEET);
+  if (!sheet) throw new Error('Next Level Interest sheet not found');
+
+  var values = sheet.getDataRange().getValues();
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var idCol = headers.indexOf('glab id');
+  var tsCol = headers.indexOf('timestamp');
+  var processedCol = headers.indexOf('processed');
+  if (idCol === -1 || tsCol === -1 || processedCol === -1) {
+    throw new Error('Next Level Interest sheet must have "GLAB ID", "Timestamp", and "Processed" columns');
+  }
+
+  var needleId = String(glabId).trim().toLowerCase();
+  var needleTime = new Date(timestamp).getTime();
+  var found = false;
+  for (var i = 1; i < values.length; i++) {
+    var rowId = String(values[i][idCol] || '').trim().toLowerCase();
+    var rowTime = new Date(values[i][tsCol]).getTime();
+    if (rowId === needleId && rowTime === needleTime) {
+      sheet.getRange(i + 1, processedCol + 1).setValue(true);
+      found = true;
+      break;
+    }
+  }
+  if (!found) throw new Error('Matching request not found');
+
+  adminSetStudentEligible_(glabId, level, true);
+  return { success: true };
+}
+
+// Sets the Eligible {level} column (e.g. "Eligible A2") on the Students
+// tab for one GLAB ID — shared by adminApproveInterest_ and available for
+// any future admin action that needs to grant eligibility the same way.
+function adminSetStudentEligible_(glabId, level, value) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(STUDENTS_SHEET);
+  if (!sheet) throw new Error('Students sheet not found');
+
+  var values = sheet.getDataRange().getValues();
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var idCol = headers.indexOf('glab id');
+  var eligibleCol = headers.indexOf('eligible ' + String(level).toLowerCase());
+  if (idCol === -1 || eligibleCol === -1) {
+    throw new Error('Students sheet must have "GLAB ID" and "Eligible ' + level + '" columns');
+  }
+
+  var needle = String(glabId).trim().toLowerCase();
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][idCol] || '').trim().toLowerCase() === needle) {
+      sheet.getRange(i + 1, eligibleCol + 1).setValue(value);
+      return;
+    }
+  }
+  throw new Error('Student not found');
 }

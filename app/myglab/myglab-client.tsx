@@ -70,6 +70,8 @@ export default function MyGlabPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [data, setData] = useState<DashboardData | null>(null)
+  const [submittingInterest, setSubmittingInterest] = useState(false)
+  const [interestSubmitted, setInterestSubmitted] = useState(false)
 
   const handleLogin = async () => {
     if (!glabId.trim()) return
@@ -103,6 +105,23 @@ export default function MyGlabPage() {
     setData(null)
     setGlabId('')
     setError('')
+    setInterestSubmitted(false)
+  }
+
+  const submitInterest = async (level: string) => {
+    if (!data) return
+    setSubmittingInterest(true)
+    try {
+      const res = await fetch('/api/myglab/interest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ glabId: data.glabId, level }),
+      })
+      const result = await res.json()
+      if (result.success) setInterestSubmitted(true)
+    } finally {
+      setSubmittingInterest(false)
+    }
   }
 
   const progress = data?.batchInfo ? weekProgress(data.batchInfo.startDate, data.batchInfo.endDate) : null
@@ -126,6 +145,11 @@ export default function MyGlabPage() {
   const nextLevelCourses = data && nextLevel && registrationOpen
     ? coursesData.filter(c => c.level === nextLevel && c.registrationOpen)
     : []
+  // Eligibility (Eligible A2/Eligible B1 on the Students sheet) is a
+  // separate, admin-controlled flag from "registration is open" above —
+  // someone not yet eligible sees an "I'm Interested" request instead of
+  // the registration link, since /portal would just turn them away.
+  const isEligibleForNext = !!data && nextLevelCourses.some(c => data.eligibleCourses.includes(c.title))
 
   return (
     <>
@@ -220,9 +244,23 @@ export default function MyGlabPage() {
                   <div className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
                     Registration is open for <strong style={{ color: '#DD0000' }}>{nextLevelCourses.map(c => c.title).join(' & ')}</strong>.
                   </div>
-                  <Link href="/portal" className="btn-primary inline-flex items-center gap-2">
-                    Register for {nextLevel} <ArrowRight size={14} />
-                  </Link>
+                  {isEligibleForNext ? (
+                    <Link href="/portal" className="btn-primary inline-flex items-center gap-2">
+                      Register for {nextLevel} <ArrowRight size={14} />
+                    </Link>
+                  ) : interestSubmitted ? (
+                    <p className="text-sm flex items-center gap-1.5" style={{ color: '#16a34a' }}>
+                      <CheckCircle size={14} /> Thanks! We'll let you know once you're eligible to register.
+                    </p>
+                  ) : (
+                    <button
+                      onClick={() => submitInterest(nextLevel!)}
+                      disabled={submittingInterest}
+                      className="btn-primary inline-flex items-center gap-2 disabled:opacity-50"
+                    >
+                      {submittingInterest ? 'Submitting...' : `I'm Interested in ${nextLevel}`} <ArrowRight size={14} />
+                    </button>
+                  )}
                 </div>
               )}
 

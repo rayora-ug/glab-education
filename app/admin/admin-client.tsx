@@ -6,6 +6,11 @@ import {
   ExternalLink, RefreshCw, LogOut, Loader2, Star, PlusCircle,
 } from 'lucide-react'
 
+const REVIEW_LEVELS = [
+  'Foundation German', 'A1 Intensive', 'A2 Intensive', 'B1 Intensive',
+  'GLAB - Career Workshop', 'General',
+]
+
 type Student = {
   found: boolean
   glabId?: string
@@ -25,6 +30,13 @@ type PendingRegistration = {
   paymentReference: string
   proofFileLink: string
   feedback: string
+}
+
+type InterestRequest = {
+  timestamp: string
+  glabId: string
+  name: string
+  level: string
 }
 
 export default function AdminPage() {
@@ -60,6 +72,11 @@ export default function AdminPage() {
   const [reviewError, setReviewError] = useState('')
   const [reviewSuccess, setReviewSuccess] = useState('')
 
+  const [interest, setInterest] = useState<InterestRequest[] | null>(null)
+  const [interestError, setInterestError] = useState('')
+  const [loadingInterest, setLoadingInterest] = useState(false)
+  const [approvingKey, setApprovingKey] = useState('')
+
   useEffect(() => {
     fetch('/api/admin/session').then(r => r.json()).then(d => {
       setAuthenticated(!!d.authenticated)
@@ -73,6 +90,7 @@ export default function AdminPage() {
       if (d.success) setRegistrationOpen(d.open)
     })
     loadPending()
+    loadInterest()
   }, [authenticated])
 
   const handleLogin = async () => {
@@ -101,6 +119,7 @@ export default function AdminPage() {
     setAuthenticated(false)
     setStudentResult(null)
     setPending(null)
+    setInterest(null)
   }
 
   const toggleRegistration = async () => {
@@ -190,6 +209,39 @@ export default function AdminPage() {
       }
     } finally {
       setConfirmingKey('')
+    }
+  }
+
+  const loadInterest = async () => {
+    setLoadingInterest(true)
+    setInterestError('')
+    try {
+      const res = await fetch('/api/admin/interest/pending', { method: 'POST' })
+      const data = await res.json()
+      if (data.success) setInterest(data.requests)
+      else setInterestError(data.error || 'Failed to load interest requests.')
+    } catch {
+      setInterestError('Failed to load interest requests.')
+    } finally {
+      setLoadingInterest(false)
+    }
+  }
+
+  const approveInterest = async (req: InterestRequest) => {
+    const key = req.glabId + req.timestamp
+    setApprovingKey(key)
+    try {
+      const res = await fetch('/api/admin/interest/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ glabId: req.glabId, timestamp: req.timestamp, level: req.level }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setInterest(prev => (prev || []).filter(r => r.glabId + r.timestamp !== key))
+      }
+    } finally {
+      setApprovingKey('')
     }
   }
 
@@ -380,6 +432,44 @@ export default function AdminPage() {
           )}
         </div>
 
+        {/* Next level interest */}
+        <div className="card p-6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Next Level Interest</div>
+            <button onClick={loadInterest} disabled={loadingInterest} className="text-sm underline inline-flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
+              <RefreshCw size={13} className={loadingInterest ? 'animate-spin' : ''} /> Refresh
+            </button>
+          </div>
+          {interestError ? (
+            <p className="text-sm" style={{ color: '#DD0000' }}>{interestError}</p>
+          ) : interest === null || loadingInterest ? (
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading...</p>
+          ) : interest.length === 0 ? (
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Nothing pending — all caught up.</p>
+          ) : (
+            <div className="space-y-3">
+              {interest.map(req => {
+                const key = req.glabId + req.timestamp
+                return (
+                  <div key={key} className="flex items-center justify-between gap-4 flex-wrap p-4 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
+                    <div>
+                      <div className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{req.name} · {req.glabId}</div>
+                      <div className="text-xs" style={{ color: 'var(--text-muted)' }}>Interested in {req.level}</div>
+                    </div>
+                    <button
+                      onClick={() => approveInterest(req)}
+                      disabled={approvingKey === key}
+                      className="btn-primary text-sm px-3 py-1.5 disabled:opacity-50"
+                    >
+                      {approvingKey === key ? '...' : `Approve for ${req.level}`}
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
         {/* Add review */}
         <div className="card p-6">
           <div className="font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
@@ -395,7 +485,10 @@ export default function AdminPage() {
                 {[5, 4, 3, 2, 1].map(n => <option key={n} value={n}>{n} star{n === 1 ? '' : 's'}</option>)}
               </select>
               <input type="date" value={reviewDate} onChange={e => setReviewDate(e.target.value)} className="input" />
-              <input type="text" value={reviewLevel} onChange={e => setReviewLevel(e.target.value)} placeholder="Level, e.g. B1 Intensive" className="input" />
+              <select value={reviewLevel} onChange={e => setReviewLevel(e.target.value)} className="input">
+                <option value="" disabled>Select category</option>
+                {REVIEW_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+              </select>
             </div>
             <textarea value={reviewText} onChange={e => setReviewText(e.target.value)} placeholder="Review text" rows={4} className="input" />
             <input type="text" value={reviewOutcome} onChange={e => setReviewOutcome(e.target.value)} placeholder="Outcome badge, e.g. Passed Goethe B1 Exam (optional)" className="input" />

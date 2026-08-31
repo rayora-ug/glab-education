@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import {
-  ShieldX, LogIn, CheckCircle, Clock, AlertTriangle,
+  ShieldX, LogIn, CheckCircle, AlertTriangle,
   MessageCircle, GraduationCap, Video, CalendarRange,
   ArrowRight, RotateCcw, Quote, ClipboardList, Star,
 } from 'lucide-react'
@@ -195,7 +195,7 @@ export default function MyGlabPage() {
             MyGLAB
           </h1>
           <p className="text-xl max-w-2xl" style={{ color: 'var(--text-muted)' }}>
-            Log in with your GLAB ID to see your batch, attendance, class links, and more.
+            Log in with your GLAB ID to see your batch, attendance, class links, and share your feedback.
           </p>
         </div>
       </section>
@@ -234,45 +234,35 @@ export default function MyGlabPage() {
             </div>
           )}
 
-          {data && !data.confirmed && (
-            <div className="card p-10 text-center">
-              <Clock size={32} style={{ color: '#B8920A', margin: '0 auto 16px' }} />
-              <h2 className="font-display font-bold text-2xl mb-2" style={{ color: 'var(--text-primary)' }}>
-                Welcome, {data.name}
-              </h2>
-              <p className="mb-6" style={{ color: 'var(--text-muted)' }}>
-                MyGLAB unlocks once your registration is confirmed. Check your registration status on the Registration Portal.
-              </p>
-              <div className="flex flex-wrap gap-3 justify-center">
-                <Link href="/portal" className="btn-primary">Check Registration Status</Link>
-                <button onClick={resetForm} className="text-sm underline inline-flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
-                  <RotateCcw size={13} /> Back to Start
-                </button>
-              </div>
-            </div>
-          )}
-
-          {data && data.confirmed && data.registration && (
+          {data && (
             <div className="space-y-5">
               <div className="card p-6">
                 <div className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Welcome back</div>
                 <h2 className="font-display font-bold text-2xl mb-1" style={{ color: 'var(--text-primary)' }}>{data.name}</h2>
                 <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>{data.glabId}</p>
-                <p className="text-sm mb-1">
-                  <span style={{ color: 'var(--text-muted)' }}>Enrolled in: </span>
-                  <strong style={{ color: 'var(--text-primary)' }}>{data.registration.course}</strong>
-                </p>
-                {data.batchInfo?.startDate && (
-                  <p className="text-sm flex items-center gap-1.5 mt-1" style={{ color: 'var(--text-muted)' }}>
-                    <CalendarRange size={14} />
-                    {formatDate(data.batchInfo.startDate)}
-                    {data.batchInfo.endDate ? ` – ${formatDate(data.batchInfo.endDate)}` : ''}
-                    {progress && <span className="ml-2 badge badge-gold">Week {progress.current} of {progress.total}</span>}
+                {data.confirmed && data.registration ? (
+                  <>
+                    <p className="text-sm mb-1">
+                      <span style={{ color: 'var(--text-muted)' }}>Enrolled in: </span>
+                      <strong style={{ color: 'var(--text-primary)' }}>{data.registration.course}</strong>
+                    </p>
+                    {data.batchInfo?.startDate && (
+                      <p className="text-sm flex items-center gap-1.5 mt-1" style={{ color: 'var(--text-muted)' }}>
+                        <CalendarRange size={14} />
+                        {formatDate(data.batchInfo.startDate)}
+                        {data.batchInfo.endDate ? ` – ${formatDate(data.batchInfo.endDate)}` : ''}
+                        {progress && <span className="ml-2 badge badge-gold">Week {progress.current} of {progress.total}</span>}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                    You don't have an active course with GLAB right now. <Link href="/portal" className="underline" style={{ color: 'var(--text-primary)' }}>Check Registration Status</Link>
                   </p>
                 )}
               </div>
 
-              {nextLevelCourses.length > 0 && (
+              {data.confirmed && data.registration && nextLevelCourses.length > 0 && (
                 <div className="card p-6" style={{ background: 'rgba(221,0,0,0.05)', border: '1px solid rgba(221,0,0,0.2)' }}>
                   <div className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Ready for your next level?</div>
                   <div className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
@@ -298,53 +288,57 @@ export default function MyGlabPage() {
                 </div>
               )}
 
-              <div className="card p-6">
-                <div className="font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Your Class Links</div>
-                {data.batchInfo && <ClassLinks batchInfo={data.batchInfo} />}
-              </div>
+              {data.confirmed && data.registration && (
+                <>
+                  <div className="card p-6">
+                    <div className="font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Your Class Links</div>
+                    {data.batchInfo && <ClassLinks batchInfo={data.batchInfo} />}
+                  </div>
 
-              <div className="card p-6">
-                <div className="font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Attendance</div>
-                {data.attendance && data.attendance.total > 0 ? (
-                  <div className="flex items-center gap-6 flex-wrap">
-                    <div>
-                      <div className="text-3xl font-display font-black" style={{ color: 'var(--text-primary)' }}>
-                        {data.attendance.present}<span className="text-lg" style={{ color: 'var(--text-muted)' }}>/{data.attendance.total}</span>
+                  <div className="card p-6">
+                    <div className="font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Attendance</div>
+                    {data.attendance && data.attendance.total > 0 ? (
+                      <div className="flex items-center gap-6 flex-wrap">
+                        <div>
+                          <div className="text-3xl font-display font-black" style={{ color: 'var(--text-primary)' }}>
+                            {data.attendance.present}<span className="text-lg" style={{ color: 'var(--text-muted)' }}>/{data.attendance.total}</span>
+                          </div>
+                          <div className="text-xs uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Classes Attended</div>
+                        </div>
+                        <div className="flex items-center gap-2 px-4 py-2 rounded-lg"
+                          style={{ background: data.attendance.missed >= 5 ? 'rgba(221,0,0,0.1)' : 'rgba(22,163,74,0.1)' }}>
+                          <AlertTriangle size={16} style={{ color: data.attendance.missed >= 5 ? '#DD0000' : '#16a34a' }} />
+                          <span className="text-sm font-semibold" style={{ color: data.attendance.missed >= 5 ? '#DD0000' : '#16a34a' }}>
+                            {data.attendance.missed} missed
+                          </span>
+                        </div>
                       </div>
-                      <div className="text-xs uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Classes Attended</div>
-                    </div>
-                    <div className="flex items-center gap-2 px-4 py-2 rounded-lg"
-                      style={{ background: data.attendance.missed >= 5 ? 'rgba(221,0,0,0.1)' : 'rgba(22,163,74,0.1)' }}>
-                      <AlertTriangle size={16} style={{ color: data.attendance.missed >= 5 ? '#DD0000' : '#16a34a' }} />
-                      <span className="text-sm font-semibold" style={{ color: data.attendance.missed >= 5 ? '#DD0000' : '#16a34a' }}>
-                        {data.attendance.missed} missed
-                      </span>
-                    </div>
+                    ) : (
+                      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No attendance recorded yet for this batch.</p>
+                    )}
                   </div>
-                ) : (
-                  <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No attendance recorded yet for this batch.</p>
-                )}
-              </div>
 
-              {data.feedback && (
-                <div className="card p-6" style={{ background: 'rgba(255,206,0,0.08)', border: '1px solid rgba(255,206,0,0.3)' }}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Quote size={16} style={{ color: '#B8920A' }} />
-                    <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Note from Your Instructor</span>
+                  {data.feedback && (
+                    <div className="card p-6" style={{ background: 'rgba(255,206,0,0.08)', border: '1px solid rgba(255,206,0,0.3)' }}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Quote size={16} style={{ color: '#B8920A' }} />
+                        <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Note from Your Instructor</span>
+                      </div>
+                      <p className="text-sm" style={{ color: 'var(--text-primary)' }}>{data.feedback}</p>
+                    </div>
+                  )}
+
+                  <div className="card p-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <ClipboardList size={16} style={{ color: '#DD0000' }} />
+                      <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>GLAB Course Rules</span>
+                    </div>
+                    <ol className="text-sm space-y-1.5 pl-5" style={{ color: 'var(--text-muted)', listStyleType: 'decimal' }}>
+                      {COURSE_RULES.map((rule, i) => <li key={i}>{rule}</li>)}
+                    </ol>
                   </div>
-                  <p className="text-sm" style={{ color: 'var(--text-primary)' }}>{data.feedback}</p>
-                </div>
+                </>
               )}
-
-              <div className="card p-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <ClipboardList size={16} style={{ color: '#DD0000' }} />
-                  <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>GLAB Course Rules</span>
-                </div>
-                <ol className="text-sm space-y-1.5 pl-5" style={{ color: 'var(--text-muted)', listStyleType: 'decimal' }}>
-                  {COURSE_RULES.map((rule, i) => <li key={i}>{rule}</li>)}
-                </ol>
-              </div>
 
               <div className="card p-6">
                 <div className="flex items-center gap-2 mb-3">

@@ -298,6 +298,41 @@ function findLatestRegistration_(glabId) {
   return latest;
 }
 
+// Returns every Confirmed registration a student has ever had, oldest
+// first — their learning journey through GLAB (e.g. A1 batch X, then A2
+// batch Y). For a student who started directly at A2 (an Oral Test
+// placement, say), this is naturally just the one entry — no special
+// casing needed, it's simply their earliest and only row.
+function findRegistrationHistory_(glabId) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(REGISTRATIONS_SHEET);
+  if (!sheet) return [];
+
+  var values = sheet.getDataRange().getValues();
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var idCol = headers.indexOf('glab id');
+  var courseCol = headers.indexOf('course');
+  var batchIdCol = headers.indexOf('batch id');
+  var statusCol = headers.indexOf('status');
+  var timestampCol = headers.indexOf('timestamp');
+  if (idCol === -1) return [];
+
+  var needle = String(glabId || '').trim().toLowerCase();
+  var history = [];
+  for (var i = 1; i < values.length; i++) {
+    var cell = String(values[i][idCol] || '').trim().toLowerCase();
+    if (cell !== needle) continue;
+    var status = statusCol !== -1 ? values[i][statusCol] : DEFAULT_STATUS;
+    if (status !== CONFIRMED_STATUS) continue;
+    history.push({
+      course: courseCol !== -1 ? values[i][courseCol] : '',
+      batchId: batchIdCol !== -1 ? values[i][batchIdCol] : '',
+      timestamp: timestampCol !== -1 ? new Date(values[i][timestampCol]).toISOString() : null
+    });
+  }
+  history.sort(function (a, b) { return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(); });
+  return history;
+}
+
 // Looks up a batch's WhatsApp group, Google Classroom, Google Meet, and
 // start/end dates from the Batch Links sheet — the single source of truth
 // for per-batch info across A1/A2/B1. Returns an object with all fields
@@ -1009,7 +1044,9 @@ function getDashboard_(glabId) {
     glabId: student.glabId,
     eligibleCourses: student.eligibleCourses,
     confirmed: confirmed,
-    registration: registration
+    registration: registration,
+    history: findRegistrationHistory_(student.glabId),
+    pendingInterestLevels: findPendingInterestLevels_(student.glabId)
   };
 
   if (confirmed) {
@@ -1304,6 +1341,33 @@ function submitInterest_(body) {
   return { success: true };
 }
 
+// Returns every level a student currently has an unprocessed (not yet
+// approved) interest request for — so MyGLAB can hide the "I'm Interested"
+// form for a level they've already asked about, on every future login, not
+// just within the same browser session as the submission.
+function findPendingInterestLevels_(glabId) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(INTEREST_SHEET);
+  if (!sheet || !glabId) return [];
+
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return [];
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var idCol = headers.indexOf('glab id');
+  var levelCol = headers.indexOf('level');
+  var processedCol = headers.indexOf('processed');
+  if (idCol === -1 || levelCol === -1) return [];
+
+  var needle = String(glabId).trim().toLowerCase();
+  var levels = [];
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][idCol] || '').trim().toLowerCase() !== needle) continue;
+    if (processedCol !== -1 && isTruthy_(values[i][processedCol])) continue;
+    var level = String(values[i][levelCol] || '').trim().toUpperCase();
+    if (level) levels.push(level);
+  }
+  return levels;
+}
+
 // Lists every unprocessed interest request, for the /admin panel.
 function adminListInterest_() {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(INTEREST_SHEET);
@@ -1394,4 +1458,52 @@ function adminSetStudentEligible_(glabId, level, value) {
     }
   }
   throw new Error('Student not found');
+}
+
+// A "simple trigger" — Apps Script runs any function literally named
+// onEdit automatically on every manual edit to this spreadsheet, with zero
+// setup (unlike refreshRegistrationPending's trigger, nothing to install
+// under Triggers). This is what makes checking "Processed" by hand on the
+// Next Level Interest tab do the same thing as clicking Approve in
+// /admin — flip the matching Eligible column on Students — instead of just
+// marking the row done with no other effect.
+//
+// Only reacts to a single checkbox flipping to checked (not unchecked, and
+// not a multi-cell paste/fill, which onEdit reports as one event covering
+// the whole range — deliberately skipped rather than guessed at, so a bulk
+// paste doesn't silently grant eligibility for rows nobody meant to
+// approve yet; use /admin's Approve button one at a time for those, or
+// tick this box one row at a time by hand).
+//
+// Note this never fires for /admin's own Approve button — Apps Script only
+// invokes onEdit for edits made by a person in the Sheets UI, not for
+// edits the script itself makes via setValue(), so there's no risk of the
+// two approval paths double-processing each other.
+function onEdit(e) {
+  try {
+    if (!e || !e.range) return;
+    var sheet = e.range.getSheet();
+    if (sheet.getName() !== INTEREST_SHEET) return;
+    if (e.range.getNumRows() !== 1 || e.range.getNumColumns() !== 1) return;
+
+    var row = e.range.getRow();
+    if (row === 1) return;
+
+    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+      .map(function (h) { return String(h).trim().toLowerCase(); });
+    var processedCol = headers.indexOf('processed') + 1;
+    var idCol = headers.indexOf('glab id') + 1;
+    var levelCol = headers.indexOf('level') + 1;
+    if (processedCol === 0 || idCol === 0 || levelCol === 0) return;
+    if (e.range.getColumn() !== processedCol) return;
+    if (!isTruthy_(e.value)) return; // only act on check, not uncheck
+
+    var glabId = sheet.getRange(row, idCol).getValue();
+    var level = String(sheet.getRange(row, levelCol).getValue() || '').trim().toUpperCase();
+    if (!glabId || (level !== 'A1' && level !== 'A2' && level !== 'B1')) return;
+
+    adminSetStudentEligible_(glabId, level, true);
+  } catch (err) {
+    // A trigger failure should never block the user's own edit from saving.
+  }
 }

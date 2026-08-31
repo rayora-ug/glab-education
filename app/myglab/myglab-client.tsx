@@ -5,7 +5,7 @@ import Link from 'next/link'
 import {
   ShieldX, LogIn, CheckCircle, AlertTriangle,
   MessageCircle, GraduationCap, Video, CalendarRange,
-  ArrowRight, RotateCcw, Quote, ClipboardList, Star,
+  ArrowRight, RotateCcw, Quote, ClipboardList, Star, History,
 } from 'lucide-react'
 import coursesData from '../../data/courses.json'
 import { COURSE_RULES, REVIEW_LEVELS, formatDate, useRegistrationOpen } from '../portal/shared'
@@ -20,6 +20,8 @@ type BatchInfo = {
 
 type Attendance = { present: number; missed: number; total: number }
 
+type HistoryEntry = { course: string; batchId: string; timestamp: string | null }
+
 type DashboardData = {
   name: string
   glabId: string
@@ -29,6 +31,8 @@ type DashboardData = {
   batchInfo?: BatchInfo
   attendance?: Attendance | null
   feedback?: string | null
+  history?: HistoryEntry[]
+  pendingInterestLevels?: string[]
 }
 
 function ClassLinks({ batchInfo }: { batchInfo: BatchInfo }) {
@@ -64,16 +68,89 @@ function weekProgress(startDate: string | null, endDate: string | null) {
   return { current: Math.max(1, elapsedWeeks), total: totalWeeks }
 }
 
+type CourseEntry = (typeof coursesData)[number]
+
+// One "next step" opportunity — either repeating the student's current
+// level or advancing to the next one. Both behave identically (eligible →
+// registration link, already-requested → thank-you, otherwise → batch +
+// email form), just parameterized by which level/courses they're about,
+// so this is shared between the two rather than duplicated.
+function NextStepCard({
+  glabId, level, heading, courses, isEligible, isPending,
+}: {
+  glabId: string
+  level: string
+  heading: string
+  courses: CourseEntry[]
+  isEligible: boolean
+  isPending: boolean
+}) {
+  const [batch, setBatch] = useState('')
+  const [email, setEmail] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const batchOptions = courses.flatMap(c => (c.batches || []).map(b => ({ label: b.label, schedule: b.schedule, level: c.level, fee: c.fee })))
+
+  const submit = async () => {
+    if (!batch || !email.trim()) return
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/myglab/interest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ glabId, level, batch, email }),
+      })
+      const result = await res.json()
+      if (result.success) setSubmitted(true)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="card p-6" style={{ background: 'rgba(221,0,0,0.05)', border: '1px solid rgba(221,0,0,0.2)' }}>
+      <div className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{heading}</div>
+      <div className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+        Registration is open for <strong style={{ color: '#DD0000' }}>{courses.map(c => c.title).join(' & ')}</strong>.
+      </div>
+      {isEligible ? (
+        <Link href="/portal" className="btn-primary inline-flex items-center gap-2">
+          Register for {level} <ArrowRight size={14} />
+        </Link>
+      ) : (submitted || isPending) ? (
+        <p className="text-sm flex items-center gap-1.5" style={{ color: '#16a34a' }}>
+          <CheckCircle size={14} /> Thanks! We'll let you know once you're eligible to register.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          <select value={batch} onChange={e => setBatch(e.target.value)} className="input">
+            <option value="" disabled>Which batch would you prefer?</option>
+            {batchOptions.map(b => (
+              <option key={b.label} value={b.label}>
+                {[b.level, b.label, b.schedule, b.fee].filter(Boolean).join(' — ')}
+              </option>
+            ))}
+          </select>
+          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Your email address" className="input" />
+          <button
+            onClick={submit}
+            disabled={submitting || !batch || !email.trim()}
+            className="btn-primary inline-flex items-center gap-2 disabled:opacity-50"
+          >
+            {submitting ? 'Submitting...' : `I'm Interested in ${level}`} <ArrowRight size={14} />
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function MyGlabPage() {
   const registrationOpen = useRegistrationOpen()
   const [glabId, setGlabId] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [data, setData] = useState<DashboardData | null>(null)
-  const [submittingInterest, setSubmittingInterest] = useState(false)
-  const [interestSubmitted, setInterestSubmitted] = useState(false)
-  const [interestBatch, setInterestBatch] = useState('')
-  const [interestEmail, setInterestEmail] = useState('')
 
   const [reviewRating, setReviewRating] = useState(5)
   const [reviewText, setReviewText] = useState('')
@@ -114,30 +191,11 @@ export default function MyGlabPage() {
     setData(null)
     setGlabId('')
     setError('')
-    setInterestSubmitted(false)
-    setInterestBatch('')
-    setInterestEmail('')
     setReviewSubmitted(false)
     setReviewText('')
     setReviewLocation('')
     setReviewLevel('')
     setReviewRating(5)
-  }
-
-  const submitInterest = async (level: string) => {
-    if (!data || !interestBatch || !interestEmail.trim()) return
-    setSubmittingInterest(true)
-    try {
-      const res = await fetch('/api/myglab/interest', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ glabId: data.glabId, level, batch: interestBatch, email: interestEmail }),
-      })
-      const result = await res.json()
-      if (result.success) setInterestSubmitted(true)
-    } finally {
-      setSubmittingInterest(false)
-    }
   }
 
   const submitReview = async () => {
@@ -164,31 +222,31 @@ export default function MyGlabPage() {
 
   const progress = data?.batchInfo ? weekProgress(data.batchInfo.startDate, data.batchInfo.endDate) : null
 
-  // The CTA only ever suggests the level directly above the one a student
-  // is currently enrolled in (A1 → A2, A2 → B1) and only checks whether
-  // that level's registration is open — not individual eligibility. This is
-  // just a "hey, registration is open" nudge; /portal itself already gates
-  // on the student's actual Eligible A2/Eligible B1 flag once they click
-  // through, so duplicating that check here would only ever hide the CTA
-  // from someone /portal would in fact let register.
-  //
-  // Also checks the admin panel's global registration switch (registrationOpen
-  // above, from useRegistrationOpen) alongside the per-course static flag —
-  // the two are separate mechanisms (one build-time in courses.json, one live
-  // via Script Property), and the CTA needs to respect both: no point telling
-  // a student to go register somewhere the admin has just paused sitewide.
+  // Two independent "next step" opportunities: repeating the level a
+  // student is currently on, or advancing to the one above it (A1 → A2,
+  // A2 → B1). Both only check whether that level's registration is open —
+  // not individual eligibility, which /portal itself already gates on, so
+  // duplicating that check here would only ever hide a real opportunity.
+  // Also respects the admin panel's global registration switch
+  // (registrationOpen, from useRegistrationOpen) alongside the per-course
+  // static flag — the two are separate mechanisms, and neither opportunity
+  // should be offered while the admin has paused registration sitewide.
   const NEXT_LEVEL: Record<string, string> = { A1: 'A2', A2: 'B1' }
   const currentCourse = data ? coursesData.find(c => data.registration?.course.startsWith(c.title)) : null
   const nextLevel = currentCourse ? NEXT_LEVEL[currentCourse.level] : null
+
+  // Repeating A1 isn't offered here — unlike A2/B1, A1 was never
+  // self-service via /portal in the first place (it's always been the
+  // application/Oral-Test path through /results), so there's no
+  // registration flow for this request to ever lead into. A repeat-A1
+  // request should just come to admin directly, same as any other A1
+  // admissions decision.
+  const repeatCourses = data && registrationOpen && currentCourse && currentCourse.level !== 'A1'
+    ? coursesData.filter(c => c.level === currentCourse.level && c.registrationOpen)
+    : []
   const nextLevelCourses = data && nextLevel && registrationOpen
     ? coursesData.filter(c => c.level === nextLevel && c.registrationOpen)
     : []
-  // Eligibility (Eligible A2/Eligible B1 on the Students sheet) is a
-  // separate, admin-controlled flag from "registration is open" above —
-  // someone not yet eligible sees an "I'm Interested" request instead of
-  // the registration link, since /portal would just turn them away.
-  const isEligibleForNext = !!data && nextLevelCourses.some(c => data.eligibleCourses.includes(c.title))
-  const nextLevelBatches = nextLevelCourses.flatMap(c => (c.batches || []).map(b => b.label))
 
   return (
     <>
@@ -267,43 +325,45 @@ export default function MyGlabPage() {
                 )}
               </div>
 
-              {data.confirmed && data.registration && nextLevelCourses.length > 0 && (
-                <div className="card p-6" style={{ background: 'rgba(221,0,0,0.05)', border: '1px solid rgba(221,0,0,0.2)' }}>
-                  <div className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Ready for your next level?</div>
-                  <div className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
-                    Registration is open for <strong style={{ color: '#DD0000' }}>{nextLevelCourses.map(c => c.title).join(' & ')}</strong>.
+              {data.history && data.history.length > 0 && (
+                <div className="card p-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <History size={16} style={{ color: '#DD0000' }} />
+                    <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Your Course History</span>
                   </div>
-                  {isEligibleForNext ? (
-                    <Link href="/portal" className="btn-primary inline-flex items-center gap-2">
-                      Register for {nextLevel} <ArrowRight size={14} />
-                    </Link>
-                  ) : interestSubmitted ? (
-                    <p className="text-sm flex items-center gap-1.5" style={{ color: '#16a34a' }}>
-                      <CheckCircle size={14} /> Thanks! We'll let you know once you're eligible to register.
-                    </p>
-                  ) : (
-                    <div className="space-y-3">
-                      <select value={interestBatch} onChange={e => setInterestBatch(e.target.value)} className="input">
-                        <option value="" disabled>Which batch would you prefer?</option>
-                        {nextLevelBatches.map(label => <option key={label} value={label}>{label}</option>)}
-                      </select>
-                      <input
-                        type="email"
-                        value={interestEmail}
-                        onChange={e => setInterestEmail(e.target.value)}
-                        placeholder="Your email address"
-                        className="input"
-                      />
-                      <button
-                        onClick={() => submitInterest(nextLevel!)}
-                        disabled={submittingInterest || !interestBatch || !interestEmail.trim()}
-                        className="btn-primary inline-flex items-center gap-2 disabled:opacity-50"
-                      >
-                        {submittingInterest ? 'Submitting...' : `I'm Interested in ${nextLevel}`} <ArrowRight size={14} />
-                      </button>
-                    </div>
-                  )}
+                  <ol className="space-y-2">
+                    {data.history.map((h, i) => (
+                      <li key={h.batchId + h.timestamp} className="text-sm flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+                        <span className="badge badge-gold text-xs" style={{ flexShrink: 0 }}>
+                          {i === 0 ? 'Started with' : `Step ${i + 1}`}
+                        </span>
+                        <strong style={{ color: 'var(--text-primary)' }}>{h.course}</strong>
+                      </li>
+                    ))}
+                  </ol>
                 </div>
+              )}
+
+              {data.confirmed && data.registration && repeatCourses.length > 0 && (
+                <NextStepCard
+                  glabId={data.glabId}
+                  level={currentCourse!.level}
+                  heading={`Want to repeat ${currentCourse!.level}?`}
+                  courses={repeatCourses}
+                  isEligible={repeatCourses.some(c => data.eligibleCourses.includes(c.title))}
+                  isPending={!!data.pendingInterestLevels?.includes(currentCourse!.level)}
+                />
+              )}
+
+              {data.confirmed && data.registration && nextLevelCourses.length > 0 && (
+                <NextStepCard
+                  glabId={data.glabId}
+                  level={nextLevel!}
+                  heading="Ready for your next level?"
+                  courses={nextLevelCourses}
+                  isEligible={nextLevelCourses.some(c => data.eligibleCourses.includes(c.title))}
+                  isPending={!!data.pendingInterestLevels?.includes(nextLevel!)}
+                />
               )}
 
               {data.confirmed && data.registration && (

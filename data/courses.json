@@ -25,8 +25,8 @@
     "registrationOpen": true,
     "googleFormLink": null,
     "batches": [
-      { "id": "a2-36-E", "label": "36th Batch (Evening)", "schedule": "Mon + Thu, 6:00–9:30 PM (Germany time)", "startDate": "2026-08-10" },
-      { "id": "a2-37-M", "label": "37th Batch (Morning)", "schedule": "Tue + Fri, 6:30–9:30 AM (Germany time)", "startDate": "2026-08-11" }
+      { "id": "a2-38-M", "label": "38th Batch (Morning)", "schedule": "Mon + Thu, 6:30–10:00 AM (Germany time)", "startDate": "2026-10-19" },
+      { "id": "a2-39-E", "label": "39th Batch (Evening)", "schedule": "Wed + Sun, 6:00–9:30 PM (Germany time)", "startDate": "2026-10-21" }
     ]
   },
   {
@@ -42,8 +42,8 @@
     "registrationOpen": true,
     "googleFormLink": null,
     "batches": [
-      { "id": "b1-32-M", "label": "32nd Batch (Morning)", "schedule": "Sat + Sun, 6:30–10:00 AM (Germany time)", "startDate": "2026-08-08" },
-      { "id": "b1-33-E", "label": "33rd Batch (Evening)", "schedule": "Tue + Sat, 6:00–9:30 PM (Germany time)", "startDate": "2026-08-11" }
+      { "id": "b1-34-E", "label": "34th Batch (Evening)", "schedule": "Mon + Thu, 6:00–9:30 PM (Germany time)", "startDate": "2026-10-19" },
+      { "id": "b1-35-M", "label": "35th Batch (Morning)", "schedule": "Tue + Fri, 6:30–9:30 AM (Germany time)", "startDate": "2026-10-20" }
     ]
   }
 ]

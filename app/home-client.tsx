@@ -14,7 +14,7 @@ import faq from '../data/faq.json'
 import type { ReviewsData } from '@/lib/reviews'
 
 const TICKER_ITEMS = [
-  'A1 Intensive – August 2026', 'Free Pronunciation Workshop – June 20', 'B1 Exam Prep Now Available',
+  'A1 Intensive – October 2026', 'Free Pronunciation Workshop – June 20', 'B1 Exam Prep Now Available',
   'GLAB x StudyLink Germany Partnership',
 ]
 
@@ -97,7 +97,7 @@ export default function HomePage({ reviews }: { reviews: ReviewsData }) {
                   </div>
                   <div>
                     <div className="font-semibold text-sm" style={{color:'var(--text-primary)'}}>A1 Intensive Course</div>
-                    <div className="text-xs" style={{color:'var(--text-muted)'}}>10 Weeks · August 2026 Batch</div>
+                    <div className="text-xs" style={{color:'var(--text-muted)'}}>10 Weeks · October 2026 Batch</div>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">

@@ -89,7 +89,7 @@ export default function AnnouncementsPage() {
                     <p className="mb-4" style={{color:'var(--text-secondary)'}}>{a.excerpt}</p>
 
                     {expanded === a.id && (
-                      <div className="mt-4 pt-4 leading-relaxed" style={{color:'var(--text-secondary)',borderTop:'1px solid var(--border)'}}>
+                      <div className="mt-4 pt-4 leading-relaxed whitespace-pre-line" style={{color:'var(--text-secondary)',borderTop:'1px solid var(--border)'}}>
                         {a.content}
                       </div>
                     )}

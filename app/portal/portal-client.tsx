@@ -14,7 +14,7 @@ import {
   type Registration,
 } from './shared'
 
-const REGISTRATION_DEADLINE = '2026-07-30'
+const REGISTRATION_DEADLINE = '2026-10-10'
 
 const openCourses = (coursesData as any[]).filter(
   c => c.registrationOpen && c.level !== 'A1'

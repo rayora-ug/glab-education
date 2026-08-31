@@ -11,7 +11,7 @@ Open the spreadsheet that already has the GLAB ID ↔ Name roster.
 - You don't need to create the `Registrations` tab yourself — the script creates it automatically on the first submission, with headers: Timestamp, GLAB ID, Name, Course, Batch ID, Email, Payment Method, Payment Reference, Proof File Link, Feedback, Status. If that tab already exists from before the `Email` column existed, add it yourself, anywhere — it's matched by header name, not position, so where you put it doesn't matter.
 - You do need to create a **`Batch Links`** tab yourself, with six columns: **`Batch ID`**, **`WhatsApp Group Link`**, **`Google Classroom Link`**, **`Google Meet Link`**, **`Start Date`**, and **`End Date`**. This is how a confirmed student gets their batch's class links and course dates automatically — see "Assigning batch links" below.
 - For MyGLAB (`/myglab`), you also need an **`Attendance`** tab and a **`Student Feedback`** tab — see "MyGLAB" below.
-- If you're using `/results` (A1 application results), you also need an **`Applications`** tab — see "A1 applications" below.
+- If you're using `/results` (application results), you also need an **`Applications`** tab — see "Applications and placements" below.
 
 ## 2. Drive folder for payment proofs
 
@@ -89,7 +89,7 @@ Current batch ids (from `data/courses.json` in the site repo) and their links as
 
 (The `-M`/`-E` suffix marks Morning/Evening, matching the actual batch time — not the batch number.)
 
-A1 batches aren't in `data/courses.json` — they're assigned manually per applicant via the `Batch ID` column on `Applications` (see "A1 applications" below), so add a `Batch Links` row whenever a new one is confirmed:
+A1 batches aren't in `data/courses.json` — they're assigned manually per applicant via the `Batch ID` column on `Applications` (see "Applications and placements" below), so add a `Batch Links` row whenever a new one is confirmed:
 
 | Batch ID | Batch | Google Classroom | Google Meet |
 |---|---|---|---|
@@ -100,9 +100,12 @@ WhatsApp group links for all six batches should already be in the `WhatsApp Grou
 
 If a new batch is ever added to the site, it'll get a new id there — add the matching row here whenever that happens.
 
-## A1 applications (`/results`)
+## Applications and placements (`/results`)
 
-Applicants without a GLAB ID yet (new Foundation+A1 applicants) check whether they were selected on `/results`, using the Email + Date of Birth they gave on the original application form.
+Applicants without a GLAB ID yet check whether they were selected on `/results`, using the Email + Date of Birth they gave on the original application form. This covers two cases with the exact same mechanism:
+
+- **New Foundation+A1 applicants** — the normal case, selected from the application-based intake.
+- **Oral Test placements** — someone new to GLAB (never took a course before) who passed a placement Oral Test and is being placed directly into A2 or B1, skipping A1 entirely. Add them to `Applications` the same way as any A1 selection below, just with `Confirmed Batch`/`Batch ID` pointing at an A2 or B1 batch instead, and check `Eligible A2`/`Eligible B1` (not `Eligible A1`) on `Students`. They then use `/results` exactly like an A1 admit — same lookup, same registration flow.
 
 **The `Applications` tab** needs your application-form export (Timestamp, Name, Email, Date of Birth, WhatsApp, etc. — whatever you already collect) plus four columns you manage yourself:
 
@@ -117,7 +120,7 @@ The `Email` and `Date of Birth` columns must exist with those exact names for lo
 
 **Marking someone Selected is two manual steps, not automatic:**
 1. On `Applications`: set `Selection Status` to `Selected`, and fill in `GLAB ID`, `Confirmed Batch`, and `Batch ID`.
-2. On `Students`: add a new row for them — GLAB ID, Name, and check `Eligible A1`.
+2. On `Students`: add a new row for them — GLAB ID, Name, and check whichever level they're being placed into (`Eligible A1` for a normal admit, `Eligible A2`/`Eligible B1` for an Oral Test placement).
 
 Once both are done, `/results` will show them as selected with their GLAB ID and confirmed batch, and they register through the exact same flow (and `Status`/`Confirmed`/WhatsApp-link mechanics) as any A2/B1 student — nothing else to configure.
 
@@ -246,7 +249,7 @@ A few things live here for now:
 
 **Confirm registrations (payment verification queue).** Lists every `Registrations` row still at the default `Submitted` status — name, GLAB ID, course/batch, payment method/reference, and a link to the uploaded payment proof — so you can review the screenshot and click Confirm from one place instead of switching to the sheet (and the Drive folder) for every student. Confirming sets that row's `Status` to `Confirmed` directly, same as editing the cell by hand — and, unlike editing the cell, also emails the student their confirmation (batch, start date, and whatever WhatsApp/Classroom/Meet links are already set on `Batch Links`) — see the "Confirming a payment" note above.
 
-**Next Level Interest.** A student who's confirmed for one level but not yet eligible for the next sees an "I'm Interested" button on MyGLAB instead of a registration link (they only see "Register" once actually eligible). Tapping it adds a row to a `Next Level Interest` tab (created automatically on first use — no setup needed) with their GLAB ID, name, and requested level. This card lists every unactioned request; clicking **Approve** checks the matching `Eligible A2`/`Eligible B1` box on `Students` for that student and marks the request processed, so it drops off the list — after that they can register for real through `/portal` like any other eligible student. Nothing here grants eligibility automatically; every request needs a human click.
+**Next Level Interest.** A student who's confirmed for one level but not yet eligible for the next sees an "I'm Interested" button on MyGLAB instead of a registration link (they only see "Register" once actually eligible). They also pick which batch (Morning/Evening) they'd prefer before submitting. Tapping it adds a row to a `Next Level Interest` tab (created automatically on first use — no setup needed) with their GLAB ID, name, requested level, requested batch, and a snapshot of their current batch (for your context when deciding — not looked up fresh later). This card lists every unactioned request; clicking **Approve** checks the matching `Eligible A2`/`Eligible B1` box on `Students` for that student and marks the request processed, so it drops off the list — after that they can register for real through `/portal` like any other eligible student, picking whichever batch is actually still open at that point (the requested batch here is only a preference signal, not a hard reservation).
 
 **Pending Reviews.** A logged-in student on MyGLAB can submit their own review (star rating, text, optional city) directly from a "Share Your Feedback" card — no Facebook comment or WhatsApp message needed first. Unlike the "Add Review" form above (which publishes instantly, since an admin is the one typing it), a student's own submission always lands unsynced in the same `Reviews` tab, and this card lists every one awaiting approval. Clicking **Publish** checks its `Synced` box — same action as approving a hand-pasted row — and it goes live on `/reviews` immediately. The reviewer's name comes from their authenticated GLAB ID lookup, never anything typed on the form, so a review can't be submitted under someone else's name.
 

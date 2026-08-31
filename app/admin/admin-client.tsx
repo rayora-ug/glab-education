@@ -33,6 +33,9 @@ type InterestRequest = {
   glabId: string
   name: string
   level: string
+  requestedBatch: string
+  currentBatch: string
+  email: string
 }
 
 type PendingReview = {
@@ -499,7 +502,15 @@ export default function AdminPage() {
                   <div key={key} className="flex items-center justify-between gap-4 flex-wrap p-4 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
                     <div>
                       <div className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{req.name} · {req.glabId}</div>
-                      <div className="text-xs" style={{ color: 'var(--text-muted)' }}>Interested in {req.level}</div>
+                      <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        Interested in {req.level}{req.requestedBatch ? ` — wants ${req.requestedBatch}` : ''}
+                      </div>
+                      {req.currentBatch && (
+                        <div className="text-xs" style={{ color: 'var(--text-muted)' }}>Currently in: {req.currentBatch}</div>
+                      )}
+                      {req.email && (
+                        <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{req.email}</div>
+                      )}
                     </div>
                     <button
                       onClick={() => approveInterest(req)}

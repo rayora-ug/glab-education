@@ -26,7 +26,7 @@ var CONTACT_MESSAGES_HEADERS = ['Timestamp', 'Name', 'Email', 'Subject', 'Messag
 var ATTENDANCE_SHEET = 'Attendance';
 var STUDENT_FEEDBACK_SHEET = 'Student Feedback';
 var INTEREST_SHEET = 'Next Level Interest';
-var INTEREST_HEADERS = ['Timestamp', 'GLAB ID', 'Name', 'Level', 'Processed'];
+var INTEREST_HEADERS = ['Timestamp', 'GLAB ID', 'Name', 'Level', 'Requested Batch', 'Current Batch', 'Email', 'Processed'];
 var REGISTRATIONS_HEADERS = [
   'Timestamp', 'GLAB ID', 'Name', 'Course', 'Batch ID', 'Email',
   'Payment Method', 'Payment Reference', 'Proof File Link', 'Feedback', 'Status'
@@ -422,8 +422,44 @@ function lookupStudent_(glabId) {
     found: true,
     name: student.name,
     eligibleCourses: student.eligibleCourses,
-    registration: registration
+    registration: registration,
+    savedEmail: findLatestInterestEmail_(student.glabId)
   };
+}
+
+// Finds the email a student gave when they last expressed interest in
+// their next level (any row, processed or not — by the time they're
+// actually registering, that request has usually been approved already).
+// /portal prefills its own Email field with this so a student doesn't have
+// to type the same address twice; still editable, and submitRegistration_
+// still requires it explicitly, so a missing/stale value here never blocks
+// anything.
+function findLatestInterestEmail_(glabId) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(INTEREST_SHEET);
+  if (!sheet || !glabId) return null;
+
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return null;
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var idCol = headers.indexOf('glab id');
+  var emailCol = headers.indexOf('email');
+  var tsCol = headers.indexOf('timestamp');
+  if (idCol === -1 || emailCol === -1) return null;
+
+  var needle = String(glabId).trim().toLowerCase();
+  var latest = null;
+  var latestTime = -Infinity;
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][idCol] || '').trim().toLowerCase() !== needle) continue;
+    var email = String(values[i][emailCol] || '').trim();
+    if (!email) continue;
+    var t = tsCol !== -1 ? new Date(values[i][tsCol]).getTime() : i;
+    if (t >= latestTime) {
+      latestTime = t;
+      latest = email;
+    }
+  }
+  return latest;
 }
 
 function submitRegistration_(body) {
@@ -1221,6 +1257,15 @@ function submitInterest_(body) {
 
   var level = String(body.level || '').trim().toUpperCase();
   if (level !== 'A2' && level !== 'B1') throw new Error('Level must be A2 or B1');
+  var requestedBatch = String(body.batch || '').trim();
+  var email = String(body.email || '').trim();
+  if (!email) throw new Error('Email is required.');
+
+  // The student's current batch, snapshotted at the moment they express
+  // interest — not looked up fresh later — so admin has that context (e.g.
+  // "she's in the Evening batch now, wants Evening again") when deciding.
+  var currentRegistration = findLatestRegistration_(student.glabId);
+  var currentBatch = currentRegistration ? currentRegistration.course : '';
 
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(INTEREST_SHEET);
   if (!sheet) {
@@ -1252,6 +1297,9 @@ function submitInterest_(body) {
   if (idCol !== -1) row[idCol] = student.glabId;
   if (col('name') !== -1) row[col('name')] = student.name;
   if (levelCol !== -1) row[levelCol] = level;
+  if (col('requested batch') !== -1) row[col('requested batch')] = requestedBatch;
+  if (col('current batch') !== -1) row[col('current batch')] = currentBatch;
+  if (col('email') !== -1) row[col('email')] = email;
   sheet.appendRow(row);
   return { success: true };
 }
@@ -1265,7 +1313,8 @@ function adminListInterest_() {
   if (values.length < 2) return { success: true, requests: [] };
   var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
   var col = function (name) { return headers.indexOf(name); };
-  var tsCol = col('timestamp'), idCol = col('glab id'), nameCol = col('name'), levelCol = col('level'), processedCol = col('processed');
+  var tsCol = col('timestamp'), idCol = col('glab id'), nameCol = col('name'), levelCol = col('level'),
+      reqBatchCol = col('requested batch'), curBatchCol = col('current batch'), emailCol = col('email'), processedCol = col('processed');
 
   var requests = [];
   for (var i = 1; i < values.length; i++) {
@@ -1276,7 +1325,10 @@ function adminListInterest_() {
       timestamp: tsCol !== -1 ? new Date(row[tsCol]).toISOString() : null,
       glabId: row[idCol],
       name: nameCol !== -1 ? row[nameCol] : '',
-      level: levelCol !== -1 ? row[levelCol] : ''
+      level: levelCol !== -1 ? row[levelCol] : '',
+      requestedBatch: reqBatchCol !== -1 ? row[reqBatchCol] : '',
+      currentBatch: curBatchCol !== -1 ? row[curBatchCol] : '',
+      email: emailCol !== -1 ? row[emailCol] : ''
     });
   }
   return { success: true, requests: requests };

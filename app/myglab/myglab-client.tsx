@@ -72,6 +72,8 @@ export default function MyGlabPage() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [submittingInterest, setSubmittingInterest] = useState(false)
   const [interestSubmitted, setInterestSubmitted] = useState(false)
+  const [interestBatch, setInterestBatch] = useState('')
+  const [interestEmail, setInterestEmail] = useState('')
 
   const [reviewRating, setReviewRating] = useState(5)
   const [reviewText, setReviewText] = useState('')
@@ -113,6 +115,8 @@ export default function MyGlabPage() {
     setGlabId('')
     setError('')
     setInterestSubmitted(false)
+    setInterestBatch('')
+    setInterestEmail('')
     setReviewSubmitted(false)
     setReviewText('')
     setReviewLocation('')
@@ -121,13 +125,13 @@ export default function MyGlabPage() {
   }
 
   const submitInterest = async (level: string) => {
-    if (!data) return
+    if (!data || !interestBatch || !interestEmail.trim()) return
     setSubmittingInterest(true)
     try {
       const res = await fetch('/api/myglab/interest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ glabId: data.glabId, level }),
+        body: JSON.stringify({ glabId: data.glabId, level, batch: interestBatch, email: interestEmail }),
       })
       const result = await res.json()
       if (result.success) setInterestSubmitted(true)
@@ -184,6 +188,7 @@ export default function MyGlabPage() {
   // someone not yet eligible sees an "I'm Interested" request instead of
   // the registration link, since /portal would just turn them away.
   const isEligibleForNext = !!data && nextLevelCourses.some(c => data.eligibleCourses.includes(c.title))
+  const nextLevelBatches = nextLevelCourses.flatMap(c => (c.batches || []).map(b => b.label))
 
   return (
     <>
@@ -277,13 +282,26 @@ export default function MyGlabPage() {
                       <CheckCircle size={14} /> Thanks! We'll let you know once you're eligible to register.
                     </p>
                   ) : (
-                    <button
-                      onClick={() => submitInterest(nextLevel!)}
-                      disabled={submittingInterest}
-                      className="btn-primary inline-flex items-center gap-2 disabled:opacity-50"
-                    >
-                      {submittingInterest ? 'Submitting...' : `I'm Interested in ${nextLevel}`} <ArrowRight size={14} />
-                    </button>
+                    <div className="space-y-3">
+                      <select value={interestBatch} onChange={e => setInterestBatch(e.target.value)} className="input">
+                        <option value="" disabled>Which batch would you prefer?</option>
+                        {nextLevelBatches.map(label => <option key={label} value={label}>{label}</option>)}
+                      </select>
+                      <input
+                        type="email"
+                        value={interestEmail}
+                        onChange={e => setInterestEmail(e.target.value)}
+                        placeholder="Your email address"
+                        className="input"
+                      />
+                      <button
+                        onClick={() => submitInterest(nextLevel!)}
+                        disabled={submittingInterest || !interestBatch || !interestEmail.trim()}
+                        className="btn-primary inline-flex items-center gap-2 disabled:opacity-50"
+                      >
+                        {submittingInterest ? 'Submitting...' : `I'm Interested in ${nextLevel}`} <ArrowRight size={14} />
+                      </button>
+                    </div>
                   )}
                 </div>
               )}

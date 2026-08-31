@@ -3,7 +3,7 @@ import ResultsPage from './results-client'
 
 export const metadata: Metadata = {
   title: 'Application Results',
-  description: 'Check your Foundation/A1 application result and complete registration if selected.',
+  description: 'Check your application result and complete registration if selected.',
 }
 
 export default function Page() {

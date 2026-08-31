@@ -70,7 +70,7 @@ export default function ResultsPage() {
         setResultMessage({
           kind: 'not_selected',
           text: [
-            'Thank you for your interest in joining the GLAB Foundation + A1 Intensive course.',
+            'Thank you for your interest in joining GLAB.',
             'After carefully reviewing all applications, we regret to inform you that you have not been selected for this session.',
             'Due to the limited number of seats, not all applicants can be accommodated.',
             'We sincerely appreciate your interest in GLAB and encourage you to apply again in a future session.',
@@ -175,7 +175,7 @@ export default function ResultsPage() {
       <section className="section pt-8" style={{ background: 'var(--bg-secondary)' }}>
         <div className="container">
           <div className="german-stripe mb-8 rounded-full" />
-          <div className="section-label">A1 Applicants</div>
+          <div className="section-label">Selected Applicants</div>
           <h1 className="font-display font-black text-5xl md:text-6xl mb-4" style={{ color: 'var(--text-primary)' }}>
             Application Results
           </h1>

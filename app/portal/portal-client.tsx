@@ -88,6 +88,10 @@ export default function PortalPage() {
         } else {
           setStudentName(data.name)
           setEligibleCourses(eligible)
+          // Pre-fills from the email they gave when expressing interest in
+          // this level on MyGLAB, if any — still editable, just saves
+          // typing it twice.
+          if (data.savedEmail) setEmail(data.savedEmail)
           setStep('form')
         }
       }

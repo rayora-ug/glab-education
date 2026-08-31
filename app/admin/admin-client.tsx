@@ -5,11 +5,7 @@ import {
   Lock, ShieldX, Search, Ban, CheckCircle, Power,
   ExternalLink, RefreshCw, LogOut, Loader2, Star, PlusCircle,
 } from 'lucide-react'
-
-const REVIEW_LEVELS = [
-  'Foundation German', 'A1 Intensive', 'A2 Intensive', 'B1 Intensive',
-  'GLAB - Career Workshop', 'General',
-]
+import { REVIEW_LEVELS } from '../portal/shared'
 
 type Student = {
   found: boolean

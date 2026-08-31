@@ -8,7 +8,7 @@ import {
   ArrowRight, RotateCcw, Quote, ClipboardList, Star,
 } from 'lucide-react'
 import coursesData from '../../data/courses.json'
-import { COURSE_RULES, formatDate, useRegistrationOpen } from '../portal/shared'
+import { COURSE_RULES, REVIEW_LEVELS, formatDate, useRegistrationOpen } from '../portal/shared'
 
 type BatchInfo = {
   whatsappLink: string | null
@@ -76,6 +76,7 @@ export default function MyGlabPage() {
   const [reviewRating, setReviewRating] = useState(5)
   const [reviewText, setReviewText] = useState('')
   const [reviewLocation, setReviewLocation] = useState('')
+  const [reviewLevel, setReviewLevel] = useState('')
   const [submittingReview, setSubmittingReview] = useState(false)
   const [reviewSubmitted, setReviewSubmitted] = useState(false)
 
@@ -115,6 +116,7 @@ export default function MyGlabPage() {
     setReviewSubmitted(false)
     setReviewText('')
     setReviewLocation('')
+    setReviewLevel('')
     setReviewRating(5)
   }
 
@@ -135,7 +137,7 @@ export default function MyGlabPage() {
   }
 
   const submitReview = async () => {
-    if (!data || !reviewText.trim()) return
+    if (!data || !reviewText.trim() || !reviewLevel) return
     setSubmittingReview(true)
     try {
       const res = await fetch('/api/myglab/review', {
@@ -146,7 +148,7 @@ export default function MyGlabPage() {
           rating: reviewRating,
           text: reviewText,
           location: reviewLocation,
-          level: currentCourse?.title || '',
+          level: reviewLevel,
         }),
       })
       const result = await res.json()
@@ -362,6 +364,10 @@ export default function MyGlabPage() {
                         </button>
                       ))}
                     </div>
+                    <select value={reviewLevel} onChange={e => setReviewLevel(e.target.value)} className="input">
+                      <option value="" disabled>What's this feedback about?</option>
+                      {REVIEW_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                    </select>
                     <textarea
                       value={reviewText}
                       onChange={e => setReviewText(e.target.value)}
@@ -379,7 +385,7 @@ export default function MyGlabPage() {
                     />
                     <button
                       onClick={submitReview}
-                      disabled={submittingReview || !reviewText.trim()}
+                      disabled={submittingReview || !reviewText.trim() || !reviewLevel}
                       className="btn-primary inline-flex items-center gap-2 disabled:opacity-50"
                     >
                       {submittingReview ? 'Submitting...' : 'Submit Feedback'}

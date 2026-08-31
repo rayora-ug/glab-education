@@ -42,6 +42,15 @@ export function formatDate(iso: string) {
 
 export const paymentMethods = ['Bank (BD)', 'Bank (Germany/EU)', 'bKash']
 
+// Shared between the admin's Add Review form and MyGLAB's self-service
+// Share Your Feedback form, so a student always picks from the exact same
+// categories an admin would — not tied to actual course levels, since a
+// review can be about something level-less like a workshop.
+export const REVIEW_LEVELS = [
+  'Foundation German', 'A1 Intensive', 'A2 Intensive', 'B1 Intensive',
+  'GLAB - Career Workshop', 'General',
+]
+
 export const BANK_DETAILS = [
   { label: 'Account Name', value: 'Md Rayhanur Rahman' },
   { label: 'Account Number', value: '1311010265627' },

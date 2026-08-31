@@ -90,6 +90,8 @@ function doPost(e) {
       response = adminListInterest_();
     } else if (body.action === 'adminApproveInterest') {
       response = adminApproveInterest_(body.glabId, body.timestamp, body.level);
+    } else if (body.action === 'submitStudentReview') {
+      response = submitStudentReview_(body);
     } else {
       throw new Error('Unknown action: ' + body.action);
     }
@@ -667,14 +669,15 @@ function hasExamSubmission_(needleCodeLower, needleIdLower) {
   return false;
 }
 
-// Reads the "Reviews" intake tab — staff paste real reviews (from Facebook
-// or elsewhere) here as they collect them. This is a staging area, not
-// connected live to the site: reviews are periodically synced by hand into
-// data/reviews.json in the site repo. Expected columns (any order, matched
+// Reads the "Reviews" tab — rows land here three ways: adminAddReview_
+// (published immediately), submitStudentReview_ (a student's own
+// self-service submission from MyGLAB, always unsynced), or pasted in by
+// hand. onlyUnsynced=true (used by /admin's Pending Reviews queue) filters
+// to just the ones awaiting approval. Expected columns (any order, matched
 // by header name): Name, Location, Rating, Date, Course, Review Text,
-// Outcome, Featured, Synced. "Synced" is a checkbox column this function's
-// counterpart (markReviewsSynced_) checks off once a review has been copied
-// into the site, so repeat syncs don't reprocess the same rows.
+// Outcome, Featured, Synced. "Synced" doubles as the live-publish flag —
+// see getPublishedReviews_ — checked off by markReviewsSynced_ once an
+// admin approves a pending row.
 function listReviews_(onlyUnsynced) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(REVIEWS_SHEET);
   if (!sheet) throw new Error('Reviews sheet not found');
@@ -785,6 +788,49 @@ function adminAddReview_(body) {
   if (outcomeCol !== -1) row[outcomeCol] = body.outcome || '';
   if (featuredCol !== -1) row[featuredCol] = !!body.featured;
   row[syncedCol] = true;
+
+  sheet.appendRow(row);
+  return { success: true };
+}
+
+// Lets a logged-in student submit their own review from MyGLAB — lands in
+// the same Reviews tab as adminAddReview_, but always unsynced (unlike the
+// admin form, which publishes immediately): a student-submitted review
+// needs a human to look at it before it goes live, same reasoning as the
+// Next Level Interest queue. Name comes from the authenticated student
+// record, not anything the client sends, so a review can't be submitted
+// under someone else's name.
+function submitStudentReview_(body) {
+  var student = findStudent_(body.glabId);
+  if (!student) throw new Error('GLAB ID not found');
+  if (student.blocked) throw new Error('This account has been restricted. Please contact GLAB.');
+  if (!body.text || !String(body.text).trim()) throw new Error('Review text is required.');
+
+  var rating = Number(body.rating);
+  if (!rating || rating < 1 || rating > 5) rating = 5;
+
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(REVIEWS_SHEET);
+  if (!sheet) {
+    sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet(REVIEWS_SHEET);
+    sheet.appendRow(['Name', 'Location', 'Rating', 'Date', 'Course', 'Review Text', 'Outcome', 'Featured', 'Synced']);
+  }
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+    .map(function (h) { return String(h).trim().toLowerCase(); });
+  var col = function (name) { return headers.indexOf(name); };
+  var nameCol = col('name'), locCol = col('location'), ratingCol = col('rating'),
+      dateCol = col('date'), courseCol = col('course'), textCol = col('review text'), syncedCol = col('synced');
+  if (nameCol === -1 || textCol === -1 || syncedCol === -1) {
+    throw new Error('Reviews sheet must have "Name", "Review Text", and "Synced" columns');
+  }
+
+  var row = new Array(headers.length).fill('');
+  row[nameCol] = student.name;
+  if (locCol !== -1) row[locCol] = body.location || '';
+  if (ratingCol !== -1) row[ratingCol] = rating;
+  if (dateCol !== -1) row[dateCol] = normalizeDate_(new Date());
+  if (courseCol !== -1) row[courseCol] = body.level || '';
+  row[textCol] = String(body.text).trim();
+  row[syncedCol] = false;
 
   sheet.appendRow(row);
   return { success: true };

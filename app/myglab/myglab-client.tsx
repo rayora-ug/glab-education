@@ -5,7 +5,7 @@ import Link from 'next/link'
 import {
   ShieldX, LogIn, CheckCircle, Clock, AlertTriangle,
   MessageCircle, GraduationCap, Video, CalendarRange,
-  ArrowRight, RotateCcw, Quote, ClipboardList,
+  ArrowRight, RotateCcw, Quote, ClipboardList, Star,
 } from 'lucide-react'
 import coursesData from '../../data/courses.json'
 import { COURSE_RULES, formatDate, useRegistrationOpen } from '../portal/shared'
@@ -73,6 +73,12 @@ export default function MyGlabPage() {
   const [submittingInterest, setSubmittingInterest] = useState(false)
   const [interestSubmitted, setInterestSubmitted] = useState(false)
 
+  const [reviewRating, setReviewRating] = useState(5)
+  const [reviewText, setReviewText] = useState('')
+  const [reviewLocation, setReviewLocation] = useState('')
+  const [submittingReview, setSubmittingReview] = useState(false)
+  const [reviewSubmitted, setReviewSubmitted] = useState(false)
+
   const handleLogin = async () => {
     if (!glabId.trim()) return
     setLoading(true)
@@ -106,6 +112,10 @@ export default function MyGlabPage() {
     setGlabId('')
     setError('')
     setInterestSubmitted(false)
+    setReviewSubmitted(false)
+    setReviewText('')
+    setReviewLocation('')
+    setReviewRating(5)
   }
 
   const submitInterest = async (level: string) => {
@@ -121,6 +131,28 @@ export default function MyGlabPage() {
       if (result.success) setInterestSubmitted(true)
     } finally {
       setSubmittingInterest(false)
+    }
+  }
+
+  const submitReview = async () => {
+    if (!data || !reviewText.trim()) return
+    setSubmittingReview(true)
+    try {
+      const res = await fetch('/api/myglab/review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          glabId: data.glabId,
+          rating: reviewRating,
+          text: reviewText,
+          location: reviewLocation,
+          level: currentCourse?.title || '',
+        }),
+      })
+      const result = await res.json()
+      if (result.success) setReviewSubmitted(true)
+    } finally {
+      setSubmittingReview(false)
     }
   }
 
@@ -310,6 +342,50 @@ export default function MyGlabPage() {
                 <ol className="text-sm space-y-1.5 pl-5" style={{ color: 'var(--text-muted)', listStyleType: 'decimal' }}>
                   {COURSE_RULES.map((rule, i) => <li key={i}>{rule}</li>)}
                 </ol>
+              </div>
+
+              <div className="card p-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <Quote size={16} style={{ color: '#DD0000' }} />
+                  <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Share Your Feedback</span>
+                </div>
+                {reviewSubmitted ? (
+                  <p className="text-sm flex items-center gap-1.5" style={{ color: '#16a34a' }}>
+                    <CheckCircle size={14} /> Thanks for sharing! It'll appear on our Reviews page once approved.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map(n => (
+                        <button key={n} type="button" onClick={() => setReviewRating(n)} aria-label={`${n} star${n === 1 ? '' : 's'}`}>
+                          <Star size={22} fill={n <= reviewRating ? '#FFCE00' : 'none'} style={{ color: n <= reviewRating ? '#FFCE00' : 'var(--border)' }} />
+                        </button>
+                      ))}
+                    </div>
+                    <textarea
+                      value={reviewText}
+                      onChange={e => setReviewText(e.target.value)}
+                      placeholder="Tell us about your experience at GLAB..."
+                      rows={4}
+                      className="input"
+                      style={{ resize: 'vertical' }}
+                    />
+                    <input
+                      type="text"
+                      value={reviewLocation}
+                      onChange={e => setReviewLocation(e.target.value)}
+                      placeholder="Your city (optional)"
+                      className="input"
+                    />
+                    <button
+                      onClick={submitReview}
+                      disabled={submittingReview || !reviewText.trim()}
+                      className="btn-primary inline-flex items-center gap-2 disabled:opacity-50"
+                    >
+                      {submittingReview ? 'Submitting...' : 'Submit Feedback'}
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-between flex-wrap gap-3">

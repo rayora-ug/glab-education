@@ -39,6 +39,16 @@ type InterestRequest = {
   level: string
 }
 
+type PendingReview = {
+  row: number
+  name: string
+  location: string
+  rating: number | null
+  date: string
+  course: string
+  text: string
+}
+
 export default function AdminPage() {
   const [checkingSession, setCheckingSession] = useState(true)
   const [authenticated, setAuthenticated] = useState(false)
@@ -77,6 +87,11 @@ export default function AdminPage() {
   const [loadingInterest, setLoadingInterest] = useState(false)
   const [approvingKey, setApprovingKey] = useState('')
 
+  const [pendingReviews, setPendingReviews] = useState<PendingReview[] | null>(null)
+  const [pendingReviewsError, setPendingReviewsError] = useState('')
+  const [loadingPendingReviews, setLoadingPendingReviews] = useState(false)
+  const [approvingReviewRow, setApprovingReviewRow] = useState<number | null>(null)
+
   useEffect(() => {
     fetch('/api/admin/session').then(r => r.json()).then(d => {
       setAuthenticated(!!d.authenticated)
@@ -91,6 +106,7 @@ export default function AdminPage() {
     })
     loadPending()
     loadInterest()
+    loadPendingReviews()
   }, [authenticated])
 
   const handleLogin = async () => {
@@ -120,6 +136,7 @@ export default function AdminPage() {
     setStudentResult(null)
     setPending(null)
     setInterest(null)
+    setPendingReviews(null)
   }
 
   const toggleRegistration = async () => {
@@ -242,6 +259,38 @@ export default function AdminPage() {
       }
     } finally {
       setApprovingKey('')
+    }
+  }
+
+  const loadPendingReviews = async () => {
+    setLoadingPendingReviews(true)
+    setPendingReviewsError('')
+    try {
+      const res = await fetch('/api/admin/reviews/pending', { method: 'POST' })
+      const data = await res.json()
+      if (data.success) setPendingReviews(data.reviews)
+      else setPendingReviewsError(data.error || 'Failed to load pending reviews.')
+    } catch {
+      setPendingReviewsError('Failed to load pending reviews.')
+    } finally {
+      setLoadingPendingReviews(false)
+    }
+  }
+
+  const approvePendingReview = async (row: number) => {
+    setApprovingReviewRow(row)
+    try {
+      const res = await fetch('/api/admin/reviews/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ row }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setPendingReviews(prev => (prev || []).filter(r => r.row !== row))
+      }
+    } finally {
+      setApprovingReviewRow(null)
     }
   }
 
@@ -466,6 +515,48 @@ export default function AdminPage() {
                   </div>
                 )
               })}
+            </div>
+          )}
+        </div>
+
+        {/* Pending reviews (student self-submitted) */}
+        <div className="card p-6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Pending Reviews</div>
+            <button onClick={loadPendingReviews} disabled={loadingPendingReviews} className="text-sm underline inline-flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
+              <RefreshCw size={13} className={loadingPendingReviews ? 'animate-spin' : ''} /> Refresh
+            </button>
+          </div>
+          {pendingReviewsError ? (
+            <p className="text-sm" style={{ color: '#DD0000' }}>{pendingReviewsError}</p>
+          ) : pendingReviews === null || loadingPendingReviews ? (
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading...</p>
+          ) : pendingReviews.length === 0 ? (
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Nothing pending — all caught up.</p>
+          ) : (
+            <div className="space-y-3">
+              {pendingReviews.map(rev => (
+                <div key={rev.row} className="p-4 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
+                  <div className="flex items-center justify-between gap-4 flex-wrap mb-2">
+                    <div>
+                      <div className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
+                        {rev.name} {rev.location ? `· ${rev.location}` : ''} {rev.course ? `· ${rev.course}` : ''}
+                      </div>
+                      <div className="text-xs flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
+                        {rev.rating ? Array.from({ length: rev.rating }).map((_, i) => <Star key={i} size={11} fill="#FFCE00" style={{ color: '#FFCE00' }} />) : null}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => approvePendingReview(rev.row)}
+                      disabled={approvingReviewRow === rev.row}
+                      className="btn-primary text-sm px-3 py-1.5 disabled:opacity-50"
+                    >
+                      {approvingReviewRow === rev.row ? '...' : 'Publish'}
+                    </button>
+                  </div>
+                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{rev.text}</p>
+                </div>
+              ))}
             </div>
           )}
         </div>

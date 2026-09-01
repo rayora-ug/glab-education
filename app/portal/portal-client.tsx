@@ -10,7 +10,7 @@ import coursesData from '../../data/courses.json'
 import {
   WHATSAPP_CHANNEL, paymentMethods, STATUS_INFO, formatDate,
   fileToBase64, validateProofFile, PaymentInfoCard, PaymentAndRulesFields,
-  useRegistrationOpen, RegistrationClosedBanner,
+  useRegistrationOpen, RegistrationClosedBanner, ForgotGlabId,
   type Registration,
 } from './shared'
 
@@ -226,6 +226,8 @@ export default function PortalPage() {
                   </div>
                 </div>
               )}
+
+              <ForgotGlabId />
             </div>
           )}
 

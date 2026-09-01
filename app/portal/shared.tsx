@@ -5,7 +5,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Upload, Paperclip, Landmark, AlertTriangle, PauseCircle } from 'lucide-react'
+import { Upload, Paperclip, Landmark, AlertTriangle, PauseCircle, Mail } from 'lucide-react'
 
 export const WHATSAPP_CHANNEL = 'https://wa.me/message/72NY3RBASOPYI1'
 export const MAX_FILE_BYTES = 3 * 1024 * 1024
@@ -32,6 +32,78 @@ export function RegistrationClosedBanner() {
       <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
         Registration is currently closed. Please check back later or contact GLAB for more information.
       </p>
+    </div>
+  )
+}
+
+// "Forgot your GLAB ID?" — shared between /myglab and /portal, both of
+// which start with the same "enter your GLAB ID" step. Always shows the
+// same generic "sent" confirmation regardless of whether the email
+// actually matched anything, since /api/myglab/recover-id deliberately
+// never reveals that either.
+export function ForgotGlabId() {
+  const [open, setOpen] = useState(false)
+  const [email, setEmail] = useState('')
+  const [status, setStatus] = useState<'idle' | 'loading' | 'sent'>('idle')
+
+  const submit = async () => {
+    if (!email.trim()) return
+    setStatus('loading')
+    try {
+      await fetch('/api/myglab/recover-id', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      })
+    } finally {
+      setStatus('sent')
+    }
+  }
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="text-sm font-semibold mt-3"
+        style={{ color: 'var(--text-muted)', textDecoration: 'underline' }}
+      >
+        Forgot your GLAB ID?
+      </button>
+    )
+  }
+
+  return (
+    <div className="mt-4 rounded-xl p-4" style={{ background: 'var(--bg-secondary)' }}>
+      {status === 'sent' ? (
+        <p className="text-sm flex items-start gap-2" style={{ color: 'var(--text-primary)' }}>
+          <Mail size={16} className="flex-shrink-0 mt-0.5" />
+          If that email matches a GLAB record, we've sent your GLAB ID to it.
+        </p>
+      ) : (
+        <>
+          <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
+            Enter the email you registered with, and we'll send your GLAB ID there.
+          </label>
+          <div className="flex gap-3">
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && submit()}
+              placeholder="you@example.com"
+              className="input flex-1"
+            />
+            <button
+              onClick={submit}
+              disabled={status === 'loading' || !email.trim()}
+              className="btn-secondary flex items-center gap-2 disabled:opacity-50"
+            >
+              {status === 'loading' ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Mail size={16} />}
+              Send
+            </button>
+          </div>
+        </>
+      )}
     </div>
   )
 }

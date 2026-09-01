@@ -92,6 +92,8 @@ function doPost(e) {
       response = adminApproveInterest_(body.glabId, body.timestamp, body.level);
     } else if (body.action === 'submitStudentReview') {
       response = submitStudentReview_(body);
+    } else if (body.action === 'recoverGlabId') {
+      response = recoverGlabId_(body.email);
     } else {
       throw new Error('Unknown action: ' + body.action);
     }
@@ -1314,6 +1316,76 @@ function sendConfirmationEmail_(email, name, course, batchId, glabId) {
     // ever the most recent one.
     PropertiesService.getScriptProperties().setProperty(
       'LAST_EMAIL_ERROR',
+      new Date().toISOString() + ' — ' + err.message
+    );
+  }
+}
+
+// ===== GLAB ID recovery (MyGLAB "Forgot your GLAB ID?" link) =====
+// Looks up every GLAB ID on file for a given email by scanning
+// Registrations (the same "Email" column used for confirmation emails —
+// no separate lookup to keep in sync) and emails the match(es) rather than
+// returning them in the response, so the endpoint can't be used to check
+// whether an arbitrary email is a GLAB student. Always returns a generic
+// success regardless of whether anything matched, for the same reason.
+function recoverGlabId_(email) {
+  email = String(email || '').trim();
+  if (!email) throw new Error('Email is required.');
+
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(REGISTRATIONS_SHEET);
+  var matches = [];
+  if (sheet) {
+    var values = sheet.getDataRange().getValues();
+    if (values.length > 1) {
+      var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+      var idCol = headers.indexOf('glab id');
+      var nameCol = headers.indexOf('name');
+      var emailCol = headers.indexOf('email');
+      if (idCol !== -1 && emailCol !== -1) {
+        var needle = email.toLowerCase();
+        var seen = {};
+        for (var i = 1; i < values.length; i++) {
+          var rowEmail = String(values[i][emailCol] || '').trim().toLowerCase();
+          if (rowEmail !== needle) continue;
+          var glabId = String(values[i][idCol] || '').trim();
+          if (!glabId || seen[glabId.toLowerCase()]) continue;
+          seen[glabId.toLowerCase()] = true;
+          matches.push({ glabId: glabId, name: nameCol !== -1 ? values[i][nameCol] : '' });
+        }
+      }
+    }
+  }
+
+  if (matches.length > 0) sendGlabIdRecoveryEmail_(email, matches);
+  return { success: true };
+}
+
+function sendGlabIdRecoveryEmail_(email, matches) {
+  try {
+    var lines = [
+      'Hi,', '',
+      (matches.length > 1 ? 'Here are the GLAB IDs' : 'Here is the GLAB ID') + ' on file for this email address:', ''
+    ];
+    matches.forEach(function (m) {
+      lines.push('- ' + m.glabId + (m.name ? ' (' + m.name + ')' : ''));
+    });
+    lines.push('');
+    lines.push('You can log in anytime at glabeducation.com/myglab with your GLAB ID.');
+    lines.push('');
+    lines.push("If you didn't request this, you can safely ignore this email.");
+    lines.push('');
+    lines.push('— GLAB Team');
+    GmailApp.sendEmail(email, 'Your GLAB ID', lines.join('\n'), {
+      name: 'GLAB Team',
+      from: 'info@glabeducation.com'
+    });
+    PropertiesService.getScriptProperties().setProperty(
+      'LAST_ID_RECOVERY_SENT',
+      new Date().toISOString() + ' — sent to ' + email + ' (' + matches.length + ' match' + (matches.length === 1 ? '' : 'es') + ')'
+    );
+  } catch (err) {
+    PropertiesService.getScriptProperties().setProperty(
+      'LAST_ID_RECOVERY_ERROR',
       new Date().toISOString() + ' — ' + err.message
     );
   }

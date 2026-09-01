@@ -298,6 +298,46 @@ function findLatestRegistration_(glabId) {
   return latest;
 }
 
+// Returns this GLAB ID's existing row for one specific batch, if any —
+// used only to guard against a genuine resubmission (a client retry after
+// an ambiguous network error) of the *same* registration, never to block a
+// legitimately new one. findLatestRegistration_ finds the most recent
+// registration for *any* course, which is exactly right for "what's this
+// student's current status" (used elsewhere), but was wrongly reused here
+// too: a student with an old Confirmed A1 record would get told they're
+// "already registered" the moment they tried to submit for A2, and the new
+// row would silently never get created at all.
+function findRegistrationForBatch_(glabId, batchId) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(REGISTRATIONS_SHEET);
+  if (!sheet) return null;
+
+  var values = sheet.getDataRange().getValues();
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var idCol = headers.indexOf('glab id');
+  var courseCol = headers.indexOf('course');
+  var batchIdCol = headers.indexOf('batch id');
+  var statusCol = headers.indexOf('status');
+  var timestampCol = headers.indexOf('timestamp');
+  if (idCol === -1 || batchIdCol === -1) return null;
+
+  var needleId = String(glabId || '').trim().toLowerCase();
+  var needleBatch = String(batchId || '').trim().toLowerCase();
+  var latest = null;
+  for (var i = 1; i < values.length; i++) {
+    var rowId = String(values[i][idCol] || '').trim().toLowerCase();
+    var rowBatch = String(values[i][batchIdCol] || '').trim().toLowerCase();
+    if (rowId === needleId && rowBatch === needleBatch) {
+      latest = {
+        course: courseCol !== -1 ? values[i][courseCol] : '',
+        batchId: values[i][batchIdCol],
+        status: statusCol !== -1 ? values[i][statusCol] : DEFAULT_STATUS,
+        timestamp: timestampCol !== -1 ? values[i][timestampCol] : null
+      };
+    }
+  }
+  return latest;
+}
+
 // Returns every Confirmed registration a student has ever had, oldest
 // first — their learning journey through GLAB (e.g. A1 batch X, then A2
 // batch Y). For a student who started directly at A2 (an Oral Test
@@ -519,13 +559,15 @@ function submitRegistration_(body) {
   });
   if (!isEligible) throw new Error('Not eligible for this course');
 
-  // Idempotency guard: if this GLAB ID already has a registration on file,
-  // don't append another one — just report success without writing a new
-  // row. Without this, a client retry after an ambiguous network error (the
-  // submission actually succeeded, but the response never confirmed it)
-  // produces a real duplicate row, since this function previously had no
-  // way to tell "first submission" from "resubmission" apart.
-  var existing = findLatestRegistration_(student.glabId);
+  // Idempotency guard: if this GLAB ID already has a row for this exact
+  // batch, don't append another one — just report success without writing
+  // a new row. Without this, a client retry after an ambiguous network
+  // error (the submission actually succeeded, but the response never
+  // confirmed it) produces a real duplicate row. Scoped to this specific
+  // batchId, not "any registration ever" — a past registration for a
+  // different course/batch (even one still Confirmed) is a real, separate
+  // registration event and must never block a new one.
+  var existing = findRegistrationForBatch_(student.glabId, body.batchId);
   if (existing) {
     var existingLinks = existing.status === CONFIRMED_STATUS
       ? findBatchInfo_(existing.batchId)
@@ -1480,6 +1522,7 @@ function adminSetStudentEligible_(glabId, level, value) {
 // edits the script itself makes via setValue(), so there's no risk of the
 // two approval paths double-processing each other.
 function onEdit(e) {
+  var props = PropertiesService.getScriptProperties();
   try {
     if (!e || !e.range) return;
     var sheet = e.range.getSheet();
@@ -1496,14 +1539,33 @@ function onEdit(e) {
     var levelCol = headers.indexOf('level') + 1;
     if (processedCol === 0 || idCol === 0 || levelCol === 0) return;
     if (e.range.getColumn() !== processedCol) return;
-    if (!isTruthy_(e.value)) return; // only act on check, not uncheck
+
+    // e.value is usually the checkbox's new value as a string ("TRUE"), but
+    // some checkbox edits don't populate it — read the cell directly as a
+    // fallback rather than silently doing nothing in that case.
+    var rawValue = e.value !== undefined ? e.value : e.range.getValue();
+    if (!isTruthy_(rawValue)) return; // only act on check, not uncheck
 
     var glabId = sheet.getRange(row, idCol).getValue();
     var level = String(sheet.getRange(row, levelCol).getValue() || '').trim().toUpperCase();
-    if (!glabId || (level !== 'A1' && level !== 'A2' && level !== 'B1')) return;
+
+    props.setProperty('LAST_ONEDIT_ATTEMPT',
+      new Date().toISOString() + ' — row=' + row + ' glabId="' + glabId + '" level="' + level + '" rawValue="' + rawValue + '"');
+
+    if (!glabId || (level !== 'A1' && level !== 'A2' && level !== 'B1')) {
+      props.setProperty('LAST_ONEDIT_ERROR',
+        new Date().toISOString() + ' — skipped: missing GLAB ID or invalid level ("' + level + '") on row ' + row);
+      return;
+    }
 
     adminSetStudentEligible_(glabId, level, true);
+    props.setProperty('LAST_ONEDIT_SUCCESS',
+      new Date().toISOString() + ' — set Eligible ' + level + ' for ' + glabId);
   } catch (err) {
-    // A trigger failure should never block the user's own edit from saving.
+    // A trigger failure should never block the user's own edit from saving
+    // — but record it so a silent failure is still diagnosable. Project
+    // Settings (gear icon) > Script Properties, keys LAST_ONEDIT_ATTEMPT /
+    // LAST_ONEDIT_SUCCESS / LAST_ONEDIT_ERROR.
+    props.setProperty('LAST_ONEDIT_ERROR', new Date().toISOString() + ' — ' + err.message);
   }
 }

@@ -8,7 +8,10 @@ import {
   ArrowRight, RotateCcw, Quote, ClipboardList, Star, History,
 } from 'lucide-react'
 import coursesData from '../../data/courses.json'
-import { COURSE_RULES, REVIEW_LEVELS, formatDate, useRegistrationOpen } from '../portal/shared'
+import {
+  COURSE_RULES, REVIEW_LEVELS, formatDate, useRegistrationOpen,
+  fileToBase64, validateProofFile, PaymentInfoCard, PaymentAndRulesFields,
+} from '../portal/shared'
 
 type BatchInfo = {
   whatsappLink: string | null
@@ -75,6 +78,97 @@ type CourseEntry = (typeof coursesData)[number]
 // registration link, already-requested → thank-you, otherwise → batch +
 // email form), just parameterized by which level/courses they're about,
 // so this is shared between the two rather than duplicated.
+// Once eligible has three states of its own: not yet submitted (the
+// registration form), submitted and awaiting payment verification, or
+// (after a page reload once admin confirms) the main dashboard render
+// below takes over entirely — this component's job ends at "Submitted".
+function EligibleRegistrationForm({ glabId, level, courses }: { glabId: string; level: string; courses: CourseEntry[] }) {
+  const [batchId, setBatchId] = useState('')
+  const [email, setEmail] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('')
+  const [paymentReference, setPaymentReference] = useState('')
+  const [feedback, setFeedback] = useState('')
+  const [file, setFile] = useState<File | null>(null)
+  const [fileError, setFileError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
+  const [submitted, setSubmitted] = useState(false)
+
+  const batchOptions = courses.flatMap(c => (c.batches || []).map(b => ({
+    id: b.id, fullLabel: `${c.title} — ${b.label}`, label: b.label, schedule: b.schedule, level: c.level, fee: c.fee,
+  })))
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0] || null
+    const err = validateProofFile(f)
+    setFileError(err)
+    setFile(err ? null : f)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!file) {
+      setFileError('Please attach your payment proof.')
+      return
+    }
+    const selected = batchOptions.find(b => b.id === batchId)
+    if (!selected) return
+    setSubmitting(true)
+    setSubmitError('')
+    try {
+      const fileBase64 = await fileToBase64(file)
+      const res = await fetch('/api/portal/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          glabId, course: selected.fullLabel, batchId: selected.id, email, paymentMethod, paymentReference, feedback,
+          fileBase64, fileName: file.name, fileMimeType: file.type,
+        }),
+      })
+      const data = await res.json()
+      if (!data.success) throw new Error(data.error || 'Something went wrong. Please try again.')
+      setSubmitted(true)
+    } catch (err: any) {
+      setSubmitError(err.message || 'Something went wrong. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (submitted) {
+    return (
+      <p className="text-sm flex items-center gap-1.5" style={{ color: '#16a34a' }}>
+        <CheckCircle size={14} /> Submitted! We'll email you once your payment is verified.
+      </p>
+    )
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3">
+      <select value={batchId} onChange={e => setBatchId(e.target.value)} className="input">
+        <option value="" disabled>Select your batch</option>
+        {batchOptions.map(b => (
+          <option key={b.id} value={b.id}>
+            {[b.level, b.label, b.schedule, b.fee].filter(Boolean).join(' — ')}
+          </option>
+        ))}
+      </select>
+      <PaymentInfoCard />
+      <PaymentAndRulesFields
+        email={email} setEmail={setEmail}
+        paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod}
+        paymentReference={paymentReference} setPaymentReference={setPaymentReference}
+        file={file} fileError={fileError} onFileChange={handleFileChange}
+        feedback={feedback} setFeedback={setFeedback}
+      />
+      {submitError && <p className="text-sm" style={{ color: '#DD0000' }}>{submitError}</p>}
+      <button type="submit" disabled={submitting || !batchId} className="btn-primary w-full justify-center disabled:opacity-50">
+        {submitting ? 'Submitting...' : `Register for ${level}`}
+      </button>
+    </form>
+  )
+}
+
 function NextStepCard({
   glabId, level, heading, courses, isEligible, isPending,
 }: {
@@ -114,9 +208,12 @@ function NextStepCard({
         Registration is open for <strong style={{ color: '#DD0000' }}>{courses.map(c => c.title).join(' & ')}</strong>.
       </div>
       {isEligible ? (
-        <Link href="/portal" className="btn-primary inline-flex items-center gap-2">
-          Register for {level} <ArrowRight size={14} />
-        </Link>
+        <>
+          <p className="text-sm mb-4 flex items-center gap-1.5" style={{ color: '#16a34a' }}>
+            <CheckCircle size={14} /> You're eligible — register right here, no need to visit the Registration Portal.
+          </p>
+          <EligibleRegistrationForm glabId={glabId} level={level} courses={courses} />
+        </>
       ) : (submitted || isPending) ? (
         <p className="text-sm flex items-center gap-1.5" style={{ color: '#16a34a' }}>
           <CheckCircle size={14} /> Thanks! We'll let you know once you're eligible to register.

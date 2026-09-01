@@ -242,6 +242,58 @@ function NextStepCard({
   )
 }
 
+type NextStepInfo = { level: string; courses: CourseEntry[]; isEligible: boolean; isPending: boolean }
+
+// Shows at most one "next step" opportunity at a time — advance is the
+// default; repeat stays completely folded (not even its form is rendered)
+// behind a checkbox until a student explicitly asks to see it, so nothing
+// resembling a registration form ever appears unprompted. Once a student
+// has committed to either path (already eligible for it, or already
+// requested it), that one takes over permanently and the other — including
+// the checkbox to switch — disappears, so there's never a moment where
+// switching mid-request would be possible or sensible.
+function NextStepSection({ glabId, advance, repeat }: { glabId: string; advance: NextStepInfo | null; repeat: NextStepInfo | null }) {
+  const [showRepeat, setShowRepeat] = useState(false)
+
+  if (!advance && !repeat) return null
+
+  const advanceCommitted = !!advance && (advance.isEligible || advance.isPending)
+  const repeatCommitted = !!repeat && (repeat.isEligible || repeat.isPending)
+
+  if (advanceCommitted || !repeat) {
+    return (
+      <NextStepCard
+        glabId={glabId} level={advance!.level} heading="Ready for your next level?"
+        courses={advance!.courses} isEligible={advance!.isEligible} isPending={advance!.isPending}
+      />
+    )
+  }
+  if (repeatCommitted || !advance) {
+    return (
+      <NextStepCard
+        glabId={glabId} level={repeat!.level} heading={`Want to repeat ${repeat!.level}?`}
+        courses={repeat!.courses} isEligible={repeat!.isEligible} isPending={repeat!.isPending}
+      />
+    )
+  }
+
+  // Neither committed yet, and both are genuinely available — show advance
+  // by default, with a checkbox to swap the same card over to repeat.
+  const active = showRepeat ? repeat : advance
+  return (
+    <>
+      <NextStepCard
+        glabId={glabId} level={active.level} heading={showRepeat ? `Want to repeat ${active.level}?` : 'Ready for your next level?'}
+        courses={active.courses} isEligible={active.isEligible} isPending={active.isPending}
+      />
+      <label className="text-sm flex items-center gap-2 -mt-3" style={{ color: 'var(--text-muted)' }}>
+        <input type="checkbox" checked={showRepeat} onChange={e => setShowRepeat(e.target.checked)} />
+        Want to repeat {repeat.level} instead?
+      </label>
+    </>
+  )
+}
+
 export default function MyGlabPage() {
   const registrationOpen = useRegistrationOpen()
   const [glabId, setGlabId] = useState('')
@@ -441,25 +493,21 @@ export default function MyGlabPage() {
                 </div>
               )}
 
-              {data.confirmed && data.registration && repeatCourses.length > 0 && (
-                <NextStepCard
+              {data.confirmed && data.registration && (
+                <NextStepSection
                   glabId={data.glabId}
-                  level={currentCourse!.level}
-                  heading={`Want to repeat ${currentCourse!.level}?`}
-                  courses={repeatCourses}
-                  isEligible={repeatCourses.some(c => data.eligibleCourses.includes(c.title))}
-                  isPending={!!data.pendingInterestLevels?.includes(currentCourse!.level)}
-                />
-              )}
-
-              {data.confirmed && data.registration && nextLevelCourses.length > 0 && (
-                <NextStepCard
-                  glabId={data.glabId}
-                  level={nextLevel!}
-                  heading="Ready for your next level?"
-                  courses={nextLevelCourses}
-                  isEligible={nextLevelCourses.some(c => data.eligibleCourses.includes(c.title))}
-                  isPending={!!data.pendingInterestLevels?.includes(nextLevel!)}
+                  advance={nextLevelCourses.length > 0 ? {
+                    level: nextLevel!,
+                    courses: nextLevelCourses,
+                    isEligible: nextLevelCourses.some(c => data.eligibleCourses.includes(c.title)),
+                    isPending: !!data.pendingInterestLevels?.includes(nextLevel!),
+                  } : null}
+                  repeat={repeatCourses.length > 0 ? {
+                    level: currentCourse!.level,
+                    courses: repeatCourses,
+                    isEligible: repeatCourses.some(c => data.eligibleCourses.includes(c.title)),
+                    isPending: !!data.pendingInterestLevels?.includes(currentCourse!.level),
+                  } : null}
                 />
               )}
 

@@ -4,16 +4,14 @@ import { useState } from 'react'
 import Link from 'next/link'
 import {
   Search, ShieldCheck, ShieldX, PartyPopper, CheckCircle, Clock,
-  MessageCircle, RotateCcw, Info, CalendarClock, LayoutDashboard,
+  MessageCircle, RotateCcw, Info, LayoutDashboard,
 } from 'lucide-react'
 import {
-  WHATSAPP_CHANNEL, STATUS_INFO, formatDate, fileToBase64, validateProofFile,
+  WHATSAPP_CHANNEL, STATUS_INFO, fileToBase64, validateProofFile,
   PaymentInfoCard, PaymentAndRulesFields, useRegistrationOpen, RegistrationClosedBanner,
   type Registration,
 } from '../portal/shared'
 import coursesData from '../../data/courses.json'
-
-const REGISTRATION_DEADLINE = '2026-07-30'
 
 function feeForBatch(confirmedBatch: string) {
   const course = coursesData.find(c => confirmedBatch.startsWith(c.title))
@@ -179,12 +177,9 @@ export default function ResultsPage() {
           <h1 className="font-display font-black text-5xl md:text-6xl mb-4" style={{ color: 'var(--text-primary)' }}>
             Application Results
           </h1>
-          <p className="text-xl max-w-2xl mb-5" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-xl max-w-2xl" style={{ color: 'var(--text-muted)' }}>
             Check whether you were selected using the email and date of birth from your application, and if you were, register right here.
           </p>
-          <span className="badge badge-red gap-1.5">
-            <CalendarClock size={13} /> Selected applicants must register by {formatDate(REGISTRATION_DEADLINE)}
-          </span>
         </div>
       </section>
 

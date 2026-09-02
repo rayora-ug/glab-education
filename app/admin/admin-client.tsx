@@ -49,8 +49,20 @@ type InterestRequest = {
 type Application = {
   name: string
   email: string
-  dob: string
   phone: string
+  dob: string
+  facebookLink: string
+  occupation: string
+  city: string
+  batchChoice: string
+  previousExperience: string
+  previousCourseDetails: string
+  previousCourseCompleted: string
+  motivation: string
+  whyGlab: string
+  howHeard: string
+  primaryGoal: string
+  comment: string
   status: 'pending' | 'selected' | 'not_selected'
   glabId: string
   confirmedBatch: string
@@ -114,6 +126,8 @@ export default function AdminPage() {
 
   const [idPrefix, setIdPrefix] = useState('')
   const [idPrefixInput, setIdPrefixInput] = useState('')
+  const [idNextSeq, setIdNextSeq] = useState('')
+  const [idNextSeqInput, setIdNextSeqInput] = useState('')
   const [savingIdPrefix, setSavingIdPrefix] = useState(false)
 
   const [pendingReviews, setPendingReviews] = useState<PendingReview[] | null>(null)
@@ -170,6 +184,7 @@ export default function AdminPage() {
     setPendingReviews(null)
     setApplications(null)
     setIdPrefix('')
+    setIdNextSeq('')
   }
 
   const toggleRegistration = async () => {
@@ -317,6 +332,8 @@ export default function AdminPage() {
       if (data.success) {
         setIdPrefix(data.prefix || '')
         setIdPrefixInput(data.prefix || '')
+        setIdNextSeq(data.nextSeq || '')
+        setIdNextSeqInput(data.nextSeq || '')
       }
     } catch {
       // Non-critical — Select will just surface the "set a prefix first" error.
@@ -324,22 +341,25 @@ export default function AdminPage() {
   }
 
   const saveIdPrefix = async () => {
-    if (!idPrefixInput.trim()) return
+    if (!idPrefixInput.trim() || !idNextSeqInput.trim()) return
     setSavingIdPrefix(true)
     try {
       const res = await fetch('/api/admin/applications/id-prefix', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prefix: idPrefixInput.trim() }),
+        body: JSON.stringify({ prefix: idPrefixInput.trim(), nextSeq: Number(idNextSeqInput) }),
       })
       const data = await res.json()
-      if (data.success) setIdPrefix(idPrefixInput.trim().toUpperCase())
+      if (data.success) {
+        setIdPrefix(idPrefixInput.trim().toUpperCase())
+        setIdNextSeq(idNextSeqInput.trim())
+      }
     } finally {
       setSavingIdPrefix(false)
     }
   }
 
-  const applicationKey = (app: Application) => app.email + app.dob
+  const applicationKey = (app: Application) => app.email + app.phone
 
   const selectApplicant = async (app: Application) => {
     const batchId = applicationBatch[applicationKey(app)]
@@ -351,13 +371,17 @@ export default function AdminPage() {
       const res = await fetch('/api/admin/applications/select', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: app.email, dob: app.dob, batchLabel: batch?.label || '', batchId }),
+        body: JSON.stringify({ email: app.email, phone: app.phone, batchLabel: batch?.label || '', batchId }),
       })
       const data = await res.json()
       if (data.success) {
         setApplications(prev => (prev || []).map(a => a === app
           ? { ...a, status: 'selected', glabId: data.glabId || a.glabId, confirmedBatch: batch?.label || a.confirmedBatch }
           : a))
+        // The backend's counter already advanced — mirror that locally so
+        // the "Next ID will be" preview stays correct without a refetch.
+        setIdNextSeq(prev => prev ? String(Number(prev) + 1) : prev)
+        setIdNextSeqInput(prev => prev ? String(Number(prev) + 1) : prev)
       } else {
         setApplicationsError(data.error || 'Failed to select applicant.')
       }
@@ -373,7 +397,7 @@ export default function AdminPage() {
       const res = await fetch('/api/admin/applications/reject', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: app.email, dob: app.dob }),
+        body: JSON.stringify({ email: app.email, phone: app.phone }),
       })
       const data = await res.json()
       if (data.success) {
@@ -614,24 +638,41 @@ export default function AdminPage() {
             </button>
           </div>
 
-          <div className="flex items-center gap-2 mb-4 p-3 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
+          <div className="flex items-center gap-2 mb-4 p-3 rounded-lg flex-wrap" style={{ background: 'var(--bg-secondary)' }}>
             <Settings size={14} style={{ color: 'var(--text-muted)' }} />
-            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>Current GLAB ID prefix:</span>
+            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>GLAB ID prefix:</span>
             <input
               type="text"
               value={idPrefixInput}
               onChange={e => setIdPrefixInput(e.target.value)}
               placeholder="e.g. 26H"
+              className="input text-sm py-1.5 px-2 w-20"
+            />
+            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>next number:</span>
+            <input
+              type="number"
+              min={1}
+              value={idNextSeqInput}
+              onChange={e => setIdNextSeqInput(e.target.value)}
+              placeholder="e.g. 251"
               className="input text-sm py-1.5 px-2 w-24"
             />
             <button
               onClick={saveIdPrefix}
-              disabled={savingIdPrefix || !idPrefixInput.trim() || idPrefixInput.trim().toUpperCase() === idPrefix}
+              disabled={
+                savingIdPrefix || !idPrefixInput.trim() || !idNextSeqInput.trim() ||
+                (idPrefixInput.trim().toUpperCase() === idPrefix && idNextSeqInput.trim() === idNextSeq)
+              }
               className="btn-secondary text-sm px-3 py-1.5 disabled:opacity-50"
             >
               {savingIdPrefix ? '...' : 'Save'}
             </button>
-            {!idPrefix && <span className="text-xs" style={{ color: '#DD0000' }}>Set this before selecting anyone</span>}
+            {idPrefix && idNextSeq && (
+              <span className="text-xs w-full" style={{ color: 'var(--text-muted)' }}>
+                Next ID will be GLAB{idPrefix}{idNextSeq.padStart(3, '0')} — the counter advances automatically after each Select.
+              </span>
+            )}
+            {(!idPrefix || !idNextSeq) && <span className="text-xs w-full" style={{ color: '#DD0000' }}>Set both before selecting anyone</span>}
           </div>
 
           {applicationsError ? (
@@ -651,9 +692,25 @@ export default function AdminPage() {
                         <div className="mb-2">
                           <div className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{app.name}</div>
                           <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                            {app.email} · DOB {app.dob}{app.phone ? ` · ${app.phone}` : ''}
+                            {app.email} · {app.phone}{app.dob ? ` · DOB ${app.dob}` : ''}
+                          </div>
+                          <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                            Wants: {app.batchChoice || '—'}{app.occupation ? ` · ${app.occupation}` : ''}{app.city ? `, ${app.city}` : ''}
                           </div>
                         </div>
+                        <details className="mb-2">
+                          <summary className="text-xs underline cursor-pointer" style={{ color: 'var(--text-muted)' }}>Full application</summary>
+                          <div className="text-xs mt-2 space-y-1" style={{ color: 'var(--text-primary)' }}>
+                            {app.previousExperience === 'yes' && (
+                              <p><strong>Previous GLAB course:</strong> {app.previousCourseDetails || '—'} ({app.previousCourseCompleted === 'yes' ? 'completed' : 'not completed'})</p>
+                            )}
+                            <p><strong>Motivation:</strong> {app.motivation || '—'}</p>
+                            <p><strong>Why GLAB:</strong> {app.whyGlab || '—'}</p>
+                            <p><strong>Primary goal:</strong> {app.primaryGoal || '—'} · <strong>Heard via:</strong> {app.howHeard || '—'}</p>
+                            {app.facebookLink && <p><strong>Facebook:</strong> {app.facebookLink}</p>}
+                            {app.comment && <p><strong>Comment:</strong> {app.comment}</p>}
+                          </div>
+                        </details>
                         <div className="flex items-center gap-2 flex-wrap">
                           <select
                             value={applicationBatch[key] || ''}
@@ -667,7 +724,7 @@ export default function AdminPage() {
                           </select>
                           <button
                             onClick={() => selectApplicant(app)}
-                            disabled={applicationActionKey === key || !applicationBatch[key] || !idPrefix}
+                            disabled={applicationActionKey === key || !applicationBatch[key] || !idPrefix || !idNextSeq}
                             className="btn-primary text-sm px-3 py-1.5 inline-flex items-center gap-1.5 disabled:opacity-50"
                           >
                             <UserPlus size={13} /> {applicationActionKey === key ? '...' : 'Select'}

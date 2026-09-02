@@ -23,7 +23,7 @@ export default function ResultsPage() {
   const [step, setStep] = useState<'lookup' | 'form' | 'status'>('lookup')
 
   const [email, setEmail] = useState('')
-  const [dob, setDob] = useState('')
+  const [phone, setPhone] = useState('')
   const [checking, setChecking] = useState(false)
   const [lookupError, setLookupError] = useState('')
   const [resultMessage, setResultMessage] = useState<{ kind: 'pending' | 'not_selected'; text: string | string[] } | null>(null)
@@ -43,7 +43,7 @@ export default function ResultsPage() {
   const [submitError, setSubmitError] = useState('')
 
   const handleCheck = async () => {
-    if (!email.trim() || !dob) return
+    if (!email.trim() || !phone.trim()) return
     setChecking(true)
     setLookupError('')
     setResultMessage(null)
@@ -51,7 +51,7 @@ export default function ResultsPage() {
       const res = await fetch('/api/results/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, dob }),
+        body: JSON.stringify({ email, phone }),
       })
       const data = await res.json()
       if (!data.success) throw new Error(data.error || 'Something went wrong. Please try again.')
@@ -152,7 +152,7 @@ export default function ResultsPage() {
   const resetForm = () => {
     setStep('lookup')
     setEmail('')
-    setDob('')
+    setPhone('')
     setLookupError('')
     setResultMessage(null)
     setApplicantName('')
@@ -178,7 +178,7 @@ export default function ResultsPage() {
             Application Results
           </h1>
           <p className="text-xl max-w-2xl" style={{ color: 'var(--text-muted)' }}>
-            Check whether you were selected using the email and date of birth from your application, and if you were, register right here.
+            Check whether you were selected using the email and WhatsApp number from your application, and if you were, register right here.
           </p>
         </div>
       </section>
@@ -200,17 +200,18 @@ export default function ResultsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Date of Birth</label>
+                  <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>WhatsApp Number</label>
                   <input
-                    type="date"
-                    value={dob}
-                    onChange={e => setDob(e.target.value)}
+                    type="tel"
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                    placeholder="+880..."
                     className="input"
                   />
                 </div>
                 <button
                   onClick={handleCheck}
-                  disabled={checking || !email.trim() || !dob}
+                  disabled={checking || !email.trim() || !phone.trim()}
                   className="btn-primary w-full justify-center flex items-center gap-2 disabled:opacity-50"
                 >
                   {checking ? (
@@ -229,7 +230,7 @@ export default function ResultsPage() {
                   <div>
                     <p className="text-base font-semibold" style={{ color: '#DD0000' }}>{lookupError}</p>
                     <p className="text-base mt-1" style={{ color: 'var(--text-primary)' }}>
-                      Double-check the email and date of birth you applied with, or{' '}
+                      Double-check the email and WhatsApp number you applied with, or{' '}
                       <a href={WHATSAPP_CHANNEL} target="_blank" rel="noopener noreferrer" className="underline font-semibold" style={{ color: '#DD0000' }}>
                         reach us on WhatsApp
                       </a>.

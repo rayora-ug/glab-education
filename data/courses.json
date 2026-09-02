@@ -10,7 +10,11 @@
     "highlights": ["Personal Information & Family", "Shopping & Daily Life", "Telling Time & Schedules", "Basic Grammar (Nominative, Accusative)", "Past Tenses (Perfekt)", "Dative Case & Prepositions"],
     "popular": true,
     "registrationOpen": true,
-    "googleFormLink": "https://forms.google.com/glab-a1"
+    "googleFormLink": "https://forms.google.com/glab-a1",
+    "batches": [
+      { "id": "a1-41-M", "label": "41st Batch (Morning)", "schedule": "Sat + Sun, 7:00–10:00 AM (Germany time)", "startDate": "2026-10-17" },
+      { "id": "a1-42-E", "label": "42nd Batch (Evening)", "schedule": "Tue + Fri, 6:00–9:00 PM (Germany time)", "startDate": "2026-10-20" }
+    ]
   },
   {
     "id": 3,

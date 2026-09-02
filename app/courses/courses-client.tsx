@@ -83,9 +83,9 @@ export default function CoursesPage() {
                 <div className="p-6 pt-0">
                   {c.registrationOpen ? (
                     c.level === 'A1' ? (
-                      <button disabled className="btn-primary w-full justify-center opacity-50 cursor-not-allowed">
+                      <Link href="/apply/a1" className="btn-primary w-full justify-center">
                         Apply Now – {c.fee} <ArrowRight size={14} />
-                      </button>
+                      </Link>
                     ) : (
                       <button disabled className="btn-primary w-full justify-center opacity-50 cursor-not-allowed">
                         Book Your Placement Test <ArrowRight size={14} />

@@ -25,10 +25,13 @@ export default function ApplyPage() {
               New Applicant (A1)
             </h2>
             <p className="text-sm mb-6 flex-1" style={{ color: 'var(--text-muted)' }}>
-              Applying for the first time? Submit your A1 application from the Courses page, then come back here to check your result and complete registration once selected.
+              Applying for the first time? Submit your A1 application right here, then come back to check your result and complete registration once selected.
             </p>
             <div className="flex flex-col gap-3">
-              <Link href="/results" className="btn-primary w-full justify-center">
+              <Link href="/apply/a1" className="btn-primary w-full justify-center">
+                <UserPlus size={16} /> Apply for A1
+              </Link>
+              <Link href="/results" className="btn-secondary w-full justify-center">
                 <ClipboardCheck size={16} /> Check Application Status
               </Link>
             </div>
@@ -52,9 +55,6 @@ export default function ApplyPage() {
           </div>
         </div>
 
-        <p className="text-xs max-w-2xl" style={{ color: 'var(--text-muted)' }}>
-          We're building the full application process directly into the website — soon you'll be able to apply for A1 right here as well.
-        </p>
       </div>
     </section>
   )

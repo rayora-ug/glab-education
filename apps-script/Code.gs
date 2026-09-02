@@ -39,6 +39,13 @@ var ELIGIBILITY_COLUMNS = [
   { header: 'eligible b1', course: 'B1 Intensive' }
 ];
 var MAX_FILE_BYTES = 5 * 1024 * 1024; // 5MB, defense in depth (site also caps this)
+// GLAB IDs follow GLAB{YY}{Season}{seq} (e.g. GLAB26H251) — GLAB runs five
+// admission sessions a year (F/S/H/H/W) and the two "H" sessions in a given
+// year share the same letter and just keep counting rather than restarting,
+// so this is set once per admission cycle in the admin panel rather than
+// derived automatically. See generateNextA1GlabId_.
+var A1_ID_PREFIX_PROPERTY = 'A1_ID_PREFIX';
+var STUDENT_DATABASE_SHEET = 'Student Database';
 
 function doPost(e) {
   var response;
@@ -52,6 +59,18 @@ function doPost(e) {
       response = submitRegistration_(body);
     } else if (body.action === 'checkApplication') {
       response = checkApplication_(body.email, body.dob);
+    } else if (body.action === 'submitA1Application') {
+      response = submitA1Application_(body);
+    } else if (body.action === 'adminListApplications') {
+      response = adminListApplications_();
+    } else if (body.action === 'adminSelectApplicant') {
+      response = adminSelectApplicant_(body.email, body.dob, body.batchLabel, body.batchId);
+    } else if (body.action === 'adminRejectApplicant') {
+      response = adminRejectApplicant_(body.email, body.dob);
+    } else if (body.action === 'adminGetA1IdPrefix') {
+      response = adminGetA1IdPrefix_();
+    } else if (body.action === 'adminSetA1IdPrefix') {
+      response = adminSetA1IdPrefix_(body.prefix);
     } else if (body.action === 'submitExam') {
       response = submitExam_(body);
     } else if (body.action === 'checkExamPermission') {
@@ -479,6 +498,285 @@ function checkApplication_(email, dob) {
     confirmedBatch: application.confirmedBatch,
     confirmedBatchId: application.confirmedBatchId
   };
+}
+
+// ===== A1 application intake (replaces the external Google Form) =====
+// Writes straight into the Applications tab with Selection Status left
+// blank, which findApplication_/checkApplication_ already treat as
+// "pending" — no schema change needed, just a new way to add rows besides
+// typing them in by hand.
+function submitA1Application_(body) {
+  var name = String(body.name || '').trim();
+  var email = String(body.email || '').trim();
+  var dob = String(body.dob || '').trim();
+  var phone = String(body.phone || '').trim();
+  if (!name) throw new Error('Name is required.');
+  if (!email) throw new Error('Email is required.');
+  if (!dob) throw new Error('Date of birth is required.');
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(APPLICATIONS_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(APPLICATIONS_SHEET);
+    sheet.appendRow(['Timestamp', 'Name', 'Email', 'Date of Birth', 'Phone', 'Selection Status', 'GLAB ID', 'Confirmed Batch', 'Confirmed Batch ID']);
+  }
+  var values = sheet.getDataRange().getValues();
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var col = function (n) { return headers.indexOf(n); };
+  var emailCol = col('email'), dobCol = col('date of birth');
+  if (emailCol === -1 || dobCol === -1) {
+    throw new Error('Applications sheet must have "Email" and "Date of Birth" columns');
+  }
+
+  // Idempotency: a resubmit (double-click, retry after a flaky network
+  // response) shouldn't create a second row for the same applicant.
+  var needleEmail = email.toLowerCase();
+  var needleDob = normalizeDate_(dob);
+  for (var i = 1; i < values.length; i++) {
+    var rowEmail = String(values[i][emailCol] || '').trim().toLowerCase();
+    var rowDob = normalizeDate_(values[i][dobCol]);
+    if (rowEmail === needleEmail && rowDob === needleDob) {
+      return { success: true, alreadySubmitted: true };
+    }
+  }
+
+  var row = new Array(headers.length).fill('');
+  if (col('timestamp') !== -1) row[col('timestamp')] = new Date();
+  if (col('name') !== -1) row[col('name')] = name;
+  row[emailCol] = email;
+  row[dobCol] = dob;
+  if (col('phone') !== -1) row[col('phone')] = phone;
+  sheet.appendRow(row);
+  return { success: true };
+}
+
+// Lists every A1 application, newest first, for the admin panel. Includes
+// already-decided ones too (not just pending) so admin can see recent
+// history, not just the queue.
+function adminListApplications_() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(APPLICATIONS_SHEET);
+  if (!sheet) return { success: true, applications: [] };
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return { success: true, applications: [] };
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var col = function (n) { return headers.indexOf(n); };
+  var nameCol = col('name'), emailCol = col('email'), dobCol = col('date of birth'),
+    phoneCol = col('phone'), statusCol = col('selection status'), glabIdCol = col('glab id'),
+    batchCol = col('confirmed batch'), timestampCol = col('timestamp');
+  if (emailCol === -1 || dobCol === -1) return { success: true, applications: [] };
+
+  var apps = [];
+  for (var i = 1; i < values.length; i++) {
+    var rawStatus = statusCol !== -1 ? String(values[i][statusCol] || '').trim().toLowerCase() : '';
+    var status = rawStatus === 'selected' ? 'selected' : rawStatus === 'not selected' ? 'not_selected' : 'pending';
+    apps.push({
+      name: nameCol !== -1 ? values[i][nameCol] : '',
+      email: values[i][emailCol],
+      dob: normalizeDate_(values[i][dobCol]),
+      phone: phoneCol !== -1 ? values[i][phoneCol] : '',
+      status: status,
+      glabId: glabIdCol !== -1 ? values[i][glabIdCol] : '',
+      confirmedBatch: batchCol !== -1 ? values[i][batchCol] : '',
+      timestamp: timestampCol !== -1 && values[i][timestampCol] ? new Date(values[i][timestampCol]).toISOString() : null
+    });
+  }
+  apps.reverse();
+  return { success: true, applications: apps };
+}
+
+// Finds the Applications row for one applicant (same email+dob match
+// findApplication_ uses) and returns its sheet row index (0-based, into
+// getDataRange()'s values array) plus the header column lookup — shared by
+// adminSelectApplicant_ and adminRejectApplicant_ so both locate rows the
+// same way.
+function findApplicationRow_(email, dob) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(APPLICATIONS_SHEET);
+  if (!sheet) throw new Error('Applications sheet not found');
+  var values = sheet.getDataRange().getValues();
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var col = function (n) { return headers.indexOf(n); };
+  var nameCol = col('name'), emailCol = col('email'), dobCol = col('date of birth'),
+    statusCol = col('selection status'), glabIdCol = col('glab id'),
+    batchCol = col('confirmed batch'), batchIdCol = col('confirmed batch id');
+  if (batchIdCol === -1) batchIdCol = col('batch id');
+  if (emailCol === -1 || dobCol === -1) throw new Error('Applications sheet must have "Email" and "Date of Birth" columns');
+  if (statusCol === -1) throw new Error('Applications sheet must have a "Selection Status" column');
+
+  var needleEmail = String(email || '').trim().toLowerCase();
+  var needleDob = normalizeDate_(dob);
+  var rowIndex = -1;
+  for (var i = 1; i < values.length; i++) {
+    var rowEmail = String(values[i][emailCol] || '').trim().toLowerCase();
+    var rowDob = normalizeDate_(values[i][dobCol]);
+    if (rowEmail === needleEmail && rowDob === needleDob) { rowIndex = i; break; }
+  }
+  if (rowIndex === -1) throw new Error('Application not found');
+
+  return {
+    sheet: sheet, values: values, rowIndex: rowIndex,
+    nameCol: nameCol, emailCol: emailCol, statusCol: statusCol,
+    glabIdCol: glabIdCol, batchCol: batchCol, batchIdCol: batchIdCol
+  };
+}
+
+// Marks one applicant Selected: assigns the next GLAB ID, adds them to
+// Students (so submitRegistration_'s findStudent_/eligibility check works
+// immediately — the same manual row an admin used to add by hand), updates
+// the Applications row, and emails the applicant their GLAB ID and a
+// registration link. Idempotent — re-clicking Select on an already-selected
+// applicant just returns their existing GLAB ID instead of double-processing.
+function adminSelectApplicant_(email, dob, batchLabel, batchId) {
+  var found = findApplicationRow_(email, dob);
+  var existingStatus = String(found.values[found.rowIndex][found.statusCol] || '').trim().toLowerCase();
+  if (existingStatus === 'selected') {
+    return { success: true, alreadySelected: true, glabId: found.glabIdCol !== -1 ? found.values[found.rowIndex][found.glabIdCol] : null };
+  }
+
+  var applicantName = found.nameCol !== -1 ? found.values[found.rowIndex][found.nameCol] : '';
+  var glabId = generateNextA1GlabId_();
+
+  appendStudentRow_(glabId, applicantName);
+  adminSetStudentEligible_(glabId, 'A1', true);
+
+  var sheetRow = found.rowIndex + 1;
+  found.sheet.getRange(sheetRow, found.statusCol + 1).setValue('Selected');
+  if (found.glabIdCol !== -1) found.sheet.getRange(sheetRow, found.glabIdCol + 1).setValue(glabId);
+  if (found.batchCol !== -1) found.sheet.getRange(sheetRow, found.batchCol + 1).setValue(batchLabel || '');
+  if (found.batchIdCol !== -1) found.sheet.getRange(sheetRow, found.batchIdCol + 1).setValue(batchId || '');
+
+  sendA1SelectionEmail_(String(found.values[found.rowIndex][found.emailCol] || '').trim(), applicantName, glabId);
+  return { success: true, glabId: glabId };
+}
+
+// Marks one applicant Not Selected and emails them the standard "not
+// selected this round" text (the same copy /results already shows for this
+// status) — closes the loop for applicants who don't proactively check
+// their result.
+function adminRejectApplicant_(email, dob) {
+  var found = findApplicationRow_(email, dob);
+  var applicantName = found.nameCol !== -1 ? found.values[found.rowIndex][found.nameCol] : '';
+  found.sheet.getRange(found.rowIndex + 1, found.statusCol + 1).setValue('Not Selected');
+  sendA1RejectionEmail_(String(found.values[found.rowIndex][found.emailCol] || '').trim(), applicantName);
+  return { success: true };
+}
+
+// Adds a bare row to Students with just GLAB ID + Name — the same minimal
+// row an admin used to type in by hand when manually selecting an A1
+// applicant. Eligibility is granted separately via adminSetStudentEligible_.
+function appendStudentRow_(glabId, name) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(STUDENTS_SHEET);
+  if (!sheet) throw new Error('Students sheet not found');
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+    .map(function (h) { return String(h).trim().toLowerCase(); });
+  var idCol = headers.indexOf('glab id'), nameCol = headers.indexOf('name');
+  if (idCol === -1 || nameCol === -1) throw new Error('Students sheet must have "GLAB ID" and "Name" columns');
+  var row = new Array(headers.length).fill('');
+  row[idCol] = glabId;
+  row[nameCol] = name;
+  sheet.appendRow(row);
+}
+
+// Generates the next A1 GLAB ID for the currently-configured admission
+// prefix (e.g. "26H", set via adminSetA1IdPrefix_/the admin panel).
+// Scans both Students (the live roster) and, if present, Student Database
+// (the historical flat roster) for the highest existing sequence number
+// under that exact prefix and continues from there — GLAB reuses the same
+// season letter across two sessions a year and keeps counting rather than
+// restarting, so this deliberately doesn't reset per call.
+function generateNextA1GlabId_() {
+  var prefix = PropertiesService.getScriptProperties().getProperty(A1_ID_PREFIX_PROPERTY);
+  if (!prefix) throw new Error('Set the current A1 GLAB ID prefix (e.g. "26H") in the admin panel first.');
+  prefix = String(prefix).trim().toUpperCase();
+
+  var pattern = new RegExp('^GLAB' + prefix + '(\\d+)$', 'i');
+  var maxSeq = 0;
+  var digits = 3;
+
+  function scan(sheetName) {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+    if (!sheet) return;
+    var values = sheet.getDataRange().getValues();
+    if (values.length < 2) return;
+    var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+    var idCol = headers.indexOf('glab id');
+    if (idCol === -1) return;
+    for (var i = 1; i < values.length; i++) {
+      var id = String(values[i][idCol] || '').trim();
+      var m = id.match(pattern);
+      if (m) {
+        var seq = parseInt(m[1], 10);
+        if (seq > maxSeq) maxSeq = seq;
+        if (m[1].length > digits) digits = m[1].length;
+      }
+    }
+  }
+
+  scan(STUDENTS_SHEET);
+  scan(STUDENT_DATABASE_SHEET);
+
+  var seqStr = String(maxSeq + 1);
+  while (seqStr.length < digits) seqStr = '0' + seqStr;
+  return 'GLAB' + prefix + seqStr;
+}
+
+function adminGetA1IdPrefix_() {
+  return { success: true, prefix: PropertiesService.getScriptProperties().getProperty(A1_ID_PREFIX_PROPERTY) || '' };
+}
+
+function adminSetA1IdPrefix_(prefix) {
+  PropertiesService.getScriptProperties().setProperty(A1_ID_PREFIX_PROPERTY, String(prefix || '').trim().toUpperCase());
+  return { success: true };
+}
+
+function sendA1SelectionEmail_(email, name, glabId) {
+  if (!email) return;
+  try {
+    var lines = [
+      'Hi ' + (name || 'there') + ',', '',
+      "Congratulations — you've been selected for GLAB's A1 Intensive course!",
+      '',
+      'Your GLAB ID: ' + glabId,
+      '',
+      'Complete your registration here: glabeducation.com/results',
+      '(log in with the same email and date of birth you used to apply)',
+      '',
+      'Seats are limited, so please register as soon as you can to secure your spot.',
+      '',
+      '— GLAB Team'
+    ];
+    GmailApp.sendEmail(email, "You've been selected for GLAB A1 Intensive!", lines.join('\n'), {
+      name: 'GLAB Team',
+      from: 'mrayhanur@gmail.com'
+    });
+  } catch (err) {
+    PropertiesService.getScriptProperties().setProperty(
+      'LAST_A1_SELECT_EMAIL_ERROR', new Date().toISOString() + ' — ' + err.message
+    );
+  }
+}
+
+function sendA1RejectionEmail_(email, name) {
+  if (!email) return;
+  try {
+    var lines = [
+      'Hi ' + (name || 'there') + ',', '',
+      'Thank you for your interest in joining GLAB.',
+      'After carefully reviewing all applications, we regret to inform you that you have not been selected for this session.',
+      'Due to the limited number of seats, not all applicants can be accommodated.',
+      'We sincerely appreciate your interest in GLAB and encourage you to apply again in a future session.',
+      'Thank you for your understanding, and we wish you all the best in your German language learning journey.',
+      '',
+      '— GLAB Team'
+    ];
+    GmailApp.sendEmail(email, 'Your GLAB A1 Application Result', lines.join('\n'), {
+      name: 'GLAB Team',
+      from: 'mrayhanur@gmail.com'
+    });
+  } catch (err) {
+    PropertiesService.getScriptProperties().setProperty(
+      'LAST_A1_REJECT_EMAIL_ERROR', new Date().toISOString() + ' — ' + err.message
+    );
+  }
 }
 
 function lookupStudent_(glabId) {

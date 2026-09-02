@@ -4,8 +4,16 @@ import { useEffect, useState } from 'react'
 import {
   Lock, ShieldX, Search, Ban, CheckCircle, Power,
   ExternalLink, RefreshCw, LogOut, Loader2, Star, PlusCircle,
+  UserPlus, XCircle, Settings,
 } from 'lucide-react'
 import { REVIEW_LEVELS } from '../portal/shared'
+import coursesData from '../../data/courses.json'
+
+const a1Batches = (coursesData as any[])
+  .filter(c => c.level === 'A1' && c.registrationOpen)
+  .flatMap((c: any) => (c.batches || []).map((b: any) => ({
+    id: b.id, label: `${c.title} — ${b.label}`,
+  })))
 
 type Student = {
   found: boolean
@@ -36,6 +44,17 @@ type InterestRequest = {
   requestedBatch: string
   currentBatch: string
   email: string
+}
+
+type Application = {
+  name: string
+  email: string
+  dob: string
+  phone: string
+  status: 'pending' | 'selected' | 'not_selected'
+  glabId: string
+  confirmedBatch: string
+  timestamp: string | null
 }
 
 type PendingReview = {
@@ -86,6 +105,17 @@ export default function AdminPage() {
   const [loadingInterest, setLoadingInterest] = useState(false)
   const [approvingKey, setApprovingKey] = useState('')
 
+  const [applications, setApplications] = useState<Application[] | null>(null)
+  const [applicationsError, setApplicationsError] = useState('')
+  const [loadingApplications, setLoadingApplications] = useState(false)
+  const [applicationBatch, setApplicationBatch] = useState<Record<string, string>>({})
+  const [applicationActionKey, setApplicationActionKey] = useState('')
+  const [showDecidedApplications, setShowDecidedApplications] = useState(false)
+
+  const [idPrefix, setIdPrefix] = useState('')
+  const [idPrefixInput, setIdPrefixInput] = useState('')
+  const [savingIdPrefix, setSavingIdPrefix] = useState(false)
+
   const [pendingReviews, setPendingReviews] = useState<PendingReview[] | null>(null)
   const [pendingReviewsError, setPendingReviewsError] = useState('')
   const [loadingPendingReviews, setLoadingPendingReviews] = useState(false)
@@ -106,6 +136,8 @@ export default function AdminPage() {
     loadPending()
     loadInterest()
     loadPendingReviews()
+    loadApplications()
+    loadIdPrefix()
   }, [authenticated])
 
   const handleLogin = async () => {
@@ -136,6 +168,8 @@ export default function AdminPage() {
     setPending(null)
     setInterest(null)
     setPendingReviews(null)
+    setApplications(null)
+    setIdPrefix('')
   }
 
   const toggleRegistration = async () => {
@@ -258,6 +292,97 @@ export default function AdminPage() {
       }
     } finally {
       setApprovingKey('')
+    }
+  }
+
+  const loadApplications = async () => {
+    setLoadingApplications(true)
+    setApplicationsError('')
+    try {
+      const res = await fetch('/api/admin/applications/pending', { method: 'POST' })
+      const data = await res.json()
+      if (data.success) setApplications(data.applications)
+      else setApplicationsError(data.error || 'Failed to load applications.')
+    } catch {
+      setApplicationsError('Failed to load applications.')
+    } finally {
+      setLoadingApplications(false)
+    }
+  }
+
+  const loadIdPrefix = async () => {
+    try {
+      const res = await fetch('/api/admin/applications/id-prefix')
+      const data = await res.json()
+      if (data.success) {
+        setIdPrefix(data.prefix || '')
+        setIdPrefixInput(data.prefix || '')
+      }
+    } catch {
+      // Non-critical — Select will just surface the "set a prefix first" error.
+    }
+  }
+
+  const saveIdPrefix = async () => {
+    if (!idPrefixInput.trim()) return
+    setSavingIdPrefix(true)
+    try {
+      const res = await fetch('/api/admin/applications/id-prefix', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prefix: idPrefixInput.trim() }),
+      })
+      const data = await res.json()
+      if (data.success) setIdPrefix(idPrefixInput.trim().toUpperCase())
+    } finally {
+      setSavingIdPrefix(false)
+    }
+  }
+
+  const applicationKey = (app: Application) => app.email + app.dob
+
+  const selectApplicant = async (app: Application) => {
+    const batchId = applicationBatch[applicationKey(app)]
+    if (!batchId) return
+    const batch = a1Batches.find(b => b.id === batchId)
+    const key = applicationKey(app)
+    setApplicationActionKey(key)
+    try {
+      const res = await fetch('/api/admin/applications/select', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: app.email, dob: app.dob, batchLabel: batch?.label || '', batchId }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setApplications(prev => (prev || []).map(a => a === app
+          ? { ...a, status: 'selected', glabId: data.glabId || a.glabId, confirmedBatch: batch?.label || a.confirmedBatch }
+          : a))
+      } else {
+        setApplicationsError(data.error || 'Failed to select applicant.')
+      }
+    } finally {
+      setApplicationActionKey('')
+    }
+  }
+
+  const rejectApplicant = async (app: Application) => {
+    const key = applicationKey(app)
+    setApplicationActionKey(key)
+    try {
+      const res = await fetch('/api/admin/applications/reject', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: app.email, dob: app.dob }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setApplications(prev => (prev || []).map(a => a === app ? { ...a, status: 'not_selected' } : a))
+      } else {
+        setApplicationsError(data.error || 'Failed to reject applicant.')
+      }
+    } finally {
+      setApplicationActionKey('')
     }
   }
 
@@ -477,6 +602,113 @@ export default function AdminPage() {
                 )
               })}
             </div>
+          )}
+        </div>
+
+        {/* A1 applications */}
+        <div className="card p-6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>A1 Applications</div>
+            <button onClick={loadApplications} disabled={loadingApplications} className="text-sm underline inline-flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
+              <RefreshCw size={13} className={loadingApplications ? 'animate-spin' : ''} /> Refresh
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 mb-4 p-3 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
+            <Settings size={14} style={{ color: 'var(--text-muted)' }} />
+            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>Current GLAB ID prefix:</span>
+            <input
+              type="text"
+              value={idPrefixInput}
+              onChange={e => setIdPrefixInput(e.target.value)}
+              placeholder="e.g. 26H"
+              className="input text-sm py-1.5 px-2 w-24"
+            />
+            <button
+              onClick={saveIdPrefix}
+              disabled={savingIdPrefix || !idPrefixInput.trim() || idPrefixInput.trim().toUpperCase() === idPrefix}
+              className="btn-secondary text-sm px-3 py-1.5 disabled:opacity-50"
+            >
+              {savingIdPrefix ? '...' : 'Save'}
+            </button>
+            {!idPrefix && <span className="text-xs" style={{ color: '#DD0000' }}>Set this before selecting anyone</span>}
+          </div>
+
+          {applicationsError ? (
+            <p className="text-sm" style={{ color: '#DD0000' }}>{applicationsError}</p>
+          ) : applications === null || loadingApplications ? (
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading...</p>
+          ) : (
+            <>
+              {applications.filter(a => a.status === 'pending').length === 0 ? (
+                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Nothing pending — all caught up.</p>
+              ) : (
+                <div className="space-y-3">
+                  {applications.filter(a => a.status === 'pending').map(app => {
+                    const key = applicationKey(app)
+                    return (
+                      <div key={key} className="p-4 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
+                        <div className="mb-2">
+                          <div className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{app.name}</div>
+                          <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                            {app.email} · DOB {app.dob}{app.phone ? ` · ${app.phone}` : ''}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <select
+                            value={applicationBatch[key] || ''}
+                            onChange={e => setApplicationBatch(prev => ({ ...prev, [key]: e.target.value }))}
+                            className="input text-sm py-1.5 flex-1 min-w-[180px]"
+                          >
+                            <option value="" disabled>Select batch</option>
+                            {a1Batches.map(b => (
+                              <option key={b.id} value={b.id}>{b.label}</option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={() => selectApplicant(app)}
+                            disabled={applicationActionKey === key || !applicationBatch[key] || !idPrefix}
+                            className="btn-primary text-sm px-3 py-1.5 inline-flex items-center gap-1.5 disabled:opacity-50"
+                          >
+                            <UserPlus size={13} /> {applicationActionKey === key ? '...' : 'Select'}
+                          </button>
+                          <button
+                            onClick={() => rejectApplicant(app)}
+                            disabled={applicationActionKey === key}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50"
+                            style={{ background: 'rgba(221,0,0,0.1)', color: '#DD0000' }}
+                          >
+                            <XCircle size={13} /> {applicationActionKey === key ? '...' : 'Reject'}
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              <button
+                onClick={() => setShowDecidedApplications(v => !v)}
+                className="text-xs underline mt-4"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                {showDecidedApplications ? 'Hide' : 'Show'} decided applications
+              </button>
+              {showDecidedApplications && (
+                <div className="space-y-2 mt-3">
+                  {applications.filter(a => a.status !== 'pending').length === 0 ? (
+                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>None yet.</p>
+                  ) : applications.filter(a => a.status !== 'pending').map(app => (
+                    <div key={applicationKey(app)} className="flex items-center justify-between gap-4 flex-wrap px-4 py-2 rounded-lg text-sm" style={{ background: 'var(--bg-secondary)' }}>
+                      <span style={{ color: 'var(--text-primary)' }}>{app.name} · {app.email}</span>
+                      <span style={{ color: app.status === 'selected' ? '#16a34a' : '#DD0000' }}>
+                        {app.status === 'selected' ? `Selected — ${app.glabId}${app.confirmedBatch ? ` — ${app.confirmedBatch}` : ''}` : 'Not Selected'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
 

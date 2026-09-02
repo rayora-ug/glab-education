@@ -10,11 +10,9 @@ import coursesData from '../../data/courses.json'
 import {
   WHATSAPP_CHANNEL, paymentMethods, STATUS_INFO, formatDate,
   fileToBase64, validateProofFile, PaymentInfoCard, PaymentAndRulesFields,
-  useRegistrationOpen, RegistrationClosedBanner, ForgotGlabId,
+  useRegistrationOpen, RegistrationClosedBanner, ForgotGlabId, REGISTRATION_DEADLINE,
   type Registration,
 } from './shared'
-
-const REGISTRATION_DEADLINE = '2026-09-10'
 
 const openCourses = (coursesData as any[]).filter(
   c => c.registrationOpen && c.level !== 'A1'

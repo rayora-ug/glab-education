@@ -11,6 +11,7 @@ import coursesData from '../../data/courses.json'
 import {
   COURSE_RULES, REVIEW_LEVELS, formatDate, useRegistrationOpen,
   fileToBase64, validateProofFile, PaymentInfoCard, PaymentAndRulesFields, ForgotGlabId,
+  CourseInfoCard, REGISTRATION_DEADLINE,
 } from '../portal/shared'
 
 type BatchInfo = {
@@ -145,6 +146,7 @@ function EligibleRegistrationForm({ glabId, level, courses }: { glabId: string; 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
+      <CourseInfoCard courses={courses} deadline={REGISTRATION_DEADLINE} />
       <select value={batchId} onChange={e => setBatchId(e.target.value)} className="input">
         <option value="" disabled>Select your batch</option>
         {batchOptions.map(b => (

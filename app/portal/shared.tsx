@@ -5,10 +5,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Upload, Paperclip, Landmark, AlertTriangle, PauseCircle, Mail } from 'lucide-react'
+import { Upload, Paperclip, Landmark, AlertTriangle, PauseCircle, Mail, CalendarClock } from 'lucide-react'
 
 export const WHATSAPP_CHANNEL = 'https://wa.me/message/72NY3RBASOPYI1'
 export const MAX_FILE_BYTES = 3 * 1024 * 1024
+
+// A2/B1 registration deadline — shared by /portal and MyGLAB's inline
+// registration form so there's only one place to update it (a mismatch
+// between the two showed the wrong date on /portal for weeks).
+export const REGISTRATION_DEADLINE = '2026-09-10'
 
 // Reflects the admin panel's global registration on/off switch. This is
 // purely a UX signal — the real enforcement happens server-side in
@@ -169,6 +174,41 @@ export function validateProofFile(f: File | null): string {
   if (!/^image\//.test(f.type) && f.type !== 'application/pdf') return 'Please upload an image or a PDF.'
   if (f.size > MAX_FILE_BYTES) return 'File is too large (max 3MB).'
   return ''
+}
+
+type CourseInfoBatch = { id: string; label: string; schedule: string; startDate: string }
+type CourseInfoEntry = { title: string; fee: string; batches?: CourseInfoBatch[] }
+
+// Shows each open batch's start date and fee up front, plus the shared
+// registration deadline — the same info that used to be buried inside a
+// <select> option's text, which students kept missing before asking
+// "when does it start?" directly.
+export function CourseInfoCard({ courses, deadline }: { courses: CourseInfoEntry[]; deadline?: string }) {
+  return (
+    <div className="rounded-xl p-5 mb-3" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+      <div className="flex items-center gap-2 mb-3">
+        <CalendarClock size={16} style={{ color: 'var(--text-muted)' }} />
+        <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Course Schedule</span>
+      </div>
+      <div className="space-y-3">
+        {courses.map(c => (
+          <div key={c.title}>
+            <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{c.title} — {c.fee}</div>
+            {(c.batches || []).map(b => (
+              <div key={b.id} className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                {b.label} · {b.schedule} · Starts {formatDate(b.startDate)}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+      {deadline && (
+        <p className="text-sm font-semibold mt-3 pt-3" style={{ color: '#DD0000', borderTop: '1px solid var(--border)' }}>
+          Registration closes {formatDate(deadline)}
+        </p>
+      )}
+    </div>
+  )
 }
 
 export function PaymentInfoCard() {

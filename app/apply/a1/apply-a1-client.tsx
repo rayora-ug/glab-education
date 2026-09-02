@@ -89,7 +89,7 @@ export default function ApplyA1Page() {
           Apply for A1 Intensive
         </h1>
         <p className="text-xl mb-10" style={{ color: 'var(--text-muted)' }}>
-          Fill in your details below. We'll review your application and let you know via WhatsApp and email once results are announced.
+          Fill in your details below. We'll review your application and email you once results are announced.
         </p>
 
         {submitted ? (
@@ -99,7 +99,7 @@ export default function ApplyA1Page() {
               Application received!
             </h2>
             <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>
-              We'll review your application and reach out via WhatsApp and email once results are announced.
+              We'll review your application and email you at <strong>{email}</strong> once results are announced.
               You can also check your status anytime using the same email and WhatsApp number.
             </p>
             <Link href="/results" className="btn-secondary inline-flex items-center gap-2">

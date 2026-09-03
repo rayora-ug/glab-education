@@ -9,9 +9,9 @@ import {
   ChevronLeft, ChevronRight, Quote, Plus, Minus, ShieldCheck
 } from 'lucide-react'
 import courses from '../data/courses.json'
-import announcements from '../data/announcements.json'
 import faq from '../data/faq.json'
 import type { ReviewsData } from '@/lib/reviews'
+import type { Announcement } from '@/lib/announcements'
 
 const TICKER_ITEMS = [
   'A1 Intensive – October 2026', 'Free Pronunciation Workshop – June 20', 'B1 Exam Prep Now Available',
@@ -46,7 +46,7 @@ function CountUp({ end, duration = 2000 }: { end: number; duration?: number }) {
   return <span ref={ref}>{count}</span>
 }
 
-export default function HomePage({ reviews }: { reviews: ReviewsData }) {
+export default function HomePage({ reviews, announcements }: { reviews: ReviewsData; announcements: Announcement[] }) {
   const [faqOpen, setFaqOpen] = useState<number | null>(0)
   const [testimonialIdx, setTestimonialIdx] = useState(0)
   const featuredReviews = reviews.reviews.filter(r => r.featured)
@@ -288,7 +288,7 @@ export default function HomePage({ reviews }: { reviews: ReviewsData }) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {(announcements as any[]).slice(0,3).map((a) => (
+            {announcements.slice(0,3).map((a) => (
               <div key={a.id} className="card p-6">
                 <div className="flex items-center justify-between mb-3">
                   <span className="badge badge-gold text-xs">{a.category}</span>

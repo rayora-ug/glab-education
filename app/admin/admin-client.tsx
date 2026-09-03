@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import {
   Lock, ShieldX, Search, Ban, CheckCircle, Power,
   ExternalLink, RefreshCw, LogOut, Loader2, Star, PlusCircle,
-  UserPlus, XCircle, Settings,
+  UserPlus, XCircle, Settings, Megaphone,
 } from 'lucide-react'
 import { REVIEW_LEVELS } from '../portal/shared'
 import coursesData from '../../data/courses.json'
@@ -14,6 +14,16 @@ const a1Batches = (coursesData as any[])
   .flatMap((c: any) => (c.batches || []).map((b: any) => ({
     id: b.id, label: `${c.title} — ${b.label}`,
   })))
+
+const ANNOUNCEMENT_CATEGORIES = ['Course Registration', 'Events', 'Workshops', 'Exam Preparation', 'General Updates']
+
+const ADMIN_TABS = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'registrations', label: 'Registrations' },
+  { id: 'a1', label: 'A1 Pipeline' },
+  { id: 'content', label: 'Content' },
+] as const
+type AdminTab = (typeof ADMIN_TABS)[number]['id']
 
 type Student = {
   found: boolean
@@ -80,6 +90,7 @@ type PendingReview = {
 }
 
 export default function AdminPage() {
+  const [activeTab, setActiveTab] = useState<AdminTab>('overview')
   const [checkingSession, setCheckingSession] = useState(true)
   const [authenticated, setAuthenticated] = useState(false)
   const [password, setPassword] = useState('')
@@ -111,6 +122,16 @@ export default function AdminPage() {
   const [submittingReview, setSubmittingReview] = useState(false)
   const [reviewError, setReviewError] = useState('')
   const [reviewSuccess, setReviewSuccess] = useState('')
+
+  const [announcementTitle, setAnnouncementTitle] = useState('')
+  const [announcementExcerpt, setAnnouncementExcerpt] = useState('')
+  const [announcementContent, setAnnouncementContent] = useState('')
+  const [announcementDate, setAnnouncementDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [announcementCategory, setAnnouncementCategory] = useState('Course Registration')
+  const [announcementImportant, setAnnouncementImportant] = useState(true)
+  const [submittingAnnouncement, setSubmittingAnnouncement] = useState(false)
+  const [announcementError, setAnnouncementError] = useState('')
+  const [announcementSuccess, setAnnouncementSuccess] = useState('')
 
   const [interest, setInterest] = useState<InterestRequest[] | null>(null)
   const [interestError, setInterestError] = useState('')
@@ -474,6 +495,36 @@ export default function AdminPage() {
     }
   }
 
+  const submitAnnouncement = async () => {
+    if (!announcementTitle.trim() || !announcementContent.trim()) return
+    setSubmittingAnnouncement(true)
+    setAnnouncementError('')
+    setAnnouncementSuccess('')
+    try {
+      const res = await fetch('/api/admin/announcements', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: announcementTitle, excerpt: announcementExcerpt, content: announcementContent,
+          date: announcementDate, category: announcementCategory, important: announcementImportant,
+        }),
+      })
+      const data = await res.json()
+      if (!data.success) throw new Error(data.error || 'Failed to publish announcement.')
+      setAnnouncementSuccess('Published — it will appear on the site immediately.')
+      setAnnouncementTitle('')
+      setAnnouncementExcerpt('')
+      setAnnouncementContent('')
+      setAnnouncementDate(new Date().toISOString().slice(0, 10))
+      setAnnouncementCategory('Course Registration')
+      setAnnouncementImportant(true)
+    } catch (err: any) {
+      setAnnouncementError(err.message || 'Failed to publish announcement.')
+    } finally {
+      setSubmittingAnnouncement(false)
+    }
+  }
+
   if (checkingSession) {
     return (
       <section className="section pt-20 text-center">
@@ -521,6 +572,34 @@ export default function AdminPage() {
           </button>
         </div>
 
+        <div className="flex gap-1 flex-wrap border-b" style={{ borderColor: 'var(--border)' }}>
+          {ADMIN_TABS.map(t => {
+            const count = t.id === 'registrations' ? (pending?.length || 0) + (interest?.length || 0)
+              : t.id === 'a1' ? (applications?.filter(a => a.status === 'pending').length || 0)
+              : t.id === 'content' ? (pendingReviews?.length || 0)
+              : 0
+            return (
+              <button
+                key={t.id}
+                onClick={() => setActiveTab(t.id)}
+                className="px-4 py-2 text-sm font-medium -mb-px border-b-2 transition-colors inline-flex items-center gap-1.5"
+                style={{
+                  borderColor: activeTab === t.id ? '#DD0000' : 'transparent',
+                  color: activeTab === t.id ? 'var(--text-primary)' : 'var(--text-muted)',
+                }}
+              >
+                {t.label}
+                {count > 0 && (
+                  <span className="text-xs font-semibold px-1.5 rounded-full" style={{ background: 'rgba(221,0,0,0.1)', color: '#DD0000' }}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+
+        {activeTab === 'overview' && (<>
         {/* Registration switch */}
         <div className="card p-6">
           <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -580,7 +659,9 @@ export default function AdminPage() {
             </div>
           )}
         </div>
+        </>)}
 
+        {activeTab === 'registrations' && (<>
         {/* Pending payment verification */}
         <div className="card p-6">
           <div className="flex items-center justify-between mb-3">
@@ -628,7 +709,9 @@ export default function AdminPage() {
             </div>
           )}
         </div>
+        </>)}
 
+        {activeTab === 'a1' && (<>
         {/* A1 applications */}
         <div className="card p-6">
           <div className="flex items-center justify-between mb-3">
@@ -768,7 +851,9 @@ export default function AdminPage() {
             </>
           )}
         </div>
+        </>)}
 
+        {activeTab === 'registrations' && (<>
         {/* Next level interest */}
         <div className="card p-6">
           <div className="flex items-center justify-between mb-3">
@@ -814,7 +899,9 @@ export default function AdminPage() {
             </div>
           )}
         </div>
+        </>)}
 
+        {activeTab === 'content' && (<>
         {/* Pending reviews (student self-submitted) */}
         <div className="card p-6">
           <div className="flex items-center justify-between mb-3">
@@ -894,6 +981,38 @@ export default function AdminPage() {
             </button>
           </div>
         </div>
+
+        {/* Add announcement */}
+        <div className="card p-6">
+          <div className="font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+            <Megaphone size={16} /> Add Announcement
+          </div>
+          <div className="space-y-3">
+            <input type="text" value={announcementTitle} onChange={e => setAnnouncementTitle(e.target.value)} placeholder="Title" className="input" />
+            <input type="text" value={announcementExcerpt} onChange={e => setAnnouncementExcerpt(e.target.value)} placeholder="Excerpt (short summary shown in the list)" className="input" />
+            <textarea value={announcementContent} onChange={e => setAnnouncementContent(e.target.value)} placeholder="Full announcement text" rows={6} className="input" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input type="date" value={announcementDate} onChange={e => setAnnouncementDate(e.target.value)} className="input" />
+              <select value={announcementCategory} onChange={e => setAnnouncementCategory(e.target.value)} className="input">
+                {ANNOUNCEMENT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <label className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-primary)' }}>
+              <input type="checkbox" checked={announcementImportant} onChange={e => setAnnouncementImportant(e.target.checked)} />
+              Mark as important (highlighted badge)
+            </label>
+            {announcementError && <p className="text-sm" style={{ color: '#DD0000' }}>{announcementError}</p>}
+            {announcementSuccess && <p className="text-sm flex items-center gap-1.5" style={{ color: '#16a34a' }}><CheckCircle size={14} /> {announcementSuccess}</p>}
+            <button
+              onClick={submitAnnouncement}
+              disabled={submittingAnnouncement || !announcementTitle.trim() || !announcementContent.trim()}
+              className="btn-primary inline-flex items-center gap-2 disabled:opacity-50"
+            >
+              <PlusCircle size={14} /> {submittingAnnouncement ? 'Publishing...' : 'Publish Announcement'}
+            </button>
+          </div>
+        </div>
+        </>)}
       </div>
     </section>
   )

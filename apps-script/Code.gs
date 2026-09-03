@@ -20,6 +20,8 @@ var EXAM_SUBMISSIONS_HEADERS = [
 ];
 var EXAM_PERMISSIONS_SHEET = 'Exam Permissions';
 var REVIEWS_SHEET = 'Reviews';
+var ANNOUNCEMENTS_SHEET = 'Announcements';
+var ANNOUNCEMENTS_HEADERS = ['Title', 'Excerpt', 'Content', 'Date', 'Category', 'Important'];
 var CERTIFICATES_SHEET = 'Certificates';
 var CONTACT_MESSAGES_SHEET = 'Contact Messages';
 var CONTACT_MESSAGES_HEADERS = ['Timestamp', 'Name', 'Email', 'Subject', 'Message'];
@@ -88,6 +90,10 @@ function doPost(e) {
       response = getPublishedReviews_();
     } else if (body.action === 'adminAddReview') {
       response = adminAddReview_(body);
+    } else if (body.action === 'getPublishedAnnouncements') {
+      response = getPublishedAnnouncements_();
+    } else if (body.action === 'adminAddAnnouncement') {
+      response = adminAddAnnouncement_(body);
     } else if (body.action === 'verifyCertificate') {
       response = verifyCertificate_(body.certificateId);
     } else if (body.action === 'submitContact') {
@@ -1308,6 +1314,74 @@ function adminAddReview_(body) {
   if (outcomeCol !== -1) row[outcomeCol] = body.outcome || '';
   if (featuredCol !== -1) row[featuredCol] = !!body.featured;
   row[syncedCol] = true;
+
+  sheet.appendRow(row);
+  return { success: true };
+}
+
+// ===== Announcements (admin panel "Add Announcement" form) =====
+// Same pattern as Reviews: every row in this tab is published live
+// immediately (no separate approval queue, unlike Reviews' "Synced" flag —
+// only admin ever writes here, there's no public self-submission path to
+// gate). Historical announcements before this feature existed stay in
+// data/announcements.json as a static fallback; getAnnouncements() on the
+// Next.js side merges both, so nothing needs a one-time migration.
+function getPublishedAnnouncements_() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ANNOUNCEMENTS_SHEET);
+  if (!sheet) return { success: true, announcements: [] };
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return { success: true, announcements: [] };
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var col = function (n) { return headers.indexOf(n); };
+  var titleCol = col('title'), excerptCol = col('excerpt'), contentCol = col('content'),
+    dateCol = col('date'), categoryCol = col('category'), importantCol = col('important');
+
+  var announcements = [];
+  for (var i = 1; i < values.length; i++) {
+    var row = values[i];
+    if (!row[titleCol]) continue; // skip blank rows
+    announcements.push({
+      id: 'sheet-' + (i + 1),
+      title: row[titleCol],
+      excerpt: excerptCol !== -1 ? row[excerptCol] : '',
+      content: contentCol !== -1 ? row[contentCol] : '',
+      date: dateCol !== -1 ? normalizeDate_(row[dateCol]) : '',
+      category: categoryCol !== -1 ? row[categoryCol] : 'Course Registration',
+      important: importantCol !== -1 && isTruthy_(row[importantCol])
+    });
+  }
+  return { success: true, announcements: announcements };
+}
+
+// Admin: appends a new announcement, published live immediately — the
+// /admin "Add Announcement" form, replacing the old workflow of asking
+// Claude to edit data/announcements.json and push a deploy for every
+// announcement.
+function adminAddAnnouncement_(body) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(ANNOUNCEMENTS_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(ANNOUNCEMENTS_SHEET);
+    sheet.appendRow(ANNOUNCEMENTS_HEADERS);
+  }
+  if (!body.title || !body.content) throw new Error('Title and content are required.');
+
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+    .map(function (h) { return String(h).trim().toLowerCase(); });
+  var col = function (n) { return headers.indexOf(n); };
+  var titleCol = col('title'), excerptCol = col('excerpt'), contentCol = col('content'),
+    dateCol = col('date'), categoryCol = col('category'), importantCol = col('important');
+  if (titleCol === -1 || contentCol === -1) {
+    throw new Error('Announcements sheet must have "Title" and "Content" columns');
+  }
+
+  var row = new Array(headers.length).fill('');
+  row[titleCol] = body.title;
+  if (excerptCol !== -1) row[excerptCol] = body.excerpt || '';
+  row[contentCol] = body.content;
+  if (dateCol !== -1) row[dateCol] = body.date || normalizeDate_(new Date());
+  if (categoryCol !== -1) row[categoryCol] = body.category || 'Course Registration';
+  if (importantCol !== -1) row[importantCol] = !!body.important;
 
   sheet.appendRow(row);
   return { success: true };

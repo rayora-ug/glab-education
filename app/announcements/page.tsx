@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import AnnouncementsPage from './announcements-client'
+import { getAnnouncements } from '@/lib/announcements'
 
 export const metadata: Metadata = {
   title: 'Announcements',
@@ -10,6 +11,7 @@ export const metadata: Metadata = {
   },
 }
 
-export default function Page() {
-  return <AnnouncementsPage />
+export default async function Page() {
+  const announcements = await getAnnouncements()
+  return <AnnouncementsPage announcements={announcements} />
 }

@@ -2,18 +2,18 @@
 
 import { useState } from 'react'
 import { Search, Clock, ArrowRight } from 'lucide-react'
-import announcementsData from '../../data/announcements.json'
+import type { Announcement } from '@/lib/announcements'
 
 const CATEGORIES = ['All', 'Course Registration', 'Events', 'Workshops', 'Exam Preparation', 'General Updates']
 const PER_PAGE = 4
 
-export default function AnnouncementsPage() {
+export default function AnnouncementsPage({ announcements: announcementsData }: { announcements: Announcement[] }) {
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('All')
   const [page, setPage] = useState(1)
-  const [expanded, setExpanded] = useState<number | null>(null)
+  const [expanded, setExpanded] = useState<number | string | null>(null)
 
-  const filtered = (announcementsData as any[]).filter(a => {
+  const filtered = announcementsData.filter(a => {
     const matchCat = category === 'All' || a.category === category
     const matchSearch = !search || a.title.toLowerCase().includes(search.toLowerCase()) || a.excerpt.toLowerCase().includes(search.toLowerCase())
     return matchCat && matchSearch

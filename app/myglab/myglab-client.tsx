@@ -11,7 +11,7 @@ import coursesData from '../../data/courses.json'
 import {
   COURSE_RULES, REVIEW_LEVELS, formatDate, useRegistrationOpen,
   fileToBase64, validateProofFile, PaymentInfoCard, PaymentAndRulesFields,
-  CourseInfoCard, REGISTRATION_DEADLINE,
+  CourseInfoCard, REGISTRATION_DEADLINE, STATUS_INFO,
 } from '../portal/shared'
 
 type BatchInfo = {
@@ -32,11 +32,13 @@ type DashboardData = {
   eligibleCourses: string[]
   confirmed: boolean
   registration: { course: string; batchId: string; status: string } | null
+  confirmedRegistration: { course: string; batchId: string; timestamp: string | null } | null
   batchInfo?: BatchInfo
   attendance?: Attendance | null
   feedback?: string | null
   history?: HistoryEntry[]
   pendingInterestLevels?: string[]
+  savedEmail?: string | null
 }
 
 function ClassLinks({ batchInfo }: { batchInfo: BatchInfo }) {
@@ -83,9 +85,9 @@ type CourseEntry = (typeof coursesData)[number]
 // registration form), submitted and awaiting payment verification, or
 // (after a page reload once admin confirms) the main dashboard render
 // below takes over entirely — this component's job ends at "Submitted".
-function EligibleRegistrationForm({ glabId, level, courses }: { glabId: string; level: string; courses: CourseEntry[] }) {
+function EligibleRegistrationForm({ glabId, level, courses, initialEmail }: { glabId: string; level: string; courses: CourseEntry[]; initialEmail?: string }) {
   const [batchId, setBatchId] = useState('')
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(initialEmail || '')
   const [paymentMethod, setPaymentMethod] = useState('')
   const [paymentReference, setPaymentReference] = useState('')
   const [feedback, setFeedback] = useState('')
@@ -399,6 +401,18 @@ export default function MyGlabPage() {
     ? coursesData.filter(c => c.level === nextLevel && c.registrationOpen)
     : []
 
+  // A GLAB ID that's never had any registration at all (first-time A2/B1
+  // registrant, or an A1 graduate whose Students row was set up without
+  // ever registering through the site) has no "current course" to compute
+  // a next level from — so instead of NextStepSection's advance/repeat
+  // logic, show whatever they're directly eligible for right now. This is
+  // what used to require a separate trip to /portal; folding it in here
+  // means MyGLAB alone covers every registration case, not just returning
+  // students.
+  const firstTimeCourses = data && !data.confirmed && !data.registration && registrationOpen
+    ? coursesData.filter(c => c.registrationOpen && data.eligibleCourses.includes(c.title))
+    : []
+
   return (
     <>
       <section className="section pt-8" style={{ background: 'var(--bg-secondary)' }}>
@@ -454,11 +468,11 @@ export default function MyGlabPage() {
                 <div className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Welcome back</div>
                 <h2 className="font-display font-bold text-2xl mb-1" style={{ color: 'var(--text-primary)' }}>{data.name}</h2>
                 <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>{data.glabId}</p>
-                {data.confirmed && data.registration ? (
+                {data.confirmedRegistration && (
                   <>
                     <p className="text-sm mb-1">
                       <span style={{ color: 'var(--text-muted)' }}>Enrolled in: </span>
-                      <strong style={{ color: 'var(--text-primary)' }}>{data.registration.course}</strong>
+                      <strong style={{ color: 'var(--text-primary)' }}>{data.confirmedRegistration.course}</strong>
                     </p>
                     {data.batchInfo?.startDate && (
                       <p className="text-sm flex items-center gap-1.5 mt-1" style={{ color: 'var(--text-muted)' }}>
@@ -469,11 +483,21 @@ export default function MyGlabPage() {
                       </p>
                     )}
                   </>
-                ) : (
-                  <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                    You don't have an active course with GLAB right now. <Link href="/portal" className="underline" style={{ color: 'var(--text-primary)' }}>Check Registration Status</Link>
-                  </p>
                 )}
+                {data.registration && data.registration.status !== 'Confirmed' ? (
+                  <p className={`text-sm flex items-start gap-1.5 ${data.confirmedRegistration ? 'mt-3' : ''}`} style={{ color: '#B8920A' }}>
+                    <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
+                    {STATUS_INFO[data.registration.status] || `Your registration for ${data.registration.course} is ${data.registration.status.toLowerCase()}.`}
+                  </p>
+                ) : !data.confirmedRegistration && firstTimeCourses.length > 0 ? (
+                  <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                    You're eligible to register — see below.
+                  </p>
+                ) : !data.confirmedRegistration ? (
+                  <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                    You don't have an active course with GLAB right now. If you think this is a mistake, please contact GLAB.
+                  </p>
+                ) : null}
               </div>
 
               {data.history && data.history.length > 0 && (
@@ -513,7 +537,19 @@ export default function MyGlabPage() {
                 />
               )}
 
-              {data.confirmed && data.registration && (
+              {!data.confirmed && !data.registration && firstTimeCourses.length > 0 && (
+                <div className="card p-6" style={{ background: 'rgba(221,0,0,0.03)', border: '1px solid rgba(221,0,0,0.2)' }}>
+                  <div className="font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Register Now</div>
+                  <EligibleRegistrationForm
+                    glabId={data.glabId}
+                    level={Array.from(new Set(firstTimeCourses.map(c => c.level))).join('/')}
+                    courses={firstTimeCourses}
+                    initialEmail={data.savedEmail || ''}
+                  />
+                </div>
+              )}
+
+              {data.confirmedRegistration && (
                 <>
                   <div className="card p-6">
                     <div className="font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Your Class Links</div>

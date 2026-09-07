@@ -1690,6 +1690,16 @@ function getDashboard_(glabId) {
 
   var registration = findLatestRegistration_(student.glabId);
   var confirmed = !!registration && registration.status === CONFIRMED_STATUS;
+  var history = findRegistrationHistory_(student.glabId); // Confirmed-only, oldest first.
+  // The most recently CONFIRMED registration — deliberately independent of
+  // `registration`/`confirmed` above, which only reflect the single latest
+  // row regardless of status. Without this, a student mid-registration for
+  // their next level (a newer row still "Submitted", not yet confirmed)
+  // would lose all visibility into their most recently completed course's
+  // attendance/class links while that new submission is awaiting payment
+  // verification — attendance/class links should track "what did they last
+  // actually complete," not "what's the newest row in the sheet."
+  var confirmedRegistration = history.length > 0 ? history[history.length - 1] : null;
 
   var response = {
     success: true,
@@ -1699,14 +1709,16 @@ function getDashboard_(glabId) {
     eligibleCourses: student.eligibleCourses,
     confirmed: confirmed,
     registration: registration,
-    history: findRegistrationHistory_(student.glabId),
-    pendingInterestLevels: findPendingInterestLevels_(student.glabId)
+    confirmedRegistration: confirmedRegistration,
+    history: history,
+    pendingInterestLevels: findPendingInterestLevels_(student.glabId),
+    savedEmail: findLatestInterestEmail_(student.glabId)
   };
 
-  if (confirmed) {
-    var batchInfo = findBatchInfo_(registration.batchId);
+  if (confirmedRegistration) {
+    var batchInfo = findBatchInfo_(confirmedRegistration.batchId);
     response.batchInfo = batchInfo;
-    response.attendance = findAttendance_(student.glabId, registration.batchId);
+    response.attendance = findAttendance_(student.glabId, confirmedRegistration.batchId);
     response.feedback = findFeedback_(student.glabId);
   }
 

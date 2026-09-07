@@ -156,6 +156,7 @@ export default function AdminPage() {
   const [pendingError, setPendingError] = useState('')
   const [loadingPending, setLoadingPending] = useState(false)
   const [confirmingKey, setConfirmingKey] = useState('')
+  const [pendingBatchFilter, setPendingBatchFilter] = useState('All')
 
   const [allRegistrations, setAllRegistrations] = useState<AllRegistration[] | null>(null)
   const [allRegistrationsError, setAllRegistrationsError] = useState('')
@@ -891,9 +892,47 @@ export default function AdminPage() {
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading...</p>
           ) : pending.length === 0 ? (
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Nothing pending — all caught up.</p>
-          ) : (
+          ) : (() => {
+            const batchLabelOf = (reg: PendingRegistration) => {
+              const label = batchLabelFromId(reg.batchId)
+              return label === 'Other' ? (reg.batchId || 'Other') : label
+            }
+            const counts: Record<string, number> = {}
+            pending.forEach(r => { const l = batchLabelOf(r); counts[l] = (counts[l] || 0) + 1 })
+            const labels = Object.keys(counts).sort()
+            const filtered = pendingBatchFilter === 'All' ? pending : pending.filter(r => batchLabelOf(r) === pendingBatchFilter)
+            return (
+              <>
+                <div className="flex gap-1.5 flex-wrap mb-4">
+                  <button
+                    onClick={() => setPendingBatchFilter('All')}
+                    className="text-xs px-2.5 py-1 rounded-full font-medium"
+                    style={{
+                      background: pendingBatchFilter === 'All' ? '#DD0000' : 'var(--bg-secondary)',
+                      color: pendingBatchFilter === 'All' ? '#fff' : 'var(--text-muted)',
+                    }}
+                  >
+                    All ({pending.length})
+                  </button>
+                  {labels.map(label => (
+                    <button
+                      key={label}
+                      onClick={() => setPendingBatchFilter(label)}
+                      className="text-xs px-2.5 py-1 rounded-full font-medium"
+                      style={{
+                        background: pendingBatchFilter === label ? '#DD0000' : 'var(--bg-secondary)',
+                        color: pendingBatchFilter === label ? '#fff' : 'var(--text-muted)',
+                      }}
+                    >
+                      {label} ({counts[label]})
+                    </button>
+                  ))}
+                </div>
+                {filtered.length === 0 ? (
+                  <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Nothing pending for this filter.</p>
+                ) : (
             <div className="space-y-3">
-              {pending.map(reg => {
+              {filtered.map(reg => {
                 const key = reg.glabId + reg.timestamp
                 return (
                   <div key={key} className="p-4 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
@@ -922,7 +961,10 @@ export default function AdminPage() {
                 )
               })}
             </div>
-          )}
+                )}
+              </>
+            )
+          })()}
         </div>
         </>)}
 

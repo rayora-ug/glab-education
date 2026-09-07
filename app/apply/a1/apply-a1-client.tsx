@@ -2,8 +2,15 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Send, CheckCircle, ClipboardCheck, AlertTriangle } from 'lucide-react'
+import { Send, CheckCircle, ClipboardCheck, AlertTriangle, CalendarClock } from 'lucide-react'
 import coursesData from '../../../data/courses.json'
+import { formatDate } from '../../portal/shared'
+
+// Students kept asking about course details/dates after already applying —
+// they'd either missed the announcement or forgotten it by the time they
+// filled the form. This mirrors the announcement's info directly on the
+// form itself so it can't be missed.
+const APPLICATION_DEADLINE = '2026-09-10'
 
 const a1Course = (coursesData as any[]).find(c => c.level === 'A1')
 const batchOptions = [
@@ -88,9 +95,29 @@ export default function ApplyA1Page() {
         <h1 className="font-display font-black text-5xl md:text-6xl mb-4" style={{ color: 'var(--text-primary)' }}>
           Apply for A1 Intensive
         </h1>
-        <p className="text-xl mb-10" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-xl mb-6" style={{ color: 'var(--text-muted)' }}>
           Fill in your details below. We'll review your application and email you once results are announced.
         </p>
+
+        <div className="card p-5 mb-10 flex flex-col sm:flex-row sm:items-center gap-4 sm:justify-between">
+          <div>
+            <div className="font-display font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
+              {a1Course?.title} — {a1Course?.duration}, {a1Course?.fee}
+            </div>
+            <div className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+              {(a1Course?.batches || []).map((b: any) => `${b.label} — Starts ${formatDate(b.startDate)}`).join('  ·  ')}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 sm:flex-col sm:items-end shrink-0 rounded-lg px-4 py-2 sm:py-3"
+            style={{ background: 'rgba(221,0,0,0.08)', border: '1px solid rgba(221,0,0,0.25)' }}>
+            <div className="text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5" style={{ color: '#DD0000' }}>
+              <CalendarClock size={13} /> Application Deadline
+            </div>
+            <div className="font-display font-black text-2xl leading-none" style={{ color: '#DD0000' }}>
+              {formatDate(APPLICATION_DEADLINE)}
+            </div>
+          </div>
+        </div>
 
         {submitted ? (
           <div className="card p-8 md:p-10 text-center">

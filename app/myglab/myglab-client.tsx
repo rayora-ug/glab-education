@@ -10,7 +10,7 @@ import {
 import coursesData from '../../data/courses.json'
 import {
   COURSE_RULES, REVIEW_LEVELS, formatDate, useRegistrationOpen,
-  fileToBase64, validateProofFile, PaymentInfoCard, PaymentAndRulesFields, ForgotGlabId,
+  fileToBase64, validateProofFile, PaymentInfoCard, PaymentAndRulesFields,
   CourseInfoCard, REGISTRATION_DEADLINE,
 } from '../portal/shared'
 
@@ -445,8 +445,6 @@ export default function MyGlabPage() {
                   <p className="text-base font-semibold" style={{ color: '#DD0000' }}>{error}</p>
                 </div>
               )}
-
-              <ForgotGlabId />
             </div>
           )}
 

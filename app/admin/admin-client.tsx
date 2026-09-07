@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import {
   Lock, ShieldX, Search, Ban, CheckCircle, Power,
   ExternalLink, RefreshCw, LogOut, Loader2, Star, PlusCircle,
-  UserPlus, XCircle, Settings, Megaphone,
+  UserPlus, XCircle, Settings, Megaphone, Flag, Trash2,
 } from 'lucide-react'
 import { REVIEW_LEVELS } from '../portal/shared'
 import coursesData from '../../data/courses.json'
@@ -57,6 +57,7 @@ type InterestRequest = {
 }
 
 type Application = {
+  row: number
   name: string
   email: string
   phone: string
@@ -73,10 +74,27 @@ type Application = {
   howHeard: string
   primaryGoal: string
   comment: string
+  note: string
+  flagged: boolean
   status: 'pending' | 'selected' | 'not_selected'
   glabId: string
   confirmedBatch: string
   timestamp: string | null
+}
+
+type CleanupRowSummary = {
+  row: number
+  name: string
+  email: string
+  phone: string
+  status: string
+  timestamp: string | null
+}
+
+type DuplicateGroup = {
+  key: string
+  keepRow: number
+  rows: CleanupRowSummary[]
 }
 
 type PendingReview = {
@@ -144,6 +162,17 @@ export default function AdminPage() {
   const [applicationBatch, setApplicationBatch] = useState<Record<string, string>>({})
   const [applicationActionKey, setApplicationActionKey] = useState('')
   const [showDecidedApplications, setShowDecidedApplications] = useState(false)
+  const [applicationBatchFilter, setApplicationBatchFilter] = useState('All')
+  const [noteDrafts, setNoteDrafts] = useState<Record<number, string>>({})
+  const [flaggedDrafts, setFlaggedDrafts] = useState<Record<number, boolean>>({})
+  const [savingNoteRow, setSavingNoteRow] = useState<number | null>(null)
+
+  const [cleanup, setCleanup] = useState<{ corruptRows: CleanupRowSummary[]; duplicateGroups: DuplicateGroup[] } | null>(null)
+  const [loadingCleanup, setLoadingCleanup] = useState(false)
+  const [cleanupError, setCleanupError] = useState('')
+  const [cleanupSelection, setCleanupSelection] = useState<Record<number, boolean>>({})
+  const [applyingCleanup, setApplyingCleanup] = useState(false)
+  const [cleanupSuccess, setCleanupSuccess] = useState('')
 
   const [idPrefix, setIdPrefix] = useState('')
   const [idPrefixInput, setIdPrefixInput] = useState('')
@@ -428,6 +457,72 @@ export default function AdminPage() {
       }
     } finally {
       setApplicationActionKey('')
+    }
+  }
+
+  const saveApplicationNote = async (app: Application) => {
+    const note = noteDrafts[app.row] ?? app.note
+    const flagged = flaggedDrafts[app.row] ?? app.flagged
+    setSavingNoteRow(app.row)
+    try {
+      const res = await fetch('/api/admin/applications/note', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ row: app.row, note, flagged }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setApplications(prev => (prev || []).map(a => a.row === app.row ? { ...a, note, flagged } : a))
+      }
+    } finally {
+      setSavingNoteRow(null)
+    }
+  }
+
+  const loadCleanupPreview = async () => {
+    setLoadingCleanup(true)
+    setCleanupError('')
+    setCleanupSuccess('')
+    try {
+      const res = await fetch('/api/admin/applications/cleanup/preview', { method: 'POST' })
+      const data = await res.json()
+      if (!data.success) throw new Error(data.error || 'Failed to scan for duplicates.')
+      setCleanup({ corruptRows: data.corruptRows, duplicateGroups: data.duplicateGroups })
+      // Pre-check corrupt rows and every non-keeper in each duplicate group.
+      const preselect: Record<number, boolean> = {}
+      data.corruptRows.forEach((r: CleanupRowSummary) => { preselect[r.row] = true })
+      data.duplicateGroups.forEach((g: DuplicateGroup) => {
+        g.rows.forEach(r => { if (r.row !== g.keepRow) preselect[r.row] = true })
+      })
+      setCleanupSelection(preselect)
+    } catch (err: any) {
+      setCleanupError(err.message || 'Failed to scan for duplicates.')
+    } finally {
+      setLoadingCleanup(false)
+    }
+  }
+
+  const applyCleanup = async () => {
+    const rows = Object.keys(cleanupSelection).filter(r => cleanupSelection[Number(r)]).map(Number)
+    if (rows.length === 0) return
+    setApplyingCleanup(true)
+    setCleanupError('')
+    try {
+      const res = await fetch('/api/admin/applications/cleanup/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rows }),
+      })
+      const data = await res.json()
+      if (!data.success) throw new Error(data.error || 'Failed to delete rows.')
+      setCleanupSuccess(`Deleted ${data.deleted} row${data.deleted === 1 ? '' : 's'}.`)
+      setCleanup(null)
+      setCleanupSelection({})
+      loadApplications()
+    } catch (err: any) {
+      setCleanupError(err.message || 'Failed to delete rows.')
+    } finally {
+      setApplyingCleanup(false)
     }
   }
 
@@ -764,22 +859,65 @@ export default function AdminPage() {
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading...</p>
           ) : (
             <>
-              {applications.filter(a => a.status === 'pending').length === 0 ? (
+              {(() => {
+                const pendingApps = applications.filter(a => a.status === 'pending')
+                const batchCounts: Record<string, number> = {}
+                pendingApps.forEach(a => {
+                  const b = a.batchChoice || 'Unspecified'
+                  batchCounts[b] = (batchCounts[b] || 0) + 1
+                })
+                const batchNames = Object.keys(batchCounts).sort()
+                return batchNames.length > 0 ? (
+                  <div className="flex items-center gap-1.5 mb-3 flex-wrap">
+                    <button
+                      onClick={() => setApplicationBatchFilter('All')}
+                      className="text-xs px-2.5 py-1 rounded-full font-medium"
+                      style={{
+                        background: applicationBatchFilter === 'All' ? '#DD0000' : 'var(--bg-secondary)',
+                        color: applicationBatchFilter === 'All' ? '#fff' : 'var(--text-muted)',
+                      }}
+                    >
+                      All ({pendingApps.length})
+                    </button>
+                    {batchNames.map(b => (
+                      <button
+                        key={b}
+                        onClick={() => setApplicationBatchFilter(b)}
+                        className="text-xs px-2.5 py-1 rounded-full font-medium"
+                        style={{
+                          background: applicationBatchFilter === b ? '#DD0000' : 'var(--bg-secondary)',
+                          color: applicationBatchFilter === b ? '#fff' : 'var(--text-muted)',
+                        }}
+                      >
+                        {b} ({batchCounts[b]})
+                      </button>
+                    ))}
+                  </div>
+                ) : null
+              })()}
+
+              {applications.filter(a => a.status === 'pending' && (applicationBatchFilter === 'All' || (a.batchChoice || 'Unspecified') === applicationBatchFilter)).length === 0 ? (
                 <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Nothing pending — all caught up.</p>
               ) : (
                 <div className="space-y-3">
-                  {applications.filter(a => a.status === 'pending').map(app => {
+                  {applications.filter(a => a.status === 'pending' && (applicationBatchFilter === 'All' || (a.batchChoice || 'Unspecified') === applicationBatchFilter)).map(app => {
                     const key = applicationKey(app)
                     return (
-                      <div key={key} className="p-4 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
+                      <div key={key} className="p-4 rounded-lg" style={{ background: 'var(--bg-secondary)', borderLeft: app.flagged ? '3px solid #DD0000' : undefined }}>
                         <div className="mb-2">
-                          <div className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{app.name}</div>
+                          <div className="font-semibold text-sm flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
+                            {app.name}
+                            {app.flagged && <Flag size={12} style={{ color: '#DD0000' }} fill="#DD0000" />}
+                          </div>
                           <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
                             {app.email} · {app.phone}{app.dob ? ` · DOB ${app.dob}` : ''}
                           </div>
                           <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
                             Wants: {app.batchChoice || '—'}{app.occupation ? ` · ${app.occupation}` : ''}{app.city ? `, ${app.city}` : ''}
                           </div>
+                          {app.note && (
+                            <div className="text-xs mt-1 italic" style={{ color: '#DD0000' }}>Note: {app.note}</div>
+                          )}
                         </div>
                         <details className="mb-2">
                           <summary className="text-xs underline cursor-pointer" style={{ color: 'var(--text-muted)' }}>Full application</summary>
@@ -792,6 +930,33 @@ export default function AdminPage() {
                             <p><strong>Primary goal:</strong> {app.primaryGoal || '—'} · <strong>Heard via:</strong> {app.howHeard || '—'}</p>
                             {app.facebookLink && <p><strong>Facebook:</strong> {app.facebookLink}</p>}
                             {app.comment && <p><strong>Comment:</strong> {app.comment}</p>}
+                          </div>
+                        </details>
+                        <details className="mb-2">
+                          <summary className="text-xs underline cursor-pointer" style={{ color: 'var(--text-muted)' }}>Admin note</summary>
+                          <div className="mt-2 space-y-2">
+                            <textarea
+                              value={noteDrafts[app.row] ?? app.note}
+                              onChange={e => setNoteDrafts(prev => ({ ...prev, [app.row]: e.target.value }))}
+                              placeholder="e.g. Recommended by GLAB26H130, or a concern to remember before deciding"
+                              rows={2}
+                              className="input text-sm"
+                            />
+                            <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-primary)' }}>
+                              <input
+                                type="checkbox"
+                                checked={flaggedDrafts[app.row] ?? app.flagged}
+                                onChange={e => setFlaggedDrafts(prev => ({ ...prev, [app.row]: e.target.checked }))}
+                              />
+                              Flag for attention
+                            </label>
+                            <button
+                              onClick={() => saveApplicationNote(app)}
+                              disabled={savingNoteRow === app.row}
+                              className="btn-secondary text-xs px-3 py-1 disabled:opacity-50"
+                            >
+                              {savingNoteRow === app.row ? 'Saving...' : 'Save Note'}
+                            </button>
                           </div>
                         </details>
                         <div className="flex items-center gap-2 flex-wrap">
@@ -846,6 +1011,83 @@ export default function AdminPage() {
                       </span>
                     </div>
                   ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Duplicate / corrupt application cleanup */}
+        <div className="card p-6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Clean Up Applications</div>
+            <button onClick={loadCleanupPreview} disabled={loadingCleanup} className="text-sm underline inline-flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
+              <RefreshCw size={13} className={loadingCleanup ? 'animate-spin' : ''} /> {loadingCleanup ? 'Scanning...' : 'Scan for Duplicates'}
+            </button>
+          </div>
+          <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+            Finds rows with no name/email at all, and rows sharing the same email or WhatsApp number. Nothing is deleted until you review and confirm below.
+          </p>
+          {cleanupError && <p className="text-sm mb-2" style={{ color: '#DD0000' }}>{cleanupError}</p>}
+          {cleanupSuccess && <p className="text-sm mb-2 flex items-center gap-1.5" style={{ color: '#16a34a' }}><CheckCircle size={14} /> {cleanupSuccess}</p>}
+
+          {cleanup && (
+            <>
+              {cleanup.corruptRows.length === 0 && cleanup.duplicateGroups.length === 0 ? (
+                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Nothing found — the sheet looks clean.</p>
+              ) : (
+                <div className="space-y-4">
+                  {cleanup.corruptRows.length > 0 && (
+                    <div>
+                      <div className="text-xs font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>Empty rows (no name or email)</div>
+                      <div className="space-y-1">
+                        {cleanup.corruptRows.map(r => (
+                          <label key={r.row} className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
+                            <input
+                              type="checkbox"
+                              checked={!!cleanupSelection[r.row]}
+                              onChange={e => setCleanupSelection(prev => ({ ...prev, [r.row]: e.target.checked }))}
+                            />
+                            Row {r.row} — phone: {r.phone || '—'}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {cleanup.duplicateGroups.length > 0 && (
+                    <div>
+                      <div className="text-xs font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>Duplicate applicants</div>
+                      <div className="space-y-2">
+                        {cleanup.duplicateGroups.map(g => (
+                          <div key={g.key} className="px-3 py-2 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
+                            {g.rows.map(r => (
+                              <label key={r.row} className="flex items-center gap-2 text-xs py-0.5">
+                                <input
+                                  type="checkbox"
+                                  checked={!!cleanupSelection[r.row]}
+                                  onChange={e => setCleanupSelection(prev => ({ ...prev, [r.row]: e.target.checked }))}
+                                  disabled={r.row === g.keepRow}
+                                />
+                                <span style={{ color: r.row === g.keepRow ? '#16a34a' : 'var(--text-primary)' }}>
+                                  Row {r.row} — {r.name || '(no name)'} · {r.email || '(no email)'} · {r.phone || '(no phone)'}
+                                  {r.status ? ` · ${r.status}` : ''}
+                                  {r.row === g.keepRow ? ' — keep' : ''}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <button
+                    onClick={applyCleanup}
+                    disabled={applyingCleanup || Object.values(cleanupSelection).every(v => !v)}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+                    style={{ background: 'rgba(221,0,0,0.1)', color: '#DD0000' }}
+                  >
+                    <Trash2 size={14} /> {applyingCleanup ? 'Deleting...' : `Delete Selected (${Object.values(cleanupSelection).filter(Boolean).length})`}
+                  </button>
                 </div>
               )}
             </>

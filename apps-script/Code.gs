@@ -72,6 +72,12 @@ function doPost(e) {
       response = adminSelectApplicant_(body.email, body.phone, body.batchLabel, body.batchId);
     } else if (body.action === 'adminRejectApplicant') {
       response = adminRejectApplicant_(body.email, body.phone);
+    } else if (body.action === 'adminSetApplicationNote') {
+      response = adminSetApplicationNote_(body.row, body.note, body.flagged);
+    } else if (body.action === 'adminPreviewApplicationCleanup') {
+      response = adminPreviewApplicationCleanup_();
+    } else if (body.action === 'adminApplyApplicationCleanup') {
+      response = adminApplyApplicationCleanup_(body.rows);
     } else if (body.action === 'adminGetA1IdSettings') {
       response = adminGetA1IdSettings_();
     } else if (body.action === 'adminSetA1IdSettings') {
@@ -538,6 +544,7 @@ var APPLICATION_HEADERS = [
   'Current Occupation', 'Current City', 'Batch Choice',
   'Previous GLAB Experience', 'Previous Course Details', 'Previous Course Completed',
   'Motivation', 'Why GLAB', 'How Heard', 'Primary Goal', 'Comment',
+  'Admin Note', 'Flagged',
   'Selection Status', 'GLAB ID', 'Confirmed Batch', 'Confirmed Batch ID'
 ];
 
@@ -611,14 +618,20 @@ function submitA1Application_(body) {
     throw new Error('Applications sheet must have "Email" and "WhatsApp Number" columns');
   }
 
-  // Idempotency: a resubmit (double-click, retry after a flaky network
-  // response) shouldn't create a second row for the same applicant.
+  // One person, one application: block a resubmission that matches an
+  // existing row on EITHER email or WhatsApp number (not requiring both),
+  // since the two can legitimately drift independently for the same person
+  // (typo'd or swapped email, new phone number) while still being the same
+  // applicant. Guards against blank cells matching each other by never
+  // comparing against an empty needle/row value.
   var needleEmail = email.toLowerCase();
   var needlePhone = normalizePhone_(whatsappNumber);
   for (var i = 1; i < values.length; i++) {
     var rowEmail = String(values[i][emailCol] || '').trim().toLowerCase();
     var rowPhone = normalizePhone_(values[i][phoneCol]);
-    if (rowEmail === needleEmail && rowPhone === needlePhone) {
+    var emailMatches = rowEmail && needleEmail && rowEmail === needleEmail;
+    var phoneMatches = rowPhone && needlePhone && rowPhone === needlePhone;
+    if (emailMatches || phoneMatches) {
       return { success: true, alreadySubmitted: true };
     }
   }
@@ -664,6 +677,7 @@ function adminListApplications_() {
     prevDetailsCol = col('previous course details'), prevCompletedCol = col('previous course completed'),
     motivationCol = col('motivation'), whyGlabCol = col('why glab'), howHeardCol = col('how heard'),
     primaryGoalCol = col('primary goal'), commentCol = col('comment'),
+    noteCol = col('admin note'), flaggedCol = col('flagged'),
     statusCol = col('selection status'), glabIdCol = col('glab id'),
     batchCol = col('confirmed batch'), timestampCol = col('timestamp');
   if (emailCol === -1 || phoneCol === -1) return { success: true, applications: [] };
@@ -675,6 +689,7 @@ function adminListApplications_() {
     var rawStatus = statusCol !== -1 ? String(row[statusCol] || '').trim().toLowerCase() : '';
     var status = rawStatus === 'selected' ? 'selected' : rawStatus === 'not selected' ? 'not_selected' : 'pending';
     apps.push({
+      row: i + 1,
       name: get(row, nameCol),
       email: row[emailCol],
       phone: row[phoneCol],
@@ -691,6 +706,8 @@ function adminListApplications_() {
       howHeard: get(row, howHeardCol),
       primaryGoal: get(row, primaryGoalCol),
       comment: get(row, commentCol),
+      note: get(row, noteCol),
+      flagged: flaggedCol !== -1 && isTruthy_(row[flaggedCol]),
       status: status,
       glabId: get(row, glabIdCol),
       confirmedBatch: get(row, batchCol),
@@ -737,6 +754,31 @@ function findApplicationRow_(email, phone) {
   };
 }
 
+// Lets admin leave a private note on an application (e.g. "Recommended by
+// GLAB26H130" or "Weak motivation, low priority") and/or flag it for
+// attention, entirely separate from Selection Status — this is for triage
+// before a Select/Reject decision is made, not a decision itself. Addressed
+// by the 1-indexed sheet row (from adminListApplications_'s `row` field)
+// rather than email+phone, since a row worth flagging (e.g. a corrupted or
+// duplicate one) might not have reliable email/phone to match on.
+function adminSetApplicationNote_(row, note, flagged) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(APPLICATIONS_SHEET);
+  if (!sheet) throw new Error('Applications sheet not found');
+  ensureApplicationsHeaders_(sheet);
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+    .map(function (h) { return String(h).trim().toLowerCase(); });
+  var noteCol = headers.indexOf('admin note'), flaggedCol = headers.indexOf('flagged');
+  if (noteCol === -1 || flaggedCol === -1) {
+    throw new Error('Applications sheet must have "Admin Note" and "Flagged" columns');
+  }
+  var rowNum = parseInt(row, 10);
+  if (!rowNum || rowNum < 2 || rowNum > sheet.getLastRow()) throw new Error('Invalid row.');
+
+  sheet.getRange(rowNum, noteCol + 1).setValue(note || '');
+  sheet.getRange(rowNum, flaggedCol + 1).setValue(!!flagged);
+  return { success: true };
+}
+
 // Marks one applicant Selected: assigns the next GLAB ID, adds them to
 // Students (so submitRegistration_'s findStudent_/eligibility check works
 // immediately — the same manual row an admin used to add by hand), updates
@@ -776,6 +818,93 @@ function adminRejectApplicant_(email, phone) {
   found.sheet.getRange(found.rowIndex + 1, found.statusCol + 1).setValue('Not Selected');
   sendA1RejectionEmail_(String(found.values[found.rowIndex][found.emailCol] || '').trim(), applicantName);
   return { success: true };
+}
+
+// Scans the Applications sheet for two kinds of junk rows, without
+// deleting anything — adminApplyApplicationCleanup_ does the actual
+// deletion, only for rows this preview surfaced and the admin confirmed:
+//   1. "Corrupt" rows — no Name and no Email at all (e.g. a row with only
+//      a WhatsApp number and nothing else, which the real application
+//      form could never produce — see submitA1Application_'s required-
+//      field validation). Pure junk, no information lost by removing them.
+//   2. "Duplicate" groups — rows sharing the same normalized phone or
+//      email. Within each group the "best" row is kept (already decided
+//      > most complete data > earliest submission) and the rest are
+//      listed as removal candidates.
+function adminPreviewApplicationCleanup_() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(APPLICATIONS_SHEET);
+  if (!sheet) return { success: true, corruptRows: [], duplicateGroups: [] };
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return { success: true, corruptRows: [], duplicateGroups: [] };
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var col = function (n) { return headers.indexOf(n); };
+  var nameCol = col('name'), emailCol = col('email'), phoneCol = col('whatsapp number'),
+    statusCol = col('selection status'), timestampCol = col('timestamp');
+  if (emailCol === -1 || phoneCol === -1) return { success: true, corruptRows: [], duplicateGroups: [] };
+
+  var corruptRows = [];
+  var candidates = []; // non-corrupt rows, considered for duplicate grouping
+  for (var i = 1; i < values.length; i++) {
+    var row = values[i];
+    var name = nameCol !== -1 ? String(row[nameCol] || '').trim() : '';
+    var email = String(row[emailCol] || '').trim();
+    var phone = String(row[phoneCol] || '').trim();
+    var summary = {
+      row: i + 1, name: name, email: email, phone: phone,
+      status: statusCol !== -1 ? String(row[statusCol] || '').trim() : '',
+      timestamp: timestampCol !== -1 && row[timestampCol] ? new Date(row[timestampCol]).toISOString() : null
+    };
+    if (!name && !email) {
+      corruptRows.push(summary);
+      continue;
+    }
+    var nonEmptyCount = row.filter(function (v) { return String(v || '').trim() !== ''; }).length;
+    candidates.push({ summary: summary, normPhone: normalizePhone_(phone), normEmail: email.toLowerCase(), nonEmptyCount: nonEmptyCount });
+  }
+
+  // Group remaining rows by identity (phone if present, else email).
+  var groups = {};
+  candidates.forEach(function (c) {
+    var key = c.normPhone || c.normEmail;
+    if (!key) return;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(c);
+  });
+
+  var duplicateGroups = [];
+  Object.keys(groups).forEach(function (key) {
+    var members = groups[key];
+    if (members.length < 2) return;
+    members.sort(function (a, b) {
+      var aDecided = a.summary.status ? 1 : 0, bDecided = b.summary.status ? 1 : 0;
+      if (aDecided !== bDecided) return bDecided - aDecided;
+      if (a.nonEmptyCount !== b.nonEmptyCount) return b.nonEmptyCount - a.nonEmptyCount;
+      return a.summary.row - b.summary.row;
+    });
+    duplicateGroups.push({
+      key: key,
+      keepRow: members[0].summary.row,
+      rows: members.map(function (m) { return m.summary; })
+    });
+  });
+
+  return { success: true, corruptRows: corruptRows, duplicateGroups: duplicateGroups };
+}
+
+// Deletes the given 1-indexed sheet rows from Applications — only ever
+// called with rows the admin has explicitly reviewed and confirmed via the
+// preview above. Deletes bottom-to-top so earlier row numbers don't shift
+// out from under later deletions.
+function adminApplyApplicationCleanup_(rows) {
+  if (!rows || !rows.length) return { success: true, deleted: 0 };
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(APPLICATIONS_SHEET);
+  if (!sheet) throw new Error('Applications sheet not found');
+
+  var rowNums = rows.map(function (r) { return parseInt(r, 10); })
+    .filter(function (r) { return r >= 2 && r <= sheet.getLastRow(); });
+  rowNums.sort(function (a, b) { return b - a; });
+  rowNums.forEach(function (r) { sheet.deleteRow(r); });
+  return { success: true, deleted: rowNums.length };
 }
 
 // Adds a bare row to Students with just GLAB ID + Name — the same minimal

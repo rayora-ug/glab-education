@@ -15,6 +15,17 @@ const a1Batches = (coursesData as any[])
     id: b.id, label: `${c.title} — ${b.label}`,
   })))
 
+// The Registrations sheet is permanent and cumulative across every past
+// session (never cleared — see apps-script/README.md), so a plain "A2
+// Morning" count would mix the current batch in with every old one that
+// happens to share the same Morning/Evening slot. Restrict batch counts to
+// only the batch ids currently open in courses.json.
+const currentBatchIds = new Set(
+  (coursesData as any[])
+    .filter(c => c.registrationOpen)
+    .flatMap((c: any) => (c.batches || []).map((b: any) => b.id))
+)
+
 const ANNOUNCEMENT_CATEGORIES = ['Course Registration', 'Events', 'Workshops', 'Exam Preparation', 'General Updates']
 
 const ADMIN_TABS = [
@@ -810,15 +821,16 @@ export default function AdminPage() {
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading...</p>
           ) : (() => {
             const labels = ['A1 Morning', 'A1 Evening', 'A2 Morning', 'A2 Evening', 'B1 Morning', 'B1 Evening']
+            const currentRegistrations = allRegistrations.filter(r => currentBatchIds.has(r.batchId))
             const counts: Record<string, number> = {}
             labels.forEach(l => { counts[l] = 0 })
-            allRegistrations.forEach(r => {
+            currentRegistrations.forEach(r => {
               const label = batchLabelFromId(r.batchId)
               if (label in counts) counts[label]++
             })
             const filtered = registrationBatchFilter === 'All'
-              ? allRegistrations
-              : allRegistrations.filter(r => batchLabelFromId(r.batchId) === registrationBatchFilter)
+              ? currentRegistrations
+              : currentRegistrations.filter(r => batchLabelFromId(r.batchId) === registrationBatchFilter)
             return (
               <>
                 <div className="flex gap-1.5 flex-wrap mb-4">
@@ -830,7 +842,7 @@ export default function AdminPage() {
                       color: registrationBatchFilter === 'All' ? '#fff' : 'var(--text-muted)',
                     }}
                   >
-                    All ({allRegistrations.length})
+                    All ({currentRegistrations.length})
                   </button>
                   {labels.map(label => (
                     <button

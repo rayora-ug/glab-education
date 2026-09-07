@@ -486,14 +486,21 @@ export default function MyGlabPage() {
                 )}
                 {data.registration && data.registration.status !== 'Confirmed' ? (
                   <div className={data.confirmedRegistration ? 'mt-3' : ''}>
-                    <p className="text-sm mb-1">
+                    <p className="text-sm mb-3">
                       <span style={{ color: 'var(--text-muted)' }}>Registration Submitted: </span>
                       <strong style={{ color: 'var(--text-primary)' }}>{data.registration.course}</strong>
                     </p>
-                    <p className="text-sm flex items-start gap-1.5" style={{ color: '#B8920A' }}>
-                      <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
-                      {STATUS_INFO[data.registration.status] || `Your registration is ${data.registration.status.toLowerCase()}.`}
-                    </p>
+                    <div className="flex items-start gap-1.5">
+                      <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" style={{ color: '#B8920A' }} />
+                      <div>
+                        {(STATUS_INFO[data.registration.status] || `Your registration is ${data.registration.status.toLowerCase()}.`)
+                          .split('. ').filter(Boolean).map((sentence, i, arr) => (
+                            <p key={i} className="text-sm" style={{ color: '#B8920A' }}>
+                              {sentence}{sentence.endsWith('.') ? '' : '.'}
+                            </p>
+                          ))}
+                      </div>
+                    </div>
                   </div>
                 ) : !data.confirmedRegistration && firstTimeCourses.length > 0 ? (
                   <p className="text-sm" style={{ color: 'var(--text-muted)' }}>

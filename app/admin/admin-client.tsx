@@ -149,6 +149,7 @@ export default function AdminPage() {
   const [allRegistrations, setAllRegistrations] = useState<AllRegistration[] | null>(null)
   const [allRegistrationsError, setAllRegistrationsError] = useState('')
   const [loadingAllRegistrations, setLoadingAllRegistrations] = useState(false)
+  const [registrationBatchFilter, setRegistrationBatchFilter] = useState('All')
 
   const [reviewName, setReviewName] = useState('')
   const [reviewLocation, setReviewLocation] = useState('')
@@ -808,19 +809,58 @@ export default function AdminPage() {
           ) : allRegistrations === null || loadingAllRegistrations ? (
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading...</p>
           ) : (() => {
-            const counts: Record<string, number> = { 'A2 Morning': 0, 'A2 Evening': 0, 'B1 Morning': 0, 'B1 Evening': 0 }
+            const labels = ['A1 Morning', 'A1 Evening', 'A2 Morning', 'A2 Evening', 'B1 Morning', 'B1 Evening']
+            const counts: Record<string, number> = {}
+            labels.forEach(l => { counts[l] = 0 })
             allRegistrations.forEach(r => {
               const label = batchLabelFromId(r.batchId)
               if (label in counts) counts[label]++
             })
+            const filtered = registrationBatchFilter === 'All'
+              ? allRegistrations
+              : allRegistrations.filter(r => batchLabelFromId(r.batchId) === registrationBatchFilter)
             return (
-              <div className="flex gap-2 flex-wrap">
-                {Object.entries(counts).map(([label, count]) => (
-                  <div key={label} className="px-3 py-1.5 rounded-full text-sm font-medium" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
-                    {label} <span style={{ color: '#DD0000', fontWeight: 700 }}>{count}</span>
+              <>
+                <div className="flex gap-1.5 flex-wrap mb-4">
+                  <button
+                    onClick={() => setRegistrationBatchFilter('All')}
+                    className="text-xs px-2.5 py-1 rounded-full font-medium"
+                    style={{
+                      background: registrationBatchFilter === 'All' ? '#DD0000' : 'var(--bg-secondary)',
+                      color: registrationBatchFilter === 'All' ? '#fff' : 'var(--text-muted)',
+                    }}
+                  >
+                    All ({allRegistrations.length})
+                  </button>
+                  {labels.map(label => (
+                    <button
+                      key={label}
+                      onClick={() => setRegistrationBatchFilter(label)}
+                      className="text-xs px-2.5 py-1 rounded-full font-medium"
+                      style={{
+                        background: registrationBatchFilter === label ? '#DD0000' : 'var(--bg-secondary)',
+                        color: registrationBatchFilter === label ? '#fff' : 'var(--text-muted)',
+                      }}
+                    >
+                      {label} ({counts[label]})
+                    </button>
+                  ))}
+                </div>
+                {filtered.length === 0 ? (
+                  <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No registrations for this filter.</p>
+                ) : (
+                  <div className="max-h-80 overflow-y-auto space-y-1.5">
+                    {filtered.map((r, i) => (
+                      <div key={r.glabId + i} className="flex items-center justify-between gap-4 flex-wrap px-3 py-2 rounded-lg text-sm" style={{ background: 'var(--bg-secondary)' }}>
+                        <span style={{ color: 'var(--text-primary)' }}>{r.name} · {r.glabId}</span>
+                        <span className="text-xs" style={{ color: r.status === 'Confirmed' ? '#16a34a' : 'var(--text-muted)' }}>
+                          {r.course} — {r.status}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                )}
+              </>
             )
           })()}
         </div>

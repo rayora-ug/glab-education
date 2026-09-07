@@ -485,10 +485,16 @@ export default function MyGlabPage() {
                   </>
                 )}
                 {data.registration && data.registration.status !== 'Confirmed' ? (
-                  <p className={`text-sm flex items-start gap-1.5 ${data.confirmedRegistration ? 'mt-3' : ''}`} style={{ color: '#B8920A' }}>
-                    <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
-                    {STATUS_INFO[data.registration.status] || `Your registration for ${data.registration.course} is ${data.registration.status.toLowerCase()}.`}
-                  </p>
+                  <div className={data.confirmedRegistration ? 'mt-3' : ''}>
+                    <p className="text-sm mb-1">
+                      <span style={{ color: 'var(--text-muted)' }}>Registration Submitted: </span>
+                      <strong style={{ color: 'var(--text-primary)' }}>{data.registration.course}</strong>
+                    </p>
+                    <p className="text-sm flex items-start gap-1.5" style={{ color: '#B8920A' }}>
+                      <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
+                      {STATUS_INFO[data.registration.status] || `Your registration is ${data.registration.status.toLowerCase()}.`}
+                    </p>
+                  </div>
                 ) : !data.confirmedRegistration && firstTimeCourses.length > 0 ? (
                   <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
                     You're eligible to register — see below.

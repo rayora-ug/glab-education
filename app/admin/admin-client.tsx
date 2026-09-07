@@ -46,6 +46,23 @@ type PendingRegistration = {
   feedback: string
 }
 
+type AllRegistration = {
+  glabId: string
+  name: string
+  course: string
+  batchId: string
+  status: string
+}
+
+// batchId follows "{level}-{num}-{M|E}" (e.g. "a2-38-M") — derive a
+// human label from it rather than the free-text course string, which
+// varies in wording.
+function batchLabelFromId(batchId: string): string {
+  const m = batchId.match(/^(a1|a2|b1)-\d+-(m|e)$/i)
+  if (!m) return 'Other'
+  return `${m[1].toUpperCase()} ${m[2].toLowerCase() === 'm' ? 'Morning' : 'Evening'}`
+}
+
 type InterestRequest = {
   timestamp: string
   glabId: string
@@ -129,6 +146,10 @@ export default function AdminPage() {
   const [loadingPending, setLoadingPending] = useState(false)
   const [confirmingKey, setConfirmingKey] = useState('')
 
+  const [allRegistrations, setAllRegistrations] = useState<AllRegistration[] | null>(null)
+  const [allRegistrationsError, setAllRegistrationsError] = useState('')
+  const [loadingAllRegistrations, setLoadingAllRegistrations] = useState(false)
+
   const [reviewName, setReviewName] = useState('')
   const [reviewLocation, setReviewLocation] = useState('')
   const [reviewRating, setReviewRating] = useState(5)
@@ -198,6 +219,7 @@ export default function AdminPage() {
       if (d.success) setRegistrationOpen(d.open)
     })
     loadPending()
+    loadAllRegistrations()
     loadInterest()
     loadPendingReviews()
     loadApplications()
@@ -230,6 +252,7 @@ export default function AdminPage() {
     setAuthenticated(false)
     setStudentResult(null)
     setPending(null)
+    setAllRegistrations(null)
     setInterest(null)
     setPendingReviews(null)
     setApplications(null)
@@ -306,6 +329,21 @@ export default function AdminPage() {
       setPendingError('Failed to load pending registrations.')
     } finally {
       setLoadingPending(false)
+    }
+  }
+
+  const loadAllRegistrations = async () => {
+    setLoadingAllRegistrations(true)
+    setAllRegistrationsError('')
+    try {
+      const res = await fetch('/api/admin/registrations/all', { method: 'POST' })
+      const data = await res.json()
+      if (data.success) setAllRegistrations(data.registrations)
+      else setAllRegistrationsError(data.error || 'Failed to load registrations.')
+    } catch {
+      setAllRegistrationsError('Failed to load registrations.')
+    } finally {
+      setLoadingAllRegistrations(false)
     }
   }
 
@@ -757,6 +795,36 @@ export default function AdminPage() {
         </>)}
 
         {activeTab === 'registrations' && (<>
+        {/* Registrations by batch */}
+        <div className="card p-6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Registrations by Batch</div>
+            <button onClick={loadAllRegistrations} disabled={loadingAllRegistrations} className="text-sm underline inline-flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
+              <RefreshCw size={13} className={loadingAllRegistrations ? 'animate-spin' : ''} /> Refresh
+            </button>
+          </div>
+          {allRegistrationsError ? (
+            <p className="text-sm" style={{ color: '#DD0000' }}>{allRegistrationsError}</p>
+          ) : allRegistrations === null || loadingAllRegistrations ? (
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading...</p>
+          ) : (() => {
+            const counts: Record<string, number> = { 'A2 Morning': 0, 'A2 Evening': 0, 'B1 Morning': 0, 'B1 Evening': 0 }
+            allRegistrations.forEach(r => {
+              const label = batchLabelFromId(r.batchId)
+              if (label in counts) counts[label]++
+            })
+            return (
+              <div className="flex gap-2 flex-wrap">
+                {Object.entries(counts).map(([label, count]) => (
+                  <div key={label} className="px-3 py-1.5 rounded-full text-sm font-medium" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+                    {label} <span style={{ color: '#DD0000', fontWeight: 700 }}>{count}</span>
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
+        </div>
+
         {/* Pending payment verification */}
         <div className="card p-6">
           <div className="flex items-center justify-between mb-3">

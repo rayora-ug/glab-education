@@ -116,6 +116,8 @@ function doPost(e) {
       response = adminFindStudent_(body.glabId);
     } else if (body.action === 'adminListSubmittedRegistrations') {
       response = adminListSubmittedRegistrations_();
+    } else if (body.action === 'adminListAllRegistrations') {
+      response = adminListAllRegistrations_();
     } else if (body.action === 'adminConfirmRegistration') {
       response = adminConfirmRegistration_(body.glabId, body.timestamp);
     } else if (body.action === 'submitInterest') {
@@ -1809,6 +1811,37 @@ function adminListSubmittedRegistrations_() {
       paymentReference: refCol !== -1 ? values[i][refCol] : '',
       proofFileLink: proofCol !== -1 ? values[i][proofCol] : '',
       feedback: feedbackCol !== -1 ? values[i][feedbackCol] : ''
+    });
+  }
+  return { success: true, registrations: registrations };
+}
+
+// Returns every Registrations row regardless of status (unlike
+// adminListSubmittedRegistrations_, which only returns the still-pending
+// payment-verification queue) — used for the admin panel's per-batch
+// registration counts, so admin can see true batch fill (confirmed +
+// pending) without opening the sheet.
+function adminListAllRegistrations_() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(REGISTRATIONS_SHEET);
+  if (!sheet) return { success: true, registrations: [] };
+
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return { success: true, registrations: [] };
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var col = function (name) { return headers.indexOf(name); };
+  var idCol = col('glab id'), nameCol = col('name'), courseCol = col('course'),
+      batchIdCol = col('batch id'), statusCol = col('status');
+  if (idCol === -1) return { success: true, registrations: [] };
+
+  var registrations = [];
+  for (var i = 1; i < values.length; i++) {
+    if (!values[i][idCol]) continue; // skip blank rows
+    registrations.push({
+      glabId: values[i][idCol],
+      name: nameCol !== -1 ? values[i][nameCol] : '',
+      course: courseCol !== -1 ? values[i][courseCol] : '',
+      batchId: batchIdCol !== -1 ? values[i][batchIdCol] : '',
+      status: statusCol !== -1 ? String(values[i][statusCol] || DEFAULT_STATUS).trim() : DEFAULT_STATUS
     });
   }
   return { success: true, registrations: registrations };

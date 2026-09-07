@@ -1169,7 +1169,7 @@ export default function AdminPage() {
                     <div key={applicationKey(app)} className="flex items-center justify-between gap-4 flex-wrap px-4 py-2 rounded-lg text-sm" style={{ background: 'var(--bg-secondary)' }}>
                       <span style={{ color: 'var(--text-primary)' }}>{app.name} · {app.email}</span>
                       <span style={{ color: app.status === 'selected' ? '#16a34a' : '#DD0000' }}>
-                        {app.status === 'selected' ? `Selected — ${app.glabId}${app.confirmedBatch ? ` — ${app.confirmedBatch}` : ''}` : 'Not Selected'}
+                        {app.status === 'selected' ? `Selected — ${app.glabId || 'not yet registered'}${app.confirmedBatch ? ` — ${app.confirmedBatch}` : ''}` : 'Not Selected'}
                       </span>
                     </div>
                   ))}

@@ -62,6 +62,8 @@ function doPost(e) {
       response = lookupStudent_(body.glabId);
     } else if (body.action === 'submit') {
       response = submitRegistration_(body);
+    } else if (body.action === 'submitA1Registration') {
+      response = submitA1Registration_(body);
     } else if (body.action === 'checkApplication') {
       response = checkApplication_(body.email, body.phone);
     } else if (body.action === 'submitA1Application') {
@@ -781,33 +783,30 @@ function adminSetApplicationNote_(row, note, flagged) {
   return { success: true };
 }
 
-// Marks one applicant Selected: assigns the next GLAB ID, adds them to
-// Students (so submitRegistration_'s findStudent_/eligibility check works
-// immediately — the same manual row an admin used to add by hand), updates
-// the Applications row, and emails the applicant their GLAB ID and a
-// registration link. Idempotent — re-clicking Select on an already-selected
-// applicant just returns their existing GLAB ID instead of double-processing.
+// Marks one applicant Selected and emails them a registration link —
+// deliberately does NOT assign a GLAB ID or create their Students row yet.
+// A GLAB ID is a permanent, sequential resource; minting one for every
+// selected applicant regardless of whether they ever actually register
+// would burn real IDs on people who never show up to pay. The ID is
+// created later, in submitA1Registration_, only at the moment an applicant
+// actually submits payment. Idempotent — re-clicking Select on an
+// already-selected applicant is a no-op.
 function adminSelectApplicant_(email, phone, batchLabel, batchId) {
   var found = findApplicationRow_(email, phone);
   var existingStatus = String(found.values[found.rowIndex][found.statusCol] || '').trim().toLowerCase();
   if (existingStatus === 'selected') {
-    return { success: true, alreadySelected: true, glabId: found.glabIdCol !== -1 ? found.values[found.rowIndex][found.glabIdCol] : null };
+    return { success: true, alreadySelected: true };
   }
 
   var applicantName = found.nameCol !== -1 ? found.values[found.rowIndex][found.nameCol] : '';
-  var glabId = generateNextA1GlabId_();
-
-  appendStudentRow_(glabId, applicantName);
-  adminSetStudentEligible_(glabId, 'A1', true);
 
   var sheetRow = found.rowIndex + 1;
   found.sheet.getRange(sheetRow, found.statusCol + 1).setValue('Selected');
-  if (found.glabIdCol !== -1) found.sheet.getRange(sheetRow, found.glabIdCol + 1).setValue(glabId);
   if (found.batchCol !== -1) found.sheet.getRange(sheetRow, found.batchCol + 1).setValue(batchLabel || '');
   if (found.batchIdCol !== -1) found.sheet.getRange(sheetRow, found.batchIdCol + 1).setValue(batchId || '');
 
-  sendA1SelectionEmail_(String(found.values[found.rowIndex][found.emailCol] || '').trim(), applicantName, glabId);
-  return { success: true, glabId: glabId };
+  sendA1SelectionEmail_(String(found.values[found.rowIndex][found.emailCol] || '').trim(), applicantName);
+  return { success: true };
 }
 
 // Marks one applicant Not Selected and emails them the standard "not
@@ -972,17 +971,17 @@ function adminSetA1IdSettings_(prefix, nextSeq) {
   return { success: true };
 }
 
-function sendA1SelectionEmail_(email, name, glabId) {
+function sendA1SelectionEmail_(email, name) {
   if (!email) return;
   try {
     var lines = [
       'Hi ' + (name || 'there') + ',', '',
       "Congratulations — you've been selected for GLAB's A1 Intensive course!",
       '',
-      'Your GLAB ID: ' + glabId,
-      '',
       'Complete your registration here: glabeducation.com/results',
-      '(log in with the same email and date of birth you used to apply)',
+      '(log in with the same email and WhatsApp number you used to apply)',
+      '',
+      'Your GLAB ID will be assigned once your registration is submitted.',
       '',
       'Seats are limited, so please register as soon as you can to secure your spot.',
       '',
@@ -1137,6 +1136,40 @@ function submitRegistration_(body) {
     'Status': DEFAULT_STATUS
   });
   return { success: true };
+}
+
+// The A1 equivalent of submitRegistration_ — identifies the applicant by
+// email + WhatsApp number (the Applications row) instead of an existing
+// GLAB ID, because for a first-time A1 registrant none exists yet. Mints
+// the GLAB ID and creates the Students row right here, at the moment of
+// actual payment submission, rather than at Select time — see
+// adminSelectApplicant_'s comment for why. Idempotent the same way a
+// resubmit is: if this Applications row already has a GLAB ID (an earlier
+// submission attempt already created one), reuses it instead of minting a
+// second one; submitRegistration_'s own per-batch idempotency guard then
+// handles a genuine duplicate submission from there.
+function submitA1Registration_(body) {
+  var email = String(body.email || '').trim();
+  var phone = String(body.phone || '').trim();
+  if (!email) throw new Error('Email is required.');
+  if (!phone) throw new Error('WhatsApp number is required.');
+
+  var found = findApplicationRow_(email, phone);
+  var status = String(found.values[found.rowIndex][found.statusCol] || '').trim().toLowerCase();
+  if (status !== 'selected') throw new Error('This application has not been selected for registration.');
+
+  var glabId = found.glabIdCol !== -1 ? String(found.values[found.rowIndex][found.glabIdCol] || '').trim() : '';
+  if (!glabId) {
+    var applicantName = found.nameCol !== -1 ? found.values[found.rowIndex][found.nameCol] : '';
+    glabId = generateNextA1GlabId_();
+    appendStudentRow_(glabId, applicantName);
+    adminSetStudentEligible_(glabId, 'A1', true);
+    if (found.glabIdCol !== -1) found.sheet.getRange(found.rowIndex + 1, found.glabIdCol + 1).setValue(glabId);
+  }
+
+  var result = submitRegistration_(Object.assign({}, body, { glabId: glabId }));
+  result.glabId = glabId;
+  return result;
 }
 
 function saveProofFile_(base64, fileName, mimeType) {

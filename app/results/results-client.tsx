@@ -80,9 +80,19 @@ export default function ResultsPage() {
 
       // Selected — check whether they've already registered before showing the form.
       setApplicantName(data.name)
-      setGlabId(data.glabId)
+      setGlabId(data.glabId || '')
       setConfirmedBatch(data.confirmedBatch)
       setConfirmedBatchId(data.confirmedBatchId || data.confirmedBatch)
+
+      // No GLAB ID yet means this is a first-time submission — one hasn't
+      // been minted (see submitA1Registration_), so there's nothing to look
+      // up yet. Once they've submitted once, the Applications row has a
+      // GLAB ID and the usual lookup (blocked check, already-registered
+      // check) applies exactly as it does for a returning check.
+      if (!data.glabId) {
+        setStep('form')
+        return
+      }
 
       const lookupRes = await fetch('/api/portal/lookup', {
         method: 'POST',
@@ -124,16 +134,17 @@ export default function ResultsPage() {
     setSubmitError('')
     try {
       const fileBase64 = await fileToBase64(file)
-      const res = await fetch('/api/portal/submit', {
+      const res = await fetch('/api/results/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          glabId, course: confirmedBatch, batchId: confirmedBatchId, email, paymentMethod, paymentReference, feedback,
+          email, phone, course: confirmedBatch, batchId: confirmedBatchId, paymentMethod, paymentReference, feedback,
           fileBase64, fileName: file.name, fileMimeType: file.type,
         }),
       })
       const data = await res.json()
       if (!data.success) throw new Error(data.error || 'Something went wrong. Please try again.')
+      if (data.glabId) setGlabId(data.glabId)
       setRegistration(data.alreadyRegistered && data.registration ? data.registration : {
         batchId: confirmedBatchId,
         course: confirmedBatch,
@@ -282,11 +293,17 @@ export default function ResultsPage() {
               </div>
 
               <div className="rounded-xl p-5 mb-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
-                <div className="text-sm mb-1">
-                  <span style={{ color: 'var(--text-muted)' }}>Your GLAB ID: </span>
-                  <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{glabId}</span>
-                  <span className="text-xs ml-2" style={{ color: 'var(--text-muted)' }}>(save this: you'll use it to check status and register for future courses)</span>
-                </div>
+                {glabId ? (
+                  <div className="text-sm mb-1">
+                    <span style={{ color: 'var(--text-muted)' }}>Your GLAB ID: </span>
+                    <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{glabId}</span>
+                    <span className="text-xs ml-2" style={{ color: 'var(--text-muted)' }}>(save this: you'll use it to check status and register for future courses)</span>
+                  </div>
+                ) : (
+                  <div className="text-sm mb-1" style={{ color: 'var(--text-muted)' }}>
+                    Your GLAB ID will be assigned once you submit your registration below.
+                  </div>
+                )}
                 <div className="text-sm mb-1">
                   <span style={{ color: 'var(--text-muted)' }}>Your Batch: </span>
                   <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{confirmedBatch}</span>

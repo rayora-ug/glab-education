@@ -402,15 +402,17 @@ export default function MyGlabPage() {
     : []
 
   // A GLAB ID that's never had any registration at all (first-time A2/B1
-  // registrant, or an A1 graduate whose Students row was set up without
-  // ever registering through the site) has no "current course" to compute
-  // a next level from — so instead of NextStepSection's advance/repeat
-  // logic, show whatever they're directly eligible for right now. This is
-  // what used to require a separate trip to /portal; folding it in here
-  // means MyGLAB alone covers every registration case, not just returning
-  // students.
+  // registrant) has no "current course" to compute a next level from — so
+  // instead of NextStepSection's advance/repeat logic, show whatever
+  // they're directly eligible for right now. This is what used to require
+  // a separate trip to /portal; folding it in here means MyGLAB alone
+  // covers every A2/B1 registration case, not just returning students.
+  // A1 is deliberately excluded — a newly-selected A1 applicant is
+  // eligible the moment adminSelectApplicant_ checks their Eligible A1 box,
+  // but they're told in their selection email to register via /results
+  // (the flow actually built and tested for A1), not MyGLAB.
   const firstTimeCourses = data && !data.confirmed && !data.registration && registrationOpen
-    ? coursesData.filter(c => c.registrationOpen && data.eligibleCourses.includes(c.title))
+    ? coursesData.filter(c => c.level !== 'A1' && c.registrationOpen && data.eligibleCourses.includes(c.title))
     : []
 
   return (

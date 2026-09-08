@@ -990,7 +990,7 @@ function sendA1SelectionEmail_(email, name) {
     ];
     GmailApp.sendEmail(email, "You've been selected for GLAB A1 Intensive!", lines.join('\n'), {
       name: 'GLAB Team',
-      from: 'mrayhanur@gmail.com'
+      from: 'info@glabeducation.com'
     });
   } catch (err) {
     PropertiesService.getScriptProperties().setProperty(
@@ -1014,7 +1014,7 @@ function sendA1RejectionEmail_(email, name) {
     ];
     GmailApp.sendEmail(email, 'Your GLAB A1 Application Result', lines.join('\n'), {
       name: 'GLAB Team',
-      from: 'mrayhanur@gmail.com'
+      from: 'info@glabeducation.com'
     });
   } catch (err) {
     PropertiesService.getScriptProperties().setProperty(
@@ -2080,7 +2080,7 @@ function adminSendOutreach_(recipients, subject, body) {
     try {
       GmailApp.sendEmail(email, subject, personalized, {
         name: 'GLAB Team',
-        from: 'mrayhanur@gmail.com'
+        from: 'info@glabeducation.com'
       });
       sent++;
     } catch (err) {
@@ -2187,18 +2187,13 @@ function sendConfirmationEmail_(email, name, course, batchId, glabId) {
     lines.push('');
     lines.push('— GLAB Team');
 
-    // Sends from the script owner's own Gmail (mrayhanur@gmail.com) — an
-    // info@glabeducation.com "Send mail as" alias was tried here but never
-    // got verified on the account this script runs under, so GmailApp
-    // silently failed to send (caught below, logged to LAST_EMAIL_ERROR).
-    // The account's own address always works with no alias setup needed.
     GmailApp.sendEmail(email, 'GLAB Registration Confirmed — ' + course, lines.join('\n'), {
       name: 'GLAB Team',
-      from: 'mrayhanur@gmail.com'
+      from: 'info@glabeducation.com'
     });
     PropertiesService.getScriptProperties().setProperty(
       'LAST_EMAIL_SENT',
-      new Date().toISOString() + ' — sent to ' + email + ' from mrayhanur@gmail.com'
+      new Date().toISOString() + ' — sent to ' + email + ' from info@glabeducation.com'
     );
   } catch (err) {
     // A failed email should never fail the confirmation itself — but record
@@ -2269,7 +2264,7 @@ function sendGlabIdRecoveryEmail_(email, matches) {
     lines.push('— GLAB Team');
     GmailApp.sendEmail(email, 'Your GLAB ID', lines.join('\n'), {
       name: 'GLAB Team',
-      from: 'mrayhanur@gmail.com'
+      from: 'info@glabeducation.com'
     });
     PropertiesService.getScriptProperties().setProperty(
       'LAST_ID_RECOVERY_SENT',

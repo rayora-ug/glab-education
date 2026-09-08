@@ -2071,9 +2071,10 @@ function adminSendOutreach_(recipients, subject, body) {
   if (recipients.length > 450) throw new Error('Too many recipients in one send (max 450) — narrow the list first.');
 
   var sent = 0, failed = 0;
+  var errors = [];
   recipients.forEach(function (r) {
     var email = String((r && r.email) || '').trim();
-    if (!email) { failed++; return; }
+    if (!email) { failed++; errors.push('(blank email)'); return; }
     var name = String((r && r.name) || '').trim();
     var personalized = String(body).replace(/\{\{\s*name\s*\}\}/gi, name || 'there');
     try {
@@ -2084,6 +2085,7 @@ function adminSendOutreach_(recipients, subject, body) {
       sent++;
     } catch (err) {
       failed++;
+      errors.push(email + ': ' + err.message);
     }
   });
 
@@ -2091,7 +2093,10 @@ function adminSendOutreach_(recipients, subject, body) {
     'LAST_OUTREACH_SENT',
     new Date().toISOString() + ' — sent ' + sent + ', failed ' + failed + ', subject "' + subject + '"'
   );
-  return { success: true, sent: sent, failed: failed };
+  if (errors.length) {
+    PropertiesService.getScriptProperties().setProperty('LAST_OUTREACH_ERROR', errors.join(' | '));
+  }
+  return { success: true, sent: sent, failed: failed, errors: errors };
 }
 
 // Confirms one specific Registrations row, identified by GLAB ID + its

@@ -27,8 +27,11 @@ var CONTACT_MESSAGES_SHEET = 'Contact Messages';
 var CONTACT_MESSAGES_HEADERS = ['Timestamp', 'Name', 'Email', 'Subject', 'Message'];
 var ATTENDANCE_SHEET = 'Attendance';
 var STUDENT_FEEDBACK_SHEET = 'Student Feedback';
+// The "I'm Interested" request queue itself was retired (see CRM build),
+// but this sheet name is still read by findLatestInterestEmail_ (for
+// MyGLAB/portal's saved-email prefill) and onEdit (a manual fallback for
+// any rows left unprocessed from before the retirement).
 var INTEREST_SHEET = 'Next Level Interest';
-var INTEREST_HEADERS = ['Timestamp', 'GLAB ID', 'Name', 'Level', 'Requested Batch', 'Current Batch', 'Email', 'Processed'];
 var REGISTRATIONS_HEADERS = [
   'Timestamp', 'GLAB ID', 'Name', 'Course', 'Batch ID', 'Email',
   'Payment Method', 'Payment Reference', 'Proof File Link', 'Feedback', 'Status'
@@ -120,14 +123,10 @@ function doPost(e) {
       response = adminListSubmittedRegistrations_();
     } else if (body.action === 'adminListAllRegistrations') {
       response = adminListAllRegistrations_();
+    } else if (body.action === 'adminListCRM') {
+      response = adminListCRM_();
     } else if (body.action === 'adminConfirmRegistration') {
       response = adminConfirmRegistration_(body.glabId, body.timestamp);
-    } else if (body.action === 'submitInterest') {
-      response = submitInterest_(body);
-    } else if (body.action === 'adminListInterest') {
-      response = adminListInterest_();
-    } else if (body.action === 'adminApproveInterest') {
-      response = adminApproveInterest_(body.glabId, body.timestamp, body.level);
     } else if (body.action === 'submitStudentReview') {
       response = submitStudentReview_(body);
     } else if (body.action === 'recoverGlabId') {
@@ -1744,7 +1743,6 @@ function getDashboard_(glabId) {
     registration: registration,
     confirmedRegistration: confirmedRegistration,
     history: history,
-    pendingInterestLevels: findPendingInterestLevels_(student.glabId),
     savedEmail: findLatestInterestEmail_(student.glabId)
   };
 
@@ -1890,6 +1888,170 @@ function adminListAllRegistrations_() {
     });
   }
   return { success: true, registrations: registrations };
+}
+
+// Course title → level rank, for comparing "highest level completed" vs.
+// "most recent attempt" without hardcoding string comparisons everywhere.
+var CRM_LEVEL_RANKS = { 'A1 Intensive': 1, 'A2 Intensive': 2, 'B1 Intensive': 3 };
+function crmLevelRank_(course) {
+  var text = String(course || '');
+  for (var title in CRM_LEVEL_RANKS) {
+    if (text.indexOf(title) === 0) return CRM_LEVEL_RANKS[title];
+  }
+  return 0;
+}
+function crmLevelLabel_(rank) {
+  return rank === 1 ? 'A1' : rank === 2 ? 'A2' : rank === 3 ? 'B1' : '';
+}
+
+// One row per real person, joining Students + Registrations (for anyone
+// with a GLAB ID) with Applications rows that don't have a GLAB ID yet
+// (A1 prospects still mid-pipeline) — the CRM/student-database view. Every
+// row gets a computed `segment` answering "where are they, and do they
+// need a nudge" — this is what replaces the old Next Level Interest queue:
+// instead of waiting for a student to proactively signal interest, this
+// surfaces EVERY student who completed a level and never registered for
+// the next one, so admin can reach out directly.
+function adminListCRM_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var crm = [];
+
+  // ---- Students + their Registrations history ----
+  var studentsSheet = ss.getSheetByName(STUDENTS_SHEET);
+  var students = [];
+  if (studentsSheet) {
+    var sValues = studentsSheet.getDataRange().getValues();
+    if (sValues.length > 1) {
+      var sHeaders = sValues[0].map(function (h) { return String(h).trim().toLowerCase(); });
+      var sIdCol = sHeaders.indexOf('glab id'), sNameCol = sHeaders.indexOf('name'), sBlockedCol = sHeaders.indexOf('blocked');
+      if (sIdCol !== -1) {
+        for (var i = 1; i < sValues.length; i++) {
+          var gid = String(sValues[i][sIdCol] || '').trim();
+          if (!gid) continue;
+          students.push({
+            glabId: gid,
+            name: sNameCol !== -1 ? sValues[i][sNameCol] : '',
+            blocked: sBlockedCol !== -1 && isTruthy_(sValues[i][sBlockedCol])
+          });
+        }
+      }
+    }
+  }
+
+  var regsByStudent = {}; // lowercased glabId -> [{course, batchId, status, timestamp, email}], oldest first
+  var regSheet = ss.getSheetByName(REGISTRATIONS_SHEET);
+  if (regSheet) {
+    var rValues = regSheet.getDataRange().getValues();
+    if (rValues.length > 1) {
+      var rHeaders = rValues[0].map(function (h) { return String(h).trim().toLowerCase(); });
+      var rIdCol = rHeaders.indexOf('glab id'), rCourseCol = rHeaders.indexOf('course'), rBatchIdCol = rHeaders.indexOf('batch id'),
+        rStatusCol = rHeaders.indexOf('status'), rTsCol = rHeaders.indexOf('timestamp'), rEmailCol = rHeaders.indexOf('email');
+      if (rIdCol !== -1) {
+        for (var j = 1; j < rValues.length; j++) {
+          var regGid = String(rValues[j][rIdCol] || '').trim();
+          if (!regGid) continue;
+          var key = regGid.toLowerCase();
+          if (!regsByStudent[key]) regsByStudent[key] = [];
+          regsByStudent[key].push({
+            course: rCourseCol !== -1 ? rValues[j][rCourseCol] : '',
+            batchId: rBatchIdCol !== -1 ? rValues[j][rBatchIdCol] : '',
+            status: rStatusCol !== -1 ? String(rValues[j][rStatusCol] || DEFAULT_STATUS).trim() : DEFAULT_STATUS,
+            timestamp: rTsCol !== -1 ? rValues[j][rTsCol] : null,
+            email: rEmailCol !== -1 ? rValues[j][rEmailCol] : ''
+          });
+        }
+      }
+    }
+  }
+
+  students.forEach(function (s) {
+    var regs = (regsByStudent[s.glabId.toLowerCase()] || []).slice();
+    regs.sort(function (a, b) {
+      var ta = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+      var tb = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+      return ta - tb;
+    });
+    var confirmedRegs = regs.filter(function (r) { return r.status === CONFIRMED_STATUS; });
+    var latestReg = regs.length ? regs[regs.length - 1] : null;
+    var highestConfirmedRank = 0;
+    confirmedRegs.forEach(function (r) {
+      var rank = crmLevelRank_(r.course);
+      if (rank > highestConfirmedRank) highestConfirmedRank = rank;
+    });
+    var latestRank = latestReg ? crmLevelRank_(latestReg.course) : 0;
+
+    var segment;
+    if (s.blocked) {
+      segment = 'Blocked';
+    } else if (latestReg && latestReg.status === DEFAULT_STATUS) {
+      segment = 'Payment pending';
+    } else if (highestConfirmedRank === 0) {
+      segment = 'No confirmed registration';
+    } else if (highestConfirmedRank >= 3) {
+      segment = 'Completed B1';
+    } else if (latestRank <= highestConfirmedRank) {
+      segment = 'Completed ' + crmLevelLabel_(highestConfirmedRank) + ' — not registered ' + crmLevelLabel_(highestConfirmedRank + 1);
+    } else {
+      segment = 'Active / in progress';
+    }
+
+    var email = '';
+    for (var e = regs.length - 1; e >= 0; e--) {
+      if (regs[e].email) { email = regs[e].email; break; }
+    }
+
+    crm.push({
+      glabId: s.glabId,
+      name: s.name,
+      email: email,
+      phone: '',
+      segment: segment,
+      highestLevel: crmLevelLabel_(highestConfirmedRank),
+      lastCourse: latestReg ? latestReg.course : '',
+      lastStatus: latestReg ? latestReg.status : '',
+      lastActivity: latestReg && latestReg.timestamp ? new Date(latestReg.timestamp).toISOString() : null
+    });
+  });
+
+  // ---- A1 applicants who don't have a GLAB ID yet (still prospects) ----
+  // Anyone who already has a GLAB ID is represented above via Students —
+  // skip them here to avoid listing the same person twice.
+  var appsSheet = ss.getSheetByName(APPLICATIONS_SHEET);
+  if (appsSheet) {
+    var aValues = appsSheet.getDataRange().getValues();
+    if (aValues.length > 1) {
+      var aHeaders = aValues[0].map(function (h) { return String(h).trim().toLowerCase(); });
+      var aNameCol = aHeaders.indexOf('name'), aEmailCol = aHeaders.indexOf('email'), aPhoneCol = aHeaders.indexOf('whatsapp number'),
+        aStatusCol = aHeaders.indexOf('selection status'), aGlabIdCol = aHeaders.indexOf('glab id'), aTsCol = aHeaders.indexOf('timestamp');
+      for (var m = 1; m < aValues.length; m++) {
+        var row = aValues[m];
+        var appName = aNameCol !== -1 ? row[aNameCol] : '';
+        var appEmail = aEmailCol !== -1 ? String(row[aEmailCol] || '').trim() : '';
+        if (!appName && !appEmail) continue; // skip blank/corrupt rows
+        var appGlabId = aGlabIdCol !== -1 ? String(row[aGlabIdCol] || '').trim() : '';
+        if (appGlabId) continue; // already represented via Students above
+
+        var rawStatus = aStatusCol !== -1 ? String(row[aStatusCol] || '').trim().toLowerCase() : '';
+        var appSegment = rawStatus === 'selected' ? 'A1 selected — not yet registered'
+          : rawStatus === 'not selected' ? 'A1 not selected'
+          : 'A1 application pending';
+
+        crm.push({
+          glabId: '',
+          name: appName,
+          email: appEmail,
+          phone: aPhoneCol !== -1 ? row[aPhoneCol] : '',
+          segment: appSegment,
+          highestLevel: '',
+          lastCourse: '',
+          lastStatus: '',
+          lastActivity: aTsCol !== -1 && row[aTsCol] ? new Date(row[aTsCol]).toISOString() : null
+        });
+      }
+    }
+  }
+
+  return { success: true, students: crm };
 }
 
 // Confirms one specific Registrations row, identified by GLAB ID + its
@@ -2077,166 +2239,11 @@ function sendGlabIdRecoveryEmail_(email, matches) {
 }
 
 // ===== Next-level interest (MyGLAB "I'm interested" button) =====
-// A student who's confirmed for one level but not yet marked Eligible for
-// the next one has no way to signal "I want in" — admin previously had no
-// visibility into who actually wants to move up, only who's already been
-// marked eligible. This is a lightweight request queue: student taps
-// "I'm Interested" on MyGLAB, it lands here, and an admin reviewing it in
-// /admin can approve with one click, which flips the matching Eligible
-// column on Students so the student can then self-serve register via
-// /portal exactly like any other eligible student — nothing here grants
-// eligibility on its own, it's just a signal for a human to act on.
-function submitInterest_(body) {
-  var student = findStudent_(body.glabId);
-  if (!student) throw new Error('GLAB ID not found');
-  if (student.blocked) throw new Error('This account has been restricted. Please contact GLAB.');
-
-  var level = String(body.level || '').trim().toUpperCase();
-  if (level !== 'A2' && level !== 'B1') throw new Error('Level must be A2 or B1');
-  var requestedBatch = String(body.batch || '').trim();
-  var email = String(body.email || '').trim();
-  if (!email) throw new Error('Email is required.');
-
-  // The student's current batch, snapshotted at the moment they express
-  // interest — not looked up fresh later — so admin has that context (e.g.
-  // "she's in the Evening batch now, wants Evening again") when deciding.
-  var currentRegistration = findLatestRegistration_(student.glabId);
-  var currentBatch = currentRegistration ? currentRegistration.course : '';
-
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(INTEREST_SHEET);
-  if (!sheet) {
-    sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet(INTEREST_SHEET);
-    sheet.appendRow(INTEREST_HEADERS);
-  }
-  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
-    .map(function (h) { return String(h).trim().toLowerCase(); });
-  var col = function (name) { return headers.indexOf(name); };
-  var idCol = col('glab id'), levelCol = col('level'), processedCol = col('processed');
-
-  // Idempotency guard: don't add a second row if this student already has
-  // an unprocessed request for the same level on file.
-  if (idCol !== -1 && levelCol !== -1) {
-    var values = sheet.getDataRange().getValues();
-    var needleId = student.glabId.trim().toLowerCase();
-    for (var i = 1; i < values.length; i++) {
-      var rowId = String(values[i][idCol] || '').trim().toLowerCase();
-      var rowLevel = String(values[i][levelCol] || '').trim().toUpperCase();
-      var rowProcessed = processedCol !== -1 && isTruthy_(values[i][processedCol]);
-      if (rowId === needleId && rowLevel === level && !rowProcessed) {
-        return { success: true, alreadySubmitted: true };
-      }
-    }
-  }
-
-  var row = new Array(headers.length).fill('');
-  if (col('timestamp') !== -1) row[col('timestamp')] = new Date();
-  if (idCol !== -1) row[idCol] = student.glabId;
-  if (col('name') !== -1) row[col('name')] = student.name;
-  if (levelCol !== -1) row[levelCol] = level;
-  if (col('requested batch') !== -1) row[col('requested batch')] = requestedBatch;
-  if (col('current batch') !== -1) row[col('current batch')] = currentBatch;
-  if (col('email') !== -1) row[col('email')] = email;
-  sheet.appendRow(row);
-  return { success: true };
-}
-
-// Returns every level a student currently has an unprocessed (not yet
-// approved) interest request for — so MyGLAB can hide the "I'm Interested"
-// form for a level they've already asked about, on every future login, not
-// just within the same browser session as the submission.
-function findPendingInterestLevels_(glabId) {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(INTEREST_SHEET);
-  if (!sheet || !glabId) return [];
-
-  var values = sheet.getDataRange().getValues();
-  if (values.length < 2) return [];
-  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
-  var idCol = headers.indexOf('glab id');
-  var levelCol = headers.indexOf('level');
-  var processedCol = headers.indexOf('processed');
-  if (idCol === -1 || levelCol === -1) return [];
-
-  var needle = String(glabId).trim().toLowerCase();
-  var levels = [];
-  for (var i = 1; i < values.length; i++) {
-    if (String(values[i][idCol] || '').trim().toLowerCase() !== needle) continue;
-    if (processedCol !== -1 && isTruthy_(values[i][processedCol])) continue;
-    var level = String(values[i][levelCol] || '').trim().toUpperCase();
-    if (level) levels.push(level);
-  }
-  return levels;
-}
-
-// Lists every unprocessed interest request, for the /admin panel.
-function adminListInterest_() {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(INTEREST_SHEET);
-  if (!sheet) return { success: true, requests: [] };
-
-  var values = sheet.getDataRange().getValues();
-  if (values.length < 2) return { success: true, requests: [] };
-  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
-  var col = function (name) { return headers.indexOf(name); };
-  var tsCol = col('timestamp'), idCol = col('glab id'), nameCol = col('name'), levelCol = col('level'),
-      reqBatchCol = col('requested batch'), curBatchCol = col('current batch'), emailCol = col('email'), processedCol = col('processed');
-
-  var requests = [];
-  for (var i = 1; i < values.length; i++) {
-    var row = values[i];
-    if (idCol === -1 || !row[idCol]) continue;
-    if (processedCol !== -1 && isTruthy_(row[processedCol])) continue;
-    requests.push({
-      timestamp: tsCol !== -1 ? new Date(row[tsCol]).toISOString() : null,
-      glabId: row[idCol],
-      name: nameCol !== -1 ? row[nameCol] : '',
-      level: levelCol !== -1 ? row[levelCol] : '',
-      requestedBatch: reqBatchCol !== -1 ? row[reqBatchCol] : '',
-      currentBatch: curBatchCol !== -1 ? row[curBatchCol] : '',
-      email: emailCol !== -1 ? row[emailCol] : ''
-    });
-  }
-  return { success: true, requests: requests };
-}
-
-// Approves one interest request: marks the matching Eligible {level}
-// column on Students, then marks this request row Processed so it drops
-// out of the pending list. Identified by GLAB ID + Timestamp together,
-// same reasoning as adminConfirmRegistration_ — a GLAB ID alone isn't
-// unique enough if a student has requested more than one level over time.
-function adminApproveInterest_(glabId, timestamp, level) {
-  if (!glabId || !timestamp || !level) throw new Error('GLAB ID, timestamp, and level are required');
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(INTEREST_SHEET);
-  if (!sheet) throw new Error('Next Level Interest sheet not found');
-
-  var values = sheet.getDataRange().getValues();
-  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
-  var idCol = headers.indexOf('glab id');
-  var tsCol = headers.indexOf('timestamp');
-  var processedCol = headers.indexOf('processed');
-  if (idCol === -1 || tsCol === -1 || processedCol === -1) {
-    throw new Error('Next Level Interest sheet must have "GLAB ID", "Timestamp", and "Processed" columns');
-  }
-
-  var needleId = String(glabId).trim().toLowerCase();
-  var needleTime = new Date(timestamp).getTime();
-  var found = false;
-  for (var i = 1; i < values.length; i++) {
-    var rowId = String(values[i][idCol] || '').trim().toLowerCase();
-    var rowTime = new Date(values[i][tsCol]).getTime();
-    if (rowId === needleId && rowTime === needleTime) {
-      sheet.getRange(i + 1, processedCol + 1).setValue(true);
-      found = true;
-      break;
-    }
-  }
-  if (!found) throw new Error('Matching request not found');
-
-  adminSetStudentEligible_(glabId, level, true);
-  return { success: true };
-}
-
 // Sets the Eligible {level} column (e.g. "Eligible A2") on the Students
-// tab for one GLAB ID — shared by adminApproveInterest_ and available for
-// any future admin action that needs to grant eligibility the same way.
+// tab for one GLAB ID — used by onEdit below (checking "Processed" by hand
+// on the retired Next Level Interest tab) and by the A1 selection flow
+// (adminSelectApplicant_/submitA1Registration_), and available for any
+// future admin action that needs to grant eligibility the same way.
 function adminSetStudentEligible_(glabId, level, value) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(STUDENTS_SHEET);
   if (!sheet) throw new Error('Students sheet not found');
@@ -2262,22 +2269,18 @@ function adminSetStudentEligible_(glabId, level, value) {
 // A "simple trigger" — Apps Script runs any function literally named
 // onEdit automatically on every manual edit to this spreadsheet, with zero
 // setup (unlike refreshRegistrationPending's trigger, nothing to install
-// under Triggers). This is what makes checking "Processed" by hand on the
-// Next Level Interest tab do the same thing as clicking Approve in
-// /admin — flip the matching Eligible column on Students — instead of just
-// marking the row done with no other effect.
+// under Triggers). The Next Level Interest feature itself was retired
+// (superseded by the CRM segment view — see the CRM build), but this is
+// kept as a manual fallback for any rows still sitting unprocessed on that
+// tab from before the retirement: checking "Processed" by hand flips the
+// matching Eligible column on Students, same as the old admin Approve
+// button used to.
 //
 // Only reacts to a single checkbox flipping to checked (not unchecked, and
 // not a multi-cell paste/fill, which onEdit reports as one event covering
 // the whole range — deliberately skipped rather than guessed at, so a bulk
 // paste doesn't silently grant eligibility for rows nobody meant to
-// approve yet; use /admin's Approve button one at a time for those, or
-// tick this box one row at a time by hand).
-//
-// Note this never fires for /admin's own Approve button — Apps Script only
-// invokes onEdit for edits made by a person in the Sheets UI, not for
-// edits the script itself makes via setValue(), so there's no risk of the
-// two approval paths double-processing each other.
+// approve; tick this box one row at a time by hand instead).
 function onEdit(e) {
   var props = PropertiesService.getScriptProperties();
   try {

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import {
   ShieldX, LogIn, CheckCircle, AlertTriangle,
   MessageCircle, GraduationCap, Video, CalendarRange,
-  ArrowRight, RotateCcw, Quote, ClipboardList, Star, History,
+  RotateCcw, Quote, ClipboardList, Star, History,
 } from 'lucide-react'
 import coursesData from '../../data/courses.json'
 import {
@@ -37,7 +37,6 @@ type DashboardData = {
   attendance?: Attendance | null
   feedback?: string | null
   history?: HistoryEntry[]
-  pendingInterestLevels?: string[]
   savedEmail?: string | null
 }
 
@@ -174,37 +173,14 @@ function EligibleRegistrationForm({ glabId, level, courses, initialEmail }: { gl
 }
 
 function NextStepCard({
-  glabId, level, heading, courses, isEligible, isPending,
+  glabId, level, heading, courses, isEligible,
 }: {
   glabId: string
   level: string
   heading: string
   courses: CourseEntry[]
   isEligible: boolean
-  isPending: boolean
 }) {
-  const [batch, setBatch] = useState('')
-  const [email, setEmail] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
-  const batchOptions = courses.flatMap(c => (c.batches || []).map(b => ({ label: b.label, schedule: b.schedule, level: c.level, fee: c.fee })))
-
-  const submit = async () => {
-    if (!batch || !email.trim()) return
-    setSubmitting(true)
-    try {
-      const res = await fetch('/api/myglab/interest', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ glabId, level, batch, email }),
-      })
-      const result = await res.json()
-      if (result.success) setSubmitted(true)
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
   return (
     <div className="card p-6" style={{ background: 'rgba(221,0,0,0.05)', border: '1px solid rgba(221,0,0,0.2)' }}>
       <div className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{heading}</div>
@@ -218,57 +194,38 @@ function NextStepCard({
           </p>
           <EligibleRegistrationForm glabId={glabId} level={level} courses={courses} />
         </>
-      ) : (submitted || isPending) ? (
-        <p className="text-sm flex items-center gap-1.5" style={{ color: '#16a34a' }}>
-          <CheckCircle size={14} /> Thanks! We'll let you know once you're eligible to register.
-        </p>
       ) : (
-        <div className="space-y-3">
-          <select value={batch} onChange={e => setBatch(e.target.value)} className="input">
-            <option value="" disabled>Which batch would you prefer?</option>
-            {batchOptions.map(b => (
-              <option key={b.label} value={b.label}>
-                {[b.level, b.label, b.schedule, b.fee].filter(Boolean).join(' — ')}
-              </option>
-            ))}
-          </select>
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Your email address" className="input" />
-          <button
-            onClick={submit}
-            disabled={submitting || !batch || !email.trim()}
-            className="btn-primary inline-flex items-center gap-2 disabled:opacity-50"
-          >
-            {submitting ? 'Submitting...' : `I'm Interested in ${level}`} <ArrowRight size={14} />
-          </button>
-        </div>
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+          This isn't open for you yet. If you'd like to be considered for this batch, contact GLAB.
+        </p>
       )}
     </div>
   )
 }
 
-type NextStepInfo = { level: string; courses: CourseEntry[]; isEligible: boolean; isPending: boolean }
+type NextStepInfo = { level: string; courses: CourseEntry[]; isEligible: boolean }
 
 // Shows at most one "next step" opportunity at a time — advance is the
 // default; repeat stays completely folded (not even its form is rendered)
 // behind a checkbox until a student explicitly asks to see it, so nothing
 // resembling a registration form ever appears unprompted. Once a student
-// has committed to either path (already eligible for it, or already
-// requested it), that one takes over permanently and the other — including
-// the checkbox to switch — disappears, so there's never a moment where
-// switching mid-request would be possible or sensible.
+// has committed to a path (already eligible for it), that one takes over
+// permanently and the other — including the checkbox to switch —
+// disappears, so there's never a moment where switching mid-registration
+// would be possible or sensible.
 function NextStepSection({ glabId, advance, repeat }: { glabId: string; advance: NextStepInfo | null; repeat: NextStepInfo | null }) {
   const [showRepeat, setShowRepeat] = useState(false)
 
   if (!advance && !repeat) return null
 
-  const advanceCommitted = !!advance && (advance.isEligible || advance.isPending)
-  const repeatCommitted = !!repeat && (repeat.isEligible || repeat.isPending)
+  const advanceCommitted = !!advance && advance.isEligible
+  const repeatCommitted = !!repeat && repeat.isEligible
 
   if (advanceCommitted || !repeat) {
     return (
       <NextStepCard
         glabId={glabId} level={advance!.level} heading="Ready for your next level?"
-        courses={advance!.courses} isEligible={advance!.isEligible} isPending={advance!.isPending}
+        courses={advance!.courses} isEligible={advance!.isEligible}
       />
     )
   }
@@ -276,7 +233,7 @@ function NextStepSection({ glabId, advance, repeat }: { glabId: string; advance:
     return (
       <NextStepCard
         glabId={glabId} level={repeat!.level} heading={`Want to repeat ${repeat!.level}?`}
-        courses={repeat!.courses} isEligible={repeat!.isEligible} isPending={repeat!.isPending}
+        courses={repeat!.courses} isEligible={repeat!.isEligible}
       />
     )
   }
@@ -288,7 +245,7 @@ function NextStepSection({ glabId, advance, repeat }: { glabId: string; advance:
     <>
       <NextStepCard
         glabId={glabId} level={active.level} heading={showRepeat ? `Want to repeat ${active.level}?` : 'Ready for your next level?'}
-        courses={active.courses} isEligible={active.isEligible} isPending={active.isPending}
+        courses={active.courses} isEligible={active.isEligible}
       />
       <label className="text-sm flex items-center gap-2 -mt-3" style={{ color: 'var(--text-muted)' }}>
         <input type="checkbox" checked={showRepeat} onChange={e => setShowRepeat(e.target.checked)} />
@@ -541,13 +498,11 @@ export default function MyGlabPage() {
                     level: nextLevel!,
                     courses: nextLevelCourses,
                     isEligible: nextLevelCourses.some(c => data.eligibleCourses.includes(c.title)),
-                    isPending: !!data.pendingInterestLevels?.includes(nextLevel!),
                   } : null}
                   repeat={repeatCourses.length > 0 ? {
                     level: currentCourse!.level,
                     courses: repeatCourses,
                     isEligible: repeatCourses.some(c => data.eligibleCourses.includes(c.title)),
-                    isPending: !!data.pendingInterestLevels?.includes(currentCourse!.level),
                   } : null}
                 />
               )}

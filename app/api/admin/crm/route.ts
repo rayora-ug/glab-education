@@ -5,6 +5,6 @@ export async function POST() {
   const denied = await requireAdmin()
   if (denied) return denied
 
-  const data = await callAdminAction('adminListInterest')
+  const data = await callAdminAction('adminListCRM')
   return NextResponse.json(data)
 }

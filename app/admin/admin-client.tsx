@@ -32,6 +32,7 @@ const ADMIN_TABS = [
   { id: 'overview', label: 'Overview' },
   { id: 'registrations', label: 'Registrations' },
   { id: 'a1', label: 'A1 Pipeline' },
+  { id: 'crm', label: 'CRM' },
   { id: 'content', label: 'Content' },
 ] as const
 type AdminTab = (typeof ADMIN_TABS)[number]['id']
@@ -74,14 +75,16 @@ function batchLabelFromId(batchId: string): string {
   return `${m[1].toUpperCase()} ${m[2].toLowerCase() === 'm' ? 'Morning' : 'Evening'}`
 }
 
-type InterestRequest = {
-  timestamp: string
+type CRMEntry = {
   glabId: string
   name: string
-  level: string
-  requestedBatch: string
-  currentBatch: string
   email: string
+  phone: string
+  segment: string
+  highestLevel: string
+  lastCourse: string
+  lastStatus: string
+  lastActivity: string | null
 }
 
 type Application = {
@@ -163,6 +166,12 @@ export default function AdminPage() {
   const [loadingAllRegistrations, setLoadingAllRegistrations] = useState(false)
   const [registrationBatchFilter, setRegistrationBatchFilter] = useState('All')
 
+  const [crm, setCrm] = useState<CRMEntry[] | null>(null)
+  const [crmError, setCrmError] = useState('')
+  const [loadingCrm, setLoadingCrm] = useState(false)
+  const [crmSegmentFilter, setCrmSegmentFilter] = useState('All')
+  const [crmSearch, setCrmSearch] = useState('')
+
   const [reviewName, setReviewName] = useState('')
   const [reviewLocation, setReviewLocation] = useState('')
   const [reviewRating, setReviewRating] = useState(5)
@@ -184,11 +193,6 @@ export default function AdminPage() {
   const [submittingAnnouncement, setSubmittingAnnouncement] = useState(false)
   const [announcementError, setAnnouncementError] = useState('')
   const [announcementSuccess, setAnnouncementSuccess] = useState('')
-
-  const [interest, setInterest] = useState<InterestRequest[] | null>(null)
-  const [interestError, setInterestError] = useState('')
-  const [loadingInterest, setLoadingInterest] = useState(false)
-  const [approvingKey, setApprovingKey] = useState('')
 
   const [applications, setApplications] = useState<Application[] | null>(null)
   const [applicationsError, setApplicationsError] = useState('')
@@ -233,11 +237,18 @@ export default function AdminPage() {
     })
     loadPending()
     loadAllRegistrations()
-    loadInterest()
     loadPendingReviews()
     loadApplications()
     loadIdPrefix()
   }, [authenticated])
+
+  // CRM scans the full Students/Registrations/Applications history, so
+  // it's loaded lazily on first visit to the tab rather than eagerly with
+  // everything else above — no point paying that cost on every login if
+  // admin never opens it this session.
+  useEffect(() => {
+    if (activeTab === 'crm' && crm === null && !loadingCrm) loadCrm()
+  }, [activeTab, crm, loadingCrm])
 
   const handleLogin = async () => {
     if (!password) return
@@ -266,7 +277,7 @@ export default function AdminPage() {
     setStudentResult(null)
     setPending(null)
     setAllRegistrations(null)
-    setInterest(null)
+    setCrm(null)
     setPendingReviews(null)
     setApplications(null)
     setIdPrefix('')
@@ -360,6 +371,21 @@ export default function AdminPage() {
     }
   }
 
+  const loadCrm = async () => {
+    setLoadingCrm(true)
+    setCrmError('')
+    try {
+      const res = await fetch('/api/admin/crm', { method: 'POST' })
+      const data = await res.json()
+      if (data.success) setCrm(data.students)
+      else setCrmError(data.error || 'Failed to load the student database.')
+    } catch {
+      setCrmError('Failed to load the student database.')
+    } finally {
+      setLoadingCrm(false)
+    }
+  }
+
   const confirmRegistration = async (reg: PendingRegistration) => {
     const key = reg.glabId + reg.timestamp
     setConfirmingKey(key)
@@ -375,39 +401,6 @@ export default function AdminPage() {
       }
     } finally {
       setConfirmingKey('')
-    }
-  }
-
-  const loadInterest = async () => {
-    setLoadingInterest(true)
-    setInterestError('')
-    try {
-      const res = await fetch('/api/admin/interest/pending', { method: 'POST' })
-      const data = await res.json()
-      if (data.success) setInterest(data.requests)
-      else setInterestError(data.error || 'Failed to load interest requests.')
-    } catch {
-      setInterestError('Failed to load interest requests.')
-    } finally {
-      setLoadingInterest(false)
-    }
-  }
-
-  const approveInterest = async (req: InterestRequest) => {
-    const key = req.glabId + req.timestamp
-    setApprovingKey(key)
-    try {
-      const res = await fetch('/api/admin/interest/approve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ glabId: req.glabId, timestamp: req.timestamp, level: req.level }),
-      })
-      const data = await res.json()
-      if (data.success) {
-        setInterest(prev => (prev || []).filter(r => r.glabId + r.timestamp !== key))
-      }
-    } finally {
-      setApprovingKey('')
     }
   }
 
@@ -720,8 +713,9 @@ export default function AdminPage() {
 
         <div className="flex gap-1 flex-wrap border-b" style={{ borderColor: 'var(--border)' }}>
           {ADMIN_TABS.map(t => {
-            const count = t.id === 'registrations' ? (pending?.length || 0) + (interest?.length || 0)
+            const count = t.id === 'registrations' ? (pending?.length || 0)
               : t.id === 'a1' ? (applications?.filter(a => a.status === 'pending').length || 0)
+              : t.id === 'crm' ? (crm?.filter(c => c.segment.indexOf('not registered') !== -1 || c.segment.indexOf('not selected') !== -1).length || 0)
               : t.id === 'content' ? (pendingReviews?.length || 0)
               : 0
             return (
@@ -1257,51 +1251,89 @@ export default function AdminPage() {
         </div>
         </>)}
 
-        {activeTab === 'registrations' && (<>
-        {/* Next level interest */}
+        {activeTab === 'crm' && (<>
+        {/* Student database / CRM */}
         <div className="card p-6">
           <div className="flex items-center justify-between mb-3">
-            <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Next Level Interest</div>
-            <button onClick={loadInterest} disabled={loadingInterest} className="text-sm underline inline-flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
-              <RefreshCw size={13} className={loadingInterest ? 'animate-spin' : ''} /> Refresh
+            <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Student Database</div>
+            <button onClick={loadCrm} disabled={loadingCrm} className="text-sm underline inline-flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
+              <RefreshCw size={13} className={loadingCrm ? 'animate-spin' : ''} /> {loadingCrm ? 'Loading...' : 'Refresh'}
             </button>
           </div>
-          {interestError ? (
-            <p className="text-sm" style={{ color: '#DD0000' }}>{interestError}</p>
-          ) : interest === null || loadingInterest ? (
+          <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+            Every student and applicant in one place, tagged by where they are in the journey — so nobody who completed a level just disappears.
+          </p>
+          {crmError ? (
+            <p className="text-sm" style={{ color: '#DD0000' }}>{crmError}</p>
+          ) : crm === null || loadingCrm ? (
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading...</p>
-          ) : interest.length === 0 ? (
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Nothing pending — all caught up.</p>
-          ) : (
-            <div className="space-y-3">
-              {interest.map(req => {
-                const key = req.glabId + req.timestamp
-                return (
-                  <div key={key} className="flex items-center justify-between gap-4 flex-wrap p-4 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
-                    <div>
-                      <div className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{req.name} · {req.glabId}</div>
-                      <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                        Interested in {req.level}{req.requestedBatch ? ` — wants ${req.requestedBatch}` : ''}
-                      </div>
-                      {req.currentBatch && (
-                        <div className="text-xs" style={{ color: 'var(--text-muted)' }}>Currently in: {req.currentBatch}</div>
-                      )}
-                      {req.email && (
-                        <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{req.email}</div>
-                      )}
-                    </div>
+          ) : (() => {
+            const counts: Record<string, number> = {}
+            crm.forEach(c => { counts[c.segment] = (counts[c.segment] || 0) + 1 })
+            const segments = Object.keys(counts).sort((a, b) => counts[b] - counts[a])
+            const search = crmSearch.trim().toLowerCase()
+            const filtered = crm.filter(c => {
+              if (crmSegmentFilter !== 'All' && c.segment !== crmSegmentFilter) return false
+              if (search && !(c.name.toLowerCase().includes(search) || c.email.toLowerCase().includes(search) || c.glabId.toLowerCase().includes(search) || c.phone.toLowerCase().includes(search))) return false
+              return true
+            })
+            return (
+              <>
+                <div className="flex gap-1.5 flex-wrap mb-3">
+                  <button
+                    onClick={() => setCrmSegmentFilter('All')}
+                    className="text-xs px-2.5 py-1 rounded-full font-medium"
+                    style={{
+                      background: crmSegmentFilter === 'All' ? '#DD0000' : 'var(--bg-secondary)',
+                      color: crmSegmentFilter === 'All' ? '#fff' : 'var(--text-muted)',
+                    }}
+                  >
+                    All ({crm.length})
+                  </button>
+                  {segments.map(seg => (
                     <button
-                      onClick={() => approveInterest(req)}
-                      disabled={approvingKey === key}
-                      className="btn-primary text-sm px-3 py-1.5 disabled:opacity-50"
+                      key={seg}
+                      onClick={() => setCrmSegmentFilter(seg)}
+                      className="text-xs px-2.5 py-1 rounded-full font-medium"
+                      style={{
+                        background: crmSegmentFilter === seg ? '#DD0000' : 'var(--bg-secondary)',
+                        color: crmSegmentFilter === seg ? '#fff' : 'var(--text-muted)',
+                      }}
                     >
-                      {approvingKey === key ? '...' : `Approve for ${req.level}`}
+                      {seg} ({counts[seg]})
                     </button>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  value={crmSearch}
+                  onChange={e => setCrmSearch(e.target.value)}
+                  placeholder="Search name, email, phone, or GLAB ID..."
+                  className="input text-sm mb-3"
+                />
+                {filtered.length === 0 ? (
+                  <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No matches.</p>
+                ) : (
+                  <div className="max-h-96 overflow-y-auto space-y-1.5">
+                    {filtered.map((c, i) => (
+                      <div key={(c.glabId || c.email) + i} className="px-3 py-2 rounded-lg text-sm" style={{ background: 'var(--bg-secondary)' }}>
+                        <div className="flex items-center justify-between gap-4 flex-wrap">
+                          <span style={{ color: 'var(--text-primary)' }}>
+                            {c.name || '(no name)'} {c.glabId ? `· ${c.glabId}` : ''}
+                          </span>
+                          <span className="text-xs" style={{ color: '#DD0000' }}>{c.segment}</span>
+                        </div>
+                        <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                          {c.email || '—'}{c.phone ? ` · ${c.phone}` : ''}
+                          {c.lastCourse ? ` · ${c.lastCourse}` : ''}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                )
-              })}
-            </div>
-          )}
+                )}
+              </>
+            )
+          })()}
         </div>
         </>)}
 

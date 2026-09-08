@@ -125,6 +125,8 @@ function doPost(e) {
       response = adminListAllRegistrations_();
     } else if (body.action === 'adminListCRM') {
       response = adminListCRM_();
+    } else if (body.action === 'adminSendOutreach') {
+      response = adminSendOutreach_(body.recipients, body.subject, body.messageBody);
     } else if (body.action === 'adminConfirmRegistration') {
       response = adminConfirmRegistration_(body.glabId, body.timestamp);
     } else if (body.action === 'submitStudentReview') {
@@ -2052,6 +2054,44 @@ function adminListCRM_() {
   }
 
   return { success: true, students: crm };
+}
+
+// Sends a bulk email to an explicit recipient list — the CRM panel passes
+// exactly the (name, email) pairs currently shown after its segment/search
+// filters, so what admin sees is exactly who gets emailed; nothing is
+// re-derived server-side. `{{name}}` in the body is replaced per-recipient
+// (falling back to "there"). Capped at 450 recipients per call — comfortably
+// within Gmail's daily sending quota alongside the confirmation/selection
+// emails already going out that day, and well within Apps Script's
+// execution time limit.
+function adminSendOutreach_(recipients, subject, body) {
+  if (!recipients || !recipients.length) throw new Error('No recipients provided.');
+  if (!subject) throw new Error('Subject is required.');
+  if (!body) throw new Error('Message body is required.');
+  if (recipients.length > 450) throw new Error('Too many recipients in one send (max 450) — narrow the list first.');
+
+  var sent = 0, failed = 0;
+  recipients.forEach(function (r) {
+    var email = String((r && r.email) || '').trim();
+    if (!email) { failed++; return; }
+    var name = String((r && r.name) || '').trim();
+    var personalized = String(body).replace(/\{\{\s*name\s*\}\}/gi, name || 'there');
+    try {
+      GmailApp.sendEmail(email, subject, personalized, {
+        name: 'GLAB Team',
+        from: 'mrayhanur@gmail.com'
+      });
+      sent++;
+    } catch (err) {
+      failed++;
+    }
+  });
+
+  PropertiesService.getScriptProperties().setProperty(
+    'LAST_OUTREACH_SENT',
+    new Date().toISOString() + ' — sent ' + sent + ', failed ' + failed + ', subject "' + subject + '"'
+  );
+  return { success: true, sent: sent, failed: failed };
 }
 
 // Confirms one specific Registrations row, identified by GLAB ID + its

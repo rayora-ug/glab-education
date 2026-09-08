@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import {
   Lock, ShieldX, Search, Ban, CheckCircle, Power,
   ExternalLink, RefreshCw, LogOut, Loader2, Star, PlusCircle,
-  UserPlus, XCircle, Settings, Megaphone, Flag, Trash2,
+  UserPlus, XCircle, Settings, Megaphone, Flag, Trash2, Mail,
 } from 'lucide-react'
 import { REVIEW_LEVELS } from '../portal/shared'
 import coursesData from '../../data/courses.json'
@@ -171,6 +171,12 @@ export default function AdminPage() {
   const [loadingCrm, setLoadingCrm] = useState(false)
   const [crmSegmentFilter, setCrmSegmentFilter] = useState('All')
   const [crmSearch, setCrmSearch] = useState('')
+  const [outreachSubject, setOutreachSubject] = useState('')
+  const [outreachBody, setOutreachBody] = useState('')
+  const [outreachConfirming, setOutreachConfirming] = useState(false)
+  const [sendingOutreach, setSendingOutreach] = useState(false)
+  const [outreachResult, setOutreachResult] = useState('')
+  const [outreachError, setOutreachError] = useState('')
 
   const [reviewName, setReviewName] = useState('')
   const [reviewLocation, setReviewLocation] = useState('')
@@ -383,6 +389,29 @@ export default function AdminPage() {
       setCrmError('Failed to load the student database.')
     } finally {
       setLoadingCrm(false)
+    }
+  }
+
+  const sendOutreach = async (recipients: { name: string; email: string }[]) => {
+    setSendingOutreach(true)
+    setOutreachError('')
+    setOutreachResult('')
+    try {
+      const res = await fetch('/api/admin/crm/outreach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recipients, subject: outreachSubject, messageBody: outreachBody }),
+      })
+      const data = await res.json()
+      if (!data.success) throw new Error(data.error || 'Failed to send.')
+      setOutreachResult(`Sent ${data.sent}${data.failed ? `, ${data.failed} failed` : ''}.`)
+      setOutreachSubject('')
+      setOutreachBody('')
+    } catch (err: any) {
+      setOutreachError(err.message || 'Failed to send.')
+    } finally {
+      setSendingOutreach(false)
+      setOutreachConfirming(false)
     }
   }
 
@@ -1311,6 +1340,75 @@ export default function AdminPage() {
                   placeholder="Search name, email, phone, or GLAB ID..."
                   className="input text-sm mb-3"
                 />
+
+                {(() => {
+                  const seen = new Set<string>()
+                  const recipients = filtered
+                    .filter(c => c.email && !seen.has(c.email.toLowerCase()) && seen.add(c.email.toLowerCase()))
+                    .map(c => ({ name: c.name, email: c.email }))
+                  return (
+                    <div className="rounded-xl p-4 mb-4" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <Mail size={14} style={{ color: 'var(--text-muted)' }} />
+                        <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                          {crmSegmentFilter === 'All'
+                            ? 'Pick a segment (or search) above to message a specific group'
+                            : `Message this list — ${recipients.length} recipient${recipients.length === 1 ? '' : 's'} with an email`}
+                        </span>
+                      </div>
+                      {crmSegmentFilter !== 'All' && (
+                        <div className="space-y-2">
+                          <input
+                            type="text"
+                            value={outreachSubject}
+                            onChange={e => setOutreachSubject(e.target.value)}
+                            placeholder="Subject"
+                            className="input text-sm"
+                          />
+                          <textarea
+                            value={outreachBody}
+                            onChange={e => setOutreachBody(e.target.value)}
+                            placeholder={'Message — use {{name}} to personalize, e.g. "Hi {{name}}, ..."'}
+                            rows={4}
+                            className="input text-sm"
+                          />
+                          {outreachError && <p className="text-sm" style={{ color: '#DD0000' }}>{outreachError}</p>}
+                          {outreachResult && <p className="text-sm flex items-center gap-1.5" style={{ color: '#16a34a' }}><CheckCircle size={14} /> {outreachResult}</p>}
+                          {!outreachConfirming ? (
+                            <button
+                              onClick={() => setOutreachConfirming(true)}
+                              disabled={recipients.length === 0 || !outreachSubject.trim() || !outreachBody.trim()}
+                              className="btn-primary text-sm px-3 py-1.5 inline-flex items-center gap-1.5 disabled:opacity-50"
+                            >
+                              <Mail size={13} /> Send to {recipients.length} {recipients.length === 1 ? 'person' : 'people'}
+                            </button>
+                          ) : (
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                                Send this email to {recipients.length} {recipients.length === 1 ? 'person' : 'people'} now?
+                              </span>
+                              <button
+                                onClick={() => sendOutreach(recipients)}
+                                disabled={sendingOutreach}
+                                className="btn-primary text-sm px-3 py-1.5 disabled:opacity-50"
+                              >
+                                {sendingOutreach ? 'Sending...' : 'Yes, send'}
+                              </button>
+                              <button
+                                onClick={() => setOutreachConfirming(false)}
+                                disabled={sendingOutreach}
+                                className="btn-secondary text-sm px-3 py-1.5 disabled:opacity-50"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
+
                 {filtered.length === 0 ? (
                   <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No matches.</p>
                 ) : (

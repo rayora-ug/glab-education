@@ -34,7 +34,7 @@ var STUDENT_FEEDBACK_SHEET = 'Student Feedback';
 var INTEREST_SHEET = 'Next Level Interest';
 var REGISTRATIONS_HEADERS = [
   'Timestamp', 'GLAB ID', 'Name', 'Course', 'Batch ID', 'Email',
-  'Payment Method', 'Payment Reference', 'Proof File Link', 'Feedback', 'Status'
+  'Paying From', 'Payment Reference', 'Proof File Link', 'Feedback', 'Status'
 ];
 var DEFAULT_STATUS = 'Submitted';
 var CONFIRMED_STATUS = 'Confirmed';
@@ -1130,7 +1130,7 @@ function submitRegistration_(body) {
     'Course': body.course,
     'Batch ID': body.batchId,
     'Email': body.email,
-    'Payment Method': body.paymentMethod,
+    'Paying From': body.paymentMethod,
     'Payment Reference': body.paymentReference || '',
     'Proof File Link': fileUrl,
     'Feedback': body.feedback || '',
@@ -1836,7 +1836,7 @@ function adminListSubmittedRegistrations_() {
   var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
   var col = function (name) { return headers.indexOf(name); };
   var timestampCol = col('timestamp'), idCol = col('glab id'), nameCol = col('name'),
-      courseCol = col('course'), batchIdCol = col('batch id'), methodCol = col('payment method'),
+      courseCol = col('course'), batchIdCol = col('batch id'), methodCol = col('paying from'),
       refCol = col('payment reference'), proofCol = col('proof file link'),
       feedbackCol = col('feedback'), statusCol = col('status');
   if (idCol === -1 || statusCol === -1) return { success: true, registrations: [] };

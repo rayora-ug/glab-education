@@ -177,6 +177,11 @@ export default function AdminPage() {
   const [sendingOutreach, setSendingOutreach] = useState(false)
   const [outreachResult, setOutreachResult] = useState('')
   const [outreachError, setOutreachError] = useState('')
+  const [testName, setTestName] = useState('')
+  const [testEmail, setTestEmail] = useState('')
+  const [sendingTest, setSendingTest] = useState(false)
+  const [testResult, setTestResult] = useState('')
+  const [testError, setTestError] = useState('')
 
   const [reviewName, setReviewName] = useState('')
   const [reviewLocation, setReviewLocation] = useState('')
@@ -412,6 +417,31 @@ export default function AdminPage() {
     } finally {
       setSendingOutreach(false)
       setOutreachConfirming(false)
+    }
+  }
+
+  const sendTestOutreach = async () => {
+    setSendingTest(true)
+    setTestError('')
+    setTestResult('')
+    try {
+      const res = await fetch('/api/admin/crm/outreach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipients: [{ name: testName.trim(), email: testEmail.trim() }],
+          subject: outreachSubject,
+          messageBody: outreachBody,
+        }),
+      })
+      const data = await res.json()
+      if (!data.success) throw new Error(data.error || 'Failed to send.')
+      if (data.failed) throw new Error((data.errors && data.errors[0]) || 'Send failed.')
+      setTestResult(`Test sent to ${testEmail.trim()}.`)
+    } catch (err: any) {
+      setTestError(err.message || 'Failed to send.')
+    } finally {
+      setSendingTest(false)
     }
   }
 
@@ -1372,6 +1402,34 @@ export default function AdminPage() {
                             rows={4}
                             className="input text-sm"
                           />
+                          <div className="rounded-lg p-3 flex items-center gap-2 flex-wrap" style={{ background: 'var(--bg-primary)', border: '1px dashed var(--border)' }}>
+                            <span className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>Send a test first:</span>
+                            <input
+                              type="text"
+                              value={testName}
+                              onChange={e => setTestName(e.target.value)}
+                              placeholder="Name"
+                              className="input text-sm"
+                              style={{ width: 110 }}
+                            />
+                            <input
+                              type="email"
+                              value={testEmail}
+                              onChange={e => setTestEmail(e.target.value)}
+                              placeholder="you@example.com"
+                              className="input text-sm"
+                              style={{ width: 200 }}
+                            />
+                            <button
+                              onClick={sendTestOutreach}
+                              disabled={sendingTest || !testEmail.trim() || !outreachSubject.trim() || !outreachBody.trim()}
+                              className="btn-secondary text-sm px-3 py-1.5 disabled:opacity-50"
+                            >
+                              {sendingTest ? 'Sending...' : 'Send test'}
+                            </button>
+                            {testError && <p className="text-sm w-full" style={{ color: '#DD0000' }}>{testError}</p>}
+                            {testResult && <p className="text-sm w-full flex items-center gap-1.5" style={{ color: '#16a34a' }}><CheckCircle size={14} /> {testResult}</p>}
+                          </div>
                           {outreachError && <p className="text-sm" style={{ color: '#DD0000' }}>{outreachError}</p>}
                           {outreachResult && <p className="text-sm flex items-center gap-1.5" style={{ color: '#16a34a' }}><CheckCircle size={14} /> {outreachResult}</p>}
                           {!outreachConfirming ? (

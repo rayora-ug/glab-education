@@ -59,7 +59,7 @@ export default function ApplyA1Page() {
   const [error, setError] = useState('')
   const [submitted, setSubmitted] = useState(false)
 
-  const canSubmit = applicationOpen !== false && name.trim() && email.trim() && whatsappNumber.trim() && dob && occupation.trim()
+  const canSubmit = name.trim() && email.trim() && whatsappNumber.trim() && dob && occupation.trim()
     && city.trim() && batchChoice && motivation.trim() && whyGlab.trim() && howHeard && primaryGoal
     && (previousExperience !== 'yes' || previousCourseDetails.trim()) && agreedToRules
 
@@ -88,6 +88,34 @@ export default function ApplyA1Page() {
     }
   }
 
+  const [waitlistName, setWaitlistName] = useState('')
+  const [waitlistEmail, setWaitlistEmail] = useState('')
+  const [waitlistWhatsapp, setWaitlistWhatsapp] = useState('')
+  const [waitlistSubmitting, setWaitlistSubmitting] = useState(false)
+  const [waitlistError, setWaitlistError] = useState('')
+  const [waitlistSubmitted, setWaitlistSubmitted] = useState(false)
+
+  const handleWaitlistSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!waitlistName.trim() || !waitlistEmail.trim() || !waitlistWhatsapp.trim()) return
+    setWaitlistSubmitting(true)
+    setWaitlistError('')
+    try {
+      const res = await fetch('/api/apply/a1/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: waitlistName, email: waitlistEmail, whatsappNumber: waitlistWhatsapp }),
+      })
+      const data = await res.json()
+      if (!data.success) throw new Error(data.error || 'Something went wrong. Please try again.')
+      setWaitlistSubmitted(true)
+    } catch (err: any) {
+      setWaitlistError(err.message || 'Something went wrong. Please try again.')
+    } finally {
+      setWaitlistSubmitting(false)
+    }
+  }
+
   return (
     <section className="section pt-8">
       <div className="container max-w-2xl mx-auto">
@@ -113,18 +141,69 @@ export default function ApplyA1Page() {
               ))}
             </div>
           </div>
-          <div className="flex items-center gap-2 sm:flex-col sm:items-end shrink-0 rounded-lg px-4 py-2 sm:py-3"
-            style={{ background: 'rgba(221,0,0,0.08)', border: '1px solid rgba(221,0,0,0.25)' }}>
-            <div className="text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5" style={{ color: '#DD0000' }}>
-              <CalendarClock size={13} /> Application Deadline
+          {applicationOpen !== false && (
+            <div className="flex items-center gap-2 sm:flex-col sm:items-end shrink-0 rounded-lg px-4 py-2 sm:py-3"
+              style={{ background: 'rgba(221,0,0,0.08)', border: '1px solid rgba(221,0,0,0.25)' }}>
+              <div className="text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5" style={{ color: '#DD0000' }}>
+                <CalendarClock size={13} /> Application Deadline
+              </div>
+              <div className="font-display font-black text-2xl leading-none" style={{ color: '#DD0000' }}>
+                {formatDate(APPLICATION_DEADLINE)}
+              </div>
             </div>
-            <div className="font-display font-black text-2xl leading-none" style={{ color: '#DD0000' }}>
-              {formatDate(APPLICATION_DEADLINE)}
-            </div>
-          </div>
+          )}
         </div>
 
-        {submitted ? (
+        {applicationOpen === false ? (
+          waitlistSubmitted ? (
+            <div className="card p-8 md:p-10 text-center">
+              <CheckCircle size={40} style={{ color: '#16a34a' }} className="mx-auto mb-4" />
+              <h2 className="font-display font-bold text-2xl mb-2" style={{ color: 'var(--text-primary)' }}>
+                You're on the list!
+              </h2>
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                We'll reach out to <strong>{waitlistEmail}</strong> with priority access once applications open for the next session.
+              </p>
+            </div>
+          ) : (
+            <div className="card p-8 md:p-10">
+              <A1ApplicationClosedBanner />
+              <h2 className="font-display font-bold text-lg mb-1" style={{ color: 'var(--text-primary)' }}>
+                Want priority for the next session?
+              </h2>
+              <p className="text-sm mb-5" style={{ color: 'var(--text-muted)' }}>
+                Leave your details and we'll give you priority access when applications reopen.
+              </p>
+              <form onSubmit={handleWaitlistSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Full Name</label>
+                  <input type="text" value={waitlistName} onChange={e => setWaitlistName(e.target.value)} required className="input" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Email Address</label>
+                  <input type="email" value={waitlistEmail} onChange={e => setWaitlistEmail(e.target.value)} required className="input" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>WhatsApp Number</label>
+                  <input type="tel" value={waitlistWhatsapp} onChange={e => setWaitlistWhatsapp(e.target.value)} required className="input" />
+                </div>
+                {waitlistError && <p className="text-sm" style={{ color: '#DD0000' }}>{waitlistError}</p>}
+                <button
+                  type="submit"
+                  disabled={waitlistSubmitting || !waitlistName.trim() || !waitlistEmail.trim() || !waitlistWhatsapp.trim()}
+                  className="btn-primary w-full justify-center flex items-center gap-2 disabled:opacity-50"
+                >
+                  {waitlistSubmitting ? (
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Send size={16} />
+                  )}
+                  Join Priority List
+                </button>
+              </form>
+            </div>
+          )
+        ) : submitted ? (
           <div className="card p-8 md:p-10 text-center">
             <CheckCircle size={40} style={{ color: '#16a34a' }} className="mx-auto mb-4" />
             <h2 className="font-display font-bold text-2xl mb-2" style={{ color: 'var(--text-primary)' }}>
@@ -140,7 +219,6 @@ export default function ApplyA1Page() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
-            {applicationOpen === false && <A1ApplicationClosedBanner />}
             <div className="card p-8 md:p-10 space-y-4">
               <h2 className="font-display font-bold text-lg mb-1" style={{ color: 'var(--text-primary)' }}>Which batch would you like to join?</h2>
               <select value={batchChoice} onChange={e => setBatchChoice(e.target.value)} className="input">
@@ -293,7 +371,7 @@ export default function ApplyA1Page() {
               ) : (
                 <Send size={16} />
               )}
-              {applicationOpen === false ? 'Applications Closed' : 'Submit Application'}
+              Submit Application
             </button>
           </form>
         )}

@@ -11,6 +11,8 @@ var STUDENTS_SHEET = 'Students';
 var REGISTRATIONS_SHEET = 'Registrations';
 var BATCH_LINKS_SHEET = 'Batch Links';
 var APPLICATIONS_SHEET = 'Applications';
+var A1_WAITLIST_SHEET = 'A1 Waitlist';
+var A1_WAITLIST_HEADERS = ['Timestamp', 'Name', 'Email', 'WhatsApp Number'];
 var REGISTRATION_PENDING_SHEET = 'Registration Pending';
 var REGISTRATION_PENDING_HEADERS = ['GLAB ID', 'Name', 'Eligible Courses', 'Pending Since'];
 var EXAM_SUBMISSIONS_SHEET = 'Exam Submissions';
@@ -71,6 +73,8 @@ function doPost(e) {
       response = checkApplication_(body.email, body.phone);
     } else if (body.action === 'submitA1Application') {
       response = submitA1Application_(body);
+    } else if (body.action === 'submitA1Waitlist') {
+      response = submitA1Waitlist_(body);
     } else if (body.action === 'adminListApplications') {
       response = adminListApplications_();
     } else if (body.action === 'adminSelectApplicant') {
@@ -667,6 +671,49 @@ function submitA1Application_(body) {
   set(row, 'primary goal', primaryGoal);
   set(row, 'comment', comment);
   sheet.appendRow(row);
+  return { success: true };
+}
+
+// Captures interest from someone who hit the /apply/a1 page while
+// applications were closed. Deliberately separate from the Applications
+// sheet/flow above (this is a name+email+phone lead, not a full
+// application) so priority-list follow-up for the next session doesn't
+// get mixed in with an actual session's applicant pool.
+function submitA1Waitlist_(body) {
+  var name = String(body.name || '').trim();
+  var email = String(body.email || '').trim();
+  var whatsappNumber = String(body.whatsappNumber || '').trim();
+  if (!name) throw new Error('Name is required.');
+  if (!email) throw new Error('Email is required.');
+  if (!whatsappNumber) throw new Error('WhatsApp number is required.');
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(A1_WAITLIST_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(A1_WAITLIST_SHEET);
+    sheet.appendRow(A1_WAITLIST_HEADERS);
+  }
+  var values = sheet.getDataRange().getValues();
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var emailCol = headers.indexOf('email'), phoneCol = headers.indexOf('whatsapp number');
+
+  // Same "one person, one entry" guard as submitA1Application_ — block a
+  // resubmission matching an existing row on either email or WhatsApp
+  // number, rather than piling up duplicate rows from someone who
+  // revisits the page more than once.
+  var needleEmail = email.toLowerCase();
+  var needlePhone = normalizePhone_(whatsappNumber);
+  for (var i = 1; i < values.length; i++) {
+    var rowEmail = emailCol !== -1 ? String(values[i][emailCol] || '').trim().toLowerCase() : '';
+    var rowPhone = phoneCol !== -1 ? normalizePhone_(values[i][phoneCol]) : '';
+    var emailMatches = rowEmail && needleEmail && rowEmail === needleEmail;
+    var phoneMatches = rowPhone && needlePhone && rowPhone === needlePhone;
+    if (emailMatches || phoneMatches) {
+      return { success: true, alreadyOnList: true };
+    }
+  }
+
+  sheet.appendRow([new Date(), name, email, whatsappNumber]);
   return { success: true };
 }
 

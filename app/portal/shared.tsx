@@ -61,7 +61,7 @@ export function A1ApplicationClosedBanner() {
       style={{ background: 'rgba(221,0,0,0.08)', border: '1px solid rgba(221,0,0,0.25)' }}>
       <PauseCircle size={20} style={{ color: '#DD0000', flexShrink: 0, marginTop: 2 }} />
       <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
-        A1 applications are currently closed. If GLAB asked you to apply, please try again after they confirm it's open, or contact GLAB directly.
+        A1 applications are currently closed. The application period for this session has ended.
       </p>
     </div>
   )

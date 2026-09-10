@@ -148,6 +148,8 @@ export default function AdminPage() {
 
   const [registrationOpen, setRegistrationOpen] = useState<boolean | null>(null)
   const [togglingRegistration, setTogglingRegistration] = useState(false)
+  const [a1ApplicationOpen, setA1ApplicationOpen] = useState<boolean | null>(null)
+  const [togglingA1Application, setTogglingA1Application] = useState(false)
 
   const [glabIdQuery, setGlabIdQuery] = useState('')
   const [studentResult, setStudentResult] = useState<Student | null>(null)
@@ -246,6 +248,9 @@ export default function AdminPage() {
     fetch('/api/registration-status').then(r => r.json()).then(d => {
       if (d.success) setRegistrationOpen(d.open)
     })
+    fetch('/api/a1-application-status').then(r => r.json()).then(d => {
+      if (d.success) setA1ApplicationOpen(d.open)
+    })
     loadPending()
     loadAllRegistrations()
     loadPendingReviews()
@@ -308,6 +313,22 @@ export default function AdminPage() {
       if (data.success) setRegistrationOpen(data.open)
     } finally {
       setTogglingRegistration(false)
+    }
+  }
+
+  const toggleA1Application = async () => {
+    if (a1ApplicationOpen === null) return
+    setTogglingA1Application(true)
+    try {
+      const res = await fetch('/api/admin/a1-application-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ open: !a1ApplicationOpen }),
+      })
+      const data = await res.json()
+      if (data.success) setA1ApplicationOpen(data.open)
+    } finally {
+      setTogglingA1Application(false)
     }
   }
 
@@ -817,6 +838,28 @@ export default function AdminPage() {
               className={registrationOpen ? 'btn-secondary' : 'btn-primary'}
             >
               {registrationOpen === null ? '...' : togglingRegistration ? '...' : registrationOpen ? 'Turn Off' : 'Turn On'}
+            </button>
+          </div>
+        </div>
+
+        {/* A1 application switch */}
+        <div className="card p-6">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-3">
+              <Power size={18} style={{ color: a1ApplicationOpen ? '#16a34a' : '#DD0000' }} />
+              <div>
+                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>A1 Applications</div>
+                <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                  {a1ApplicationOpen === null ? 'Loading...' : a1ApplicationOpen ? 'Currently open — anyone can apply.' : 'Currently closed — separate from the Registration switch above.'}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={toggleA1Application}
+              disabled={a1ApplicationOpen === null || togglingA1Application}
+              className={a1ApplicationOpen ? 'btn-secondary' : 'btn-primary'}
+            >
+              {a1ApplicationOpen === null ? '...' : togglingA1Application ? '...' : a1ApplicationOpen ? 'Turn Off' : 'Turn On'}
             </button>
           </div>
         </div>

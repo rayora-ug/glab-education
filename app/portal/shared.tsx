@@ -41,6 +41,32 @@ export function RegistrationClosedBanner() {
   )
 }
 
+// Independent on/off switch from useRegistrationOpen above — this one
+// reflects the admin panel's separate A1 Applications switch, which
+// governs only the initial "apply to be considered" form, not course
+// registration itself.
+export function useA1ApplicationOpen() {
+  const [open, setOpen] = useState<boolean | null>(null)
+  useEffect(() => {
+    fetch('/api/a1-application-status').then(r => r.json()).then(d => {
+      if (d.success) setOpen(d.open)
+    }).catch(() => setOpen(true))
+  }, [])
+  return open
+}
+
+export function A1ApplicationClosedBanner() {
+  return (
+    <div className="rounded-xl p-5 mb-6 flex items-start gap-3"
+      style={{ background: 'rgba(221,0,0,0.08)', border: '1px solid rgba(221,0,0,0.25)' }}>
+      <PauseCircle size={20} style={{ color: '#DD0000', flexShrink: 0, marginTop: 2 }} />
+      <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
+        A1 applications are currently closed. If GLAB asked you to apply, please try again after they confirm it's open, or contact GLAB directly.
+      </p>
+    </div>
+  )
+}
+
 // "Forgot your GLAB ID?" — shared between /myglab and /portal, both of
 // which start with the same "enter your GLAB ID" step. Always shows the
 // same generic "sent" confirmation regardless of whether the email

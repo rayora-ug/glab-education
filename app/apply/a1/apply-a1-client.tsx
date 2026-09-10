@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Send, CheckCircle, ClipboardCheck, AlertTriangle, CalendarClock } from 'lucide-react'
 import coursesData from '../../../data/courses.json'
-import { formatDate } from '../../portal/shared'
+import { formatDate, useA1ApplicationOpen, A1ApplicationClosedBanner } from '../../portal/shared'
 
 // Students kept asking about course details/dates after already applying —
 // they'd either missed the announcement or forgotten it by the time they
@@ -34,6 +34,7 @@ const APPLICATION_RULES = [
 ]
 
 export default function ApplyA1Page() {
+  const applicationOpen = useA1ApplicationOpen()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [whatsappNumber, setWhatsappNumber] = useState('')
@@ -58,7 +59,7 @@ export default function ApplyA1Page() {
   const [error, setError] = useState('')
   const [submitted, setSubmitted] = useState(false)
 
-  const canSubmit = name.trim() && email.trim() && whatsappNumber.trim() && dob && occupation.trim()
+  const canSubmit = applicationOpen !== false && name.trim() && email.trim() && whatsappNumber.trim() && dob && occupation.trim()
     && city.trim() && batchChoice && motivation.trim() && whyGlab.trim() && howHeard && primaryGoal
     && (previousExperience !== 'yes' || previousCourseDetails.trim()) && agreedToRules
 
@@ -139,6 +140,7 @@ export default function ApplyA1Page() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
+            {applicationOpen === false && <A1ApplicationClosedBanner />}
             <div className="card p-8 md:p-10 space-y-4">
               <h2 className="font-display font-bold text-lg mb-1" style={{ color: 'var(--text-primary)' }}>Which batch would you like to join?</h2>
               <select value={batchChoice} onChange={e => setBatchChoice(e.target.value)} className="input">
@@ -291,7 +293,7 @@ export default function ApplyA1Page() {
               ) : (
                 <Send size={16} />
               )}
-              Submit Application
+              {applicationOpen === false ? 'Applications Closed' : 'Submit Application'}
             </button>
           </form>
         )}

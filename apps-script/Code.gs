@@ -115,6 +115,10 @@ function doPost(e) {
       response = { success: true, open: isRegistrationOpen_() };
     } else if (body.action === 'adminSetRegistrationOpen') {
       response = adminSetRegistrationOpen_(body.open);
+    } else if (body.action === 'getA1ApplicationStatus') {
+      response = { success: true, open: isA1ApplicationOpen_() };
+    } else if (body.action === 'adminSetA1ApplicationOpen') {
+      response = adminSetA1ApplicationOpen_(body.open);
     } else if (body.action === 'adminSetStudentBlocked') {
       response = adminSetStudentBlocked_(body.glabId, body.blocked);
     } else if (body.action === 'adminFindStudent') {
@@ -573,6 +577,8 @@ function ensureApplicationsHeaders_(sheet) {
 // "pending" — no schema change needed, just a new way to add rows besides
 // typing them in by hand.
 function submitA1Application_(body) {
+  if (!isA1ApplicationOpen_()) throw new Error('A1 applications are currently closed. Please check back later.');
+
   var name = String(body.name || '').trim();
   var email = String(body.email || '').trim();
   var whatsappNumber = String(body.whatsappNumber || '').trim();
@@ -1772,6 +1778,24 @@ function isRegistrationOpen_() {
 
 function adminSetRegistrationOpen_(open) {
   PropertiesService.getScriptProperties().setProperty('REGISTRATION_OPEN', open ? 'true' : 'false');
+  return { success: true, open: !!open };
+}
+
+// ===== Admin: A1 application on/off switch =====
+// Separate from REGISTRATION_OPEN above — that one gates course
+// registration (A2/B1, and A1's post-selection step), while this one
+// gates the A1 application form itself, which has its own independent
+// on/off cycle (e.g. opened briefly for one student on request, then
+// closed again). Same script-property pattern, own key so the two never
+// interact. Defaults to open (true) if never set, matching the same
+// "fresh setup isn't accidentally locked" reasoning as REGISTRATION_OPEN.
+function isA1ApplicationOpen_() {
+  var v = PropertiesService.getScriptProperties().getProperty('A1_APPLICATION_OPEN');
+  return v === null || v === 'true';
+}
+
+function adminSetA1ApplicationOpen_(open) {
+  PropertiesService.getScriptProperties().setProperty('A1_APPLICATION_OPEN', open ? 'true' : 'false');
   return { success: true, open: !!open };
 }
 

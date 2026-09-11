@@ -2020,7 +2020,7 @@ export default function AdminPage() {
           const expensesDE = sum(filteredExpenses.filter(e => e.location === 'DE').map(e => e.amount))
           const allTimeBD = (openingBD || 0) + sum((finance || []).filter(e => e.location === 'BD').map(e => e.amountPaid))
           const allTimeDE = (openingDE || 0) + sum((finance || []).filter(e => e.location === 'DE').map(e => e.amountPaid))
-          const fmt = (n: number) => n.toLocaleString()
+          const fmt = (n: number) => `${n.toLocaleString()} BDT`
           const entryCounts: Record<string, number> = {}
           ;(finance || []).forEach(e => { if (e.session) entryCounts[e.session] = (entryCounts[e.session] || 0) + 1 })
 

@@ -148,16 +148,22 @@ function doPost(e) {
       response = adminListFinance_();
     } else if (body.action === 'adminUpdateFinanceEntry') {
       response = adminUpdateFinanceEntry_(body);
+    } else if (body.action === 'adminDeleteFinanceEntry') {
+      response = adminDeleteFinanceEntry_(body.row);
     } else if (body.action === 'adminAddFinanceExpense') {
       response = adminAddFinanceExpense_(body);
     } else if (body.action === 'adminListFinanceExpenses') {
       response = adminListFinanceExpenses_();
+    } else if (body.action === 'adminDeleteFinanceExpense') {
+      response = adminDeleteFinanceExpense_(body.row);
     } else if (body.action === 'adminListFinanceSessions') {
       response = adminListFinanceSessions_();
     } else if (body.action === 'adminCreateFinanceSession') {
       response = adminCreateFinanceSession_(body);
     } else if (body.action === 'adminUpdateFinanceSession') {
       response = adminUpdateFinanceSession_(body);
+    } else if (body.action === 'adminDeleteFinanceSession') {
+      response = adminDeleteFinanceSession_(body.sessionCode);
     } else if (body.action === 'adminGetFinanceOpeningBalance') {
       response = adminGetFinanceOpeningBalance_();
     } else if (body.action === 'adminSetFinanceOpeningBalance') {
@@ -2619,6 +2625,24 @@ function adminListFinanceExpenses_() {
   return { success: true, expenses: expenses };
 }
 
+function adminDeleteFinanceExpense_(row) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(FINANCE_EXPENSES_SHEET);
+  if (!sheet) throw new Error('Finance Expenses sheet not found.');
+  row = Number(row);
+  if (!row || row < 2) throw new Error('Invalid row.');
+  sheet.deleteRow(row);
+  return { success: true };
+}
+
+function adminDeleteFinanceEntry_(row) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(FINANCE_SHEET);
+  if (!sheet) throw new Error('Finance sheet not found.');
+  row = Number(row);
+  if (!row || row < 2) throw new Error('Invalid row.');
+  sheet.deleteRow(row);
+  return { success: true };
+}
+
 // ===== Finance: sessions =====
 // Admin-defined date ranges (e.g. "26H" = Jul 1-Oct 31 2026), used to
 // auto-tag every Finance/Expense row by the date it actually happened —
@@ -2683,6 +2707,24 @@ function adminUpdateFinanceSession_(body) {
     if (String(values[i][codeCol] || '').trim().toLowerCase() === needle) {
       if (startCol !== -1) sheet.getRange(i + 1, startCol + 1).setValue(new Date(body.startDate));
       if (endCol !== -1) sheet.getRange(i + 1, endCol + 1).setValue(new Date(body.endDate));
+      return { success: true };
+    }
+  }
+  throw new Error('Session not found.');
+}
+
+function adminDeleteFinanceSession_(sessionCode) {
+  var code = String(sessionCode || '').trim();
+  if (!code) throw new Error('Session code is required.');
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(FINANCE_SESSIONS_SHEET);
+  if (!sheet) throw new Error('Finance Sessions sheet not found.');
+  var values = sheet.getDataRange().getValues();
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var codeCol = headers.indexOf('session code');
+  var needle = code.toLowerCase();
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][codeCol] || '').trim().toLowerCase() === needle) {
+      sheet.deleteRow(i + 1);
       return { success: true };
     }
   }

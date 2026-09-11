@@ -264,6 +264,13 @@ export default function AdminPage() {
   const [openingForm, setOpeningForm] = useState({ openingBD: '', openingDE: '' })
   const [savingOpening, setSavingOpening] = useState(false)
 
+  const [confirmDeleteFinanceRow, setConfirmDeleteFinanceRow] = useState<number | null>(null)
+  const [deletingFinanceRow, setDeletingFinanceRow] = useState<number | null>(null)
+  const [confirmDeleteExpenseRow, setConfirmDeleteExpenseRow] = useState<number | null>(null)
+  const [deletingExpenseRow, setDeletingExpenseRow] = useState<number | null>(null)
+  const [confirmDeleteSessionCode, setConfirmDeleteSessionCode] = useState<string | null>(null)
+  const [deletingSessionCode, setDeletingSessionCode] = useState<string | null>(null)
+
   const [reviewName, setReviewName] = useState('')
   const [reviewLocation, setReviewLocation] = useState('')
   const [reviewRating, setReviewRating] = useState(5)
@@ -710,6 +717,54 @@ export default function AdminPage() {
       }
     } finally {
       setSavingOpening(false)
+    }
+  }
+
+  const deleteFinanceEntry = async (row: number) => {
+    setDeletingFinanceRow(row)
+    try {
+      const res = await fetch('/api/admin/finance/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ row }),
+      })
+      const data = await res.json()
+      if (data.success) setFinance(prev => (prev || []).filter(e => e.row !== row))
+    } finally {
+      setDeletingFinanceRow(null)
+      setConfirmDeleteFinanceRow(null)
+    }
+  }
+
+  const deleteExpense = async (row: number) => {
+    setDeletingExpenseRow(row)
+    try {
+      const res = await fetch('/api/admin/finance/expenses/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ row }),
+      })
+      const data = await res.json()
+      if (data.success) setFinanceExpenses(prev => (prev || []).filter(e => e.row !== row))
+    } finally {
+      setDeletingExpenseRow(null)
+      setConfirmDeleteExpenseRow(null)
+    }
+  }
+
+  const deleteSession = async (sessionCode: string) => {
+    setDeletingSessionCode(sessionCode)
+    try {
+      const res = await fetch('/api/admin/finance/sessions/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionCode }),
+      })
+      const data = await res.json()
+      if (data.success) setFinanceSessions(prev => (prev || []).filter(s => s.sessionCode !== sessionCode))
+    } finally {
+      setDeletingSessionCode(null)
+      setConfirmDeleteSessionCode(null)
     }
   }
 
@@ -2010,7 +2065,22 @@ export default function AdminPage() {
                   <div className="text-sm" style={{ color: 'var(--text-primary)' }}>
                     <strong>{s.sessionCode}</strong> — {s.startDate} → {s.endDate}
                   </div>
-                  <button onClick={() => startEditSession(s)} className="btn-secondary text-sm px-3 py-1.5">Edit</button>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {confirmDeleteSessionCode === s.sessionCode ? (
+                      <>
+                        <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Delete this session?</span>
+                        <button onClick={() => deleteSession(s.sessionCode)} disabled={deletingSessionCode === s.sessionCode} className="text-sm px-3 py-1.5 rounded-lg disabled:opacity-50" style={{ background: '#DD0000', color: '#fff' }}>
+                          {deletingSessionCode === s.sessionCode ? '...' : 'Yes, delete'}
+                        </button>
+                        <button onClick={() => setConfirmDeleteSessionCode(null)} disabled={deletingSessionCode === s.sessionCode} className="btn-secondary text-sm px-3 py-1.5 disabled:opacity-50">Cancel</button>
+                      </>
+                    ) : (
+                      <>
+                        <button onClick={() => setConfirmDeleteSessionCode(s.sessionCode)} className="btn-secondary text-sm px-3 py-1.5">Delete</button>
+                        <button onClick={() => startEditSession(s)} className="btn-secondary text-sm px-3 py-1.5">Edit</button>
+                      </>
+                    )}
+                  </div>
                 </div>
               ))}
               {financeSessions && financeSessions.length === 0 && <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No sessions defined yet.</p>}
@@ -2061,7 +2131,22 @@ export default function AdminPage() {
                         <strong>{e.glabId}</strong> — {e.name} · {e.course} · {e.date} {e.session && `· ${e.session}`}
                       </div>
                       {editingFinanceRow !== e.row && (
-                        <button onClick={() => startEditFinanceEntry(e)} className="btn-secondary text-sm px-3 py-1.5">Edit</button>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {confirmDeleteFinanceRow === e.row ? (
+                            <>
+                              <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Delete this entry?</span>
+                              <button onClick={() => deleteFinanceEntry(e.row)} disabled={deletingFinanceRow === e.row} className="text-sm px-3 py-1.5 rounded-lg disabled:opacity-50" style={{ background: '#DD0000', color: '#fff' }}>
+                                {deletingFinanceRow === e.row ? '...' : 'Yes, delete'}
+                              </button>
+                              <button onClick={() => setConfirmDeleteFinanceRow(null)} disabled={deletingFinanceRow === e.row} className="btn-secondary text-sm px-3 py-1.5 disabled:opacity-50">Cancel</button>
+                            </>
+                          ) : (
+                            <>
+                              <button onClick={() => setConfirmDeleteFinanceRow(e.row)} className="btn-secondary text-sm px-3 py-1.5">Delete</button>
+                              <button onClick={() => startEditFinanceEntry(e)} className="btn-secondary text-sm px-3 py-1.5">Edit</button>
+                            </>
+                          )}
+                        </div>
                       )}
                     </div>
                     {editingFinanceRow === e.row ? (
@@ -2117,7 +2202,20 @@ export default function AdminPage() {
               {filteredExpenses.map(e => (
                 <div key={e.row} className="p-3 rounded-lg flex items-center justify-between gap-3 flex-wrap" style={{ background: 'var(--bg-secondary)' }}>
                   <div className="text-sm" style={{ color: 'var(--text-primary)' }}>{e.date} — {e.description}</div>
-                  <div className="text-sm" style={{ color: 'var(--text-muted)' }}>{fmt(e.amount)} · {e.location || '—'} · {e.paidFrom || '—'}</div>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="text-sm" style={{ color: 'var(--text-muted)' }}>{fmt(e.amount)} · {e.location || '—'} · {e.paidFrom || '—'}</div>
+                    {confirmDeleteExpenseRow === e.row ? (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Delete?</span>
+                        <button onClick={() => deleteExpense(e.row)} disabled={deletingExpenseRow === e.row} className="text-sm px-3 py-1.5 rounded-lg disabled:opacity-50" style={{ background: '#DD0000', color: '#fff' }}>
+                          {deletingExpenseRow === e.row ? '...' : 'Yes'}
+                        </button>
+                        <button onClick={() => setConfirmDeleteExpenseRow(null)} disabled={deletingExpenseRow === e.row} className="btn-secondary text-sm px-3 py-1.5 disabled:opacity-50">Cancel</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => setConfirmDeleteExpenseRow(e.row)} className="btn-secondary text-sm px-3 py-1.5">Delete</button>
+                    )}
+                  </div>
                 </div>
               ))}
               {financeExpenses && filteredExpenses.length === 0 && <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No expenses recorded yet.</p>}

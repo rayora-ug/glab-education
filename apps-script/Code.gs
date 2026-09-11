@@ -13,6 +13,15 @@ var BATCH_LINKS_SHEET = 'Batch Links';
 var APPLICATIONS_SHEET = 'Applications';
 var A1_WAITLIST_SHEET = 'A1 Waitlist';
 var A1_WAITLIST_HEADERS = ['Timestamp', 'Name', 'Email', 'WhatsApp Number'];
+var FINANCE_SHEET = 'Finance';
+var FINANCE_HEADERS = [
+  'Date', 'GLAB ID', 'Name', 'Course', 'Session', 'Course Fee', 'Amount Paid',
+  'Discount', 'Location', 'Payment Account', 'Payment Reference', 'Notes'
+];
+var FINANCE_EXPENSES_SHEET = 'Finance Expenses';
+var FINANCE_EXPENSES_HEADERS = ['Date', 'Description', 'Amount', 'Location', 'Paid From', 'Session'];
+var FINANCE_SESSIONS_SHEET = 'Finance Sessions';
+var FINANCE_SESSIONS_HEADERS = ['Session Code', 'Start Date', 'End Date'];
 var REGISTRATION_PENDING_SHEET = 'Registration Pending';
 var REGISTRATION_PENDING_HEADERS = ['GLAB ID', 'Name', 'Eligible Courses', 'Pending Since'];
 var EXAM_SUBMISSIONS_SHEET = 'Exam Submissions';
@@ -135,6 +144,24 @@ function doPost(e) {
       response = adminListSubmittedRegistrations_();
     } else if (body.action === 'adminListAllRegistrations') {
       response = adminListAllRegistrations_();
+    } else if (body.action === 'adminListFinance') {
+      response = adminListFinance_();
+    } else if (body.action === 'adminUpdateFinanceEntry') {
+      response = adminUpdateFinanceEntry_(body);
+    } else if (body.action === 'adminAddFinanceExpense') {
+      response = adminAddFinanceExpense_(body);
+    } else if (body.action === 'adminListFinanceExpenses') {
+      response = adminListFinanceExpenses_();
+    } else if (body.action === 'adminListFinanceSessions') {
+      response = adminListFinanceSessions_();
+    } else if (body.action === 'adminCreateFinanceSession') {
+      response = adminCreateFinanceSession_(body);
+    } else if (body.action === 'adminUpdateFinanceSession') {
+      response = adminUpdateFinanceSession_(body);
+    } else if (body.action === 'adminGetFinanceOpeningBalance') {
+      response = adminGetFinanceOpeningBalance_();
+    } else if (body.action === 'adminSetFinanceOpeningBalance') {
+      response = adminSetFinanceOpeningBalance_(body.openingBD, body.openingDE);
     } else if (body.action === 'adminListBatches') {
       response = adminListBatches_();
     } else if (body.action === 'adminCreateBatch') {
@@ -2392,6 +2419,8 @@ function adminConfirmRegistration_(glabId, timestamp) {
   var courseCol = headers.indexOf('course');
   var batchIdCol = headers.indexOf('batch id');
   var emailCol = headers.indexOf('email');
+  var payingFromCol = headers.indexOf('paying from');
+  var paymentRefCol = headers.indexOf('payment reference');
   if (idCol === -1 || timestampCol === -1 || statusCol === -1) {
     throw new Error('Registrations sheet must have "GLAB ID", "Timestamp", and "Status" columns');
   }
@@ -2410,10 +2439,276 @@ function adminConfirmRegistration_(glabId, timestamp) {
         batchIdCol !== -1 ? values[i][batchIdCol] : '',
         values[i][idCol]
       );
+      createFinanceEntryFromRegistration_({
+        date: values[i][timestampCol],
+        glabId: values[i][idCol],
+        name: nameCol !== -1 ? values[i][nameCol] : '',
+        course: courseCol !== -1 ? values[i][courseCol] : '',
+        payingFrom: payingFromCol !== -1 ? values[i][payingFromCol] : '',
+        paymentReference: paymentRefCol !== -1 ? values[i][paymentRefCol] : ''
+      });
       return { success: true };
     }
   }
   throw new Error('Matching registration not found');
+}
+
+// ===== Finance =====
+// Auto-populates the Finance sheet the moment a registration is
+// confirmed — GLAB ID, Name, Course, Date, Session, Location, and Payment
+// Reference all come from data the site already has, so admin never
+// retypes them from a bKash notification. Course Fee, Amount Paid,
+// Discount, and the specific Payment Account (which bKash number/bank)
+// genuinely can't be known automatically — the registration form only
+// captures a broad "Paying From" category, not which account a payment
+// landed in — so those stay blank for admin to fill in when reconciling.
+function createFinanceEntryFromRegistration_(info) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(FINANCE_SHEET);
+  if (!sheet) {
+    sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet(FINANCE_SHEET);
+    sheet.appendRow(FINANCE_HEADERS);
+  }
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+    .map(function (h) { return String(h).trim().toLowerCase(); });
+  var row = new Array(headers.length).fill('');
+  var set = function (name, value) { var c = headers.indexOf(name); if (c !== -1) row[c] = value; };
+
+  var payingFrom = String(info.payingFrom || '').trim().toLowerCase();
+  var location = payingFrom.indexOf('germany') !== -1 || payingFrom.indexOf('eu') !== -1 ? 'DE' : 'BD';
+
+  set('date', info.date);
+  set('glab id', info.glabId);
+  set('name', info.name);
+  set('course', info.course);
+  set('session', findSessionForDate_(info.date));
+  set('location', location);
+  set('payment reference', info.paymentReference);
+  sheet.appendRow(row);
+}
+
+// Matches a date against admin-defined session date ranges (the Finance
+// Sessions sheet) — e.g. "26H" = Jul 1-Oct 31 2026. Returns '' if no
+// range covers it yet, rather than guessing; admin can always fill the
+// Session cell in by hand for a row that predates its range being set up.
+function findSessionForDate_(date) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(FINANCE_SESSIONS_SHEET);
+  if (!sheet || !date) return '';
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return '';
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var codeCol = headers.indexOf('session code'), startCol = headers.indexOf('start date'), endCol = headers.indexOf('end date');
+  if (codeCol === -1 || startCol === -1 || endCol === -1) return '';
+
+  var d = new Date(date).getTime();
+  for (var i = 1; i < values.length; i++) {
+    var start = new Date(values[i][startCol]).getTime();
+    var end = new Date(values[i][endCol]).getTime();
+    if (!isNaN(start) && !isNaN(end) && d >= start && d <= end) {
+      return String(values[i][codeCol] || '').trim();
+    }
+  }
+  return '';
+}
+
+// Lists every Finance row for the admin panel, newest first. Due is
+// computed here rather than stored, so editing Course Fee/Discount/Amount
+// Paid later never leaves a stale Due behind.
+function adminListFinance_() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(FINANCE_SHEET);
+  if (!sheet) return { success: true, entries: [] };
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return { success: true, entries: [] };
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var col = function (name) { return headers.indexOf(name); };
+  var dateCol = col('date'), idCol = col('glab id'), nameCol = col('name'), courseCol = col('course'),
+      sessionCol = col('session'), feeCol = col('course fee'), paidCol = col('amount paid'),
+      discountCol = col('discount'), locCol = col('location'), acctCol = col('payment account'),
+      refCol = col('payment reference'), notesCol = col('notes');
+
+  var entries = [];
+  for (var i = 1; i < values.length; i++) {
+    if (!values[i][idCol]) continue;
+    var fee = Number(feeCol !== -1 ? values[i][feeCol] : 0) || 0;
+    var paid = Number(paidCol !== -1 ? values[i][paidCol] : 0) || 0;
+    var discount = Number(discountCol !== -1 ? values[i][discountCol] : 0) || 0;
+    entries.push({
+      row: i + 1,
+      date: dateCol !== -1 ? normalizeDate_(values[i][dateCol]) : '',
+      glabId: values[i][idCol],
+      name: nameCol !== -1 ? values[i][nameCol] : '',
+      course: courseCol !== -1 ? values[i][courseCol] : '',
+      session: sessionCol !== -1 ? values[i][sessionCol] : '',
+      courseFee: fee,
+      amountPaid: paid,
+      discount: discount,
+      due: Math.max(0, fee - discount - paid),
+      location: locCol !== -1 ? values[i][locCol] : '',
+      paymentAccount: acctCol !== -1 ? values[i][acctCol] : '',
+      paymentReference: refCol !== -1 ? values[i][refCol] : '',
+      notes: notesCol !== -1 ? values[i][notesCol] : ''
+    });
+  }
+  entries.reverse();
+  return { success: true, entries: entries };
+}
+
+// Updates the manually-reconciled fields on one Finance row (identified
+// by the row number adminListFinance_ returned). Date/GLAB ID/Name/
+// Course/Session came from the registration automatically and are never
+// touched here.
+function adminUpdateFinanceEntry_(body) {
+  var row = Number(body.row);
+  if (!row || row < 2) throw new Error('Invalid row.');
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(FINANCE_SHEET);
+  if (!sheet) throw new Error('Finance sheet not found.');
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+    .map(function (h) { return String(h).trim().toLowerCase(); });
+  var setCell = function (name, value) {
+    var c = headers.indexOf(name);
+    if (c !== -1) sheet.getRange(row, c + 1).setValue(value);
+  };
+  setCell('course fee', Number(body.courseFee) || 0);
+  setCell('amount paid', Number(body.amountPaid) || 0);
+  setCell('discount', Number(body.discount) || 0);
+  setCell('location', body.location || '');
+  setCell('payment account', body.paymentAccount || '');
+  setCell('payment reference', body.paymentReference || '');
+  setCell('notes', body.notes || '');
+  return { success: true };
+}
+
+function adminAddFinanceExpense_(body) {
+  var amount = Number(body.amount);
+  if (!body.description) throw new Error('Description is required.');
+  if (!amount) throw new Error('Amount is required.');
+
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(FINANCE_EXPENSES_SHEET);
+  if (!sheet) {
+    sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet(FINANCE_EXPENSES_SHEET);
+    sheet.appendRow(FINANCE_EXPENSES_HEADERS);
+  }
+  var date = body.date ? new Date(body.date) : new Date();
+  sheet.appendRow([date, body.description, amount, body.location || '', body.paidFrom || '', findSessionForDate_(date)]);
+  return { success: true };
+}
+
+function adminListFinanceExpenses_() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(FINANCE_EXPENSES_SHEET);
+  if (!sheet) return { success: true, expenses: [] };
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return { success: true, expenses: [] };
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var col = function (name) { return headers.indexOf(name); };
+  var dateCol = col('date'), descCol = col('description'), amountCol = col('amount'),
+      locCol = col('location'), paidFromCol = col('paid from'), sessionCol = col('session');
+
+  var expenses = [];
+  for (var i = 1; i < values.length; i++) {
+    if (!values[i][descCol]) continue;
+    expenses.push({
+      row: i + 1,
+      date: dateCol !== -1 ? normalizeDate_(values[i][dateCol]) : '',
+      description: values[i][descCol],
+      amount: Number(amountCol !== -1 ? values[i][amountCol] : 0) || 0,
+      location: locCol !== -1 ? values[i][locCol] : '',
+      paidFrom: paidFromCol !== -1 ? values[i][paidFromCol] : '',
+      session: sessionCol !== -1 ? values[i][sessionCol] : ''
+    });
+  }
+  expenses.reverse();
+  return { success: true, expenses: expenses };
+}
+
+// ===== Finance: sessions =====
+// Admin-defined date ranges (e.g. "26H" = Jul 1-Oct 31 2026), used to
+// auto-tag every Finance/Expense row by the date it actually happened —
+// deliberately NOT derived from a GLAB ID's own embedded session code,
+// since a student's GLAB ID reflects when they first registered (usually
+// A1), not when a later A2/B1 payment in a different session occurred.
+function adminListFinanceSessions_() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(FINANCE_SESSIONS_SHEET);
+  if (!sheet) return { success: true, sessions: [] };
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return { success: true, sessions: [] };
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var codeCol = headers.indexOf('session code'), startCol = headers.indexOf('start date'), endCol = headers.indexOf('end date');
+  if (codeCol === -1) return { success: true, sessions: [] };
+
+  var sessions = [];
+  for (var i = 1; i < values.length; i++) {
+    var code = String(values[i][codeCol] || '').trim();
+    if (!code) continue;
+    sessions.push({
+      sessionCode: code,
+      startDate: startCol !== -1 ? (normalizeDate_(values[i][startCol]) || '') : '',
+      endDate: endCol !== -1 ? (normalizeDate_(values[i][endCol]) || '') : ''
+    });
+  }
+  return { success: true, sessions: sessions };
+}
+
+function adminCreateFinanceSession_(body) {
+  var code = String(body.sessionCode || '').trim();
+  if (!code) throw new Error('Session code is required.');
+  if (!body.startDate || !body.endDate) throw new Error('Start date and end date are required.');
+
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(FINANCE_SESSIONS_SHEET);
+  if (!sheet) {
+    sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet(FINANCE_SESSIONS_SHEET);
+    sheet.appendRow(FINANCE_SESSIONS_HEADERS);
+  }
+  var values = sheet.getDataRange().getValues();
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var codeCol = headers.indexOf('session code');
+  var needle = code.toLowerCase();
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][codeCol] || '').trim().toLowerCase() === needle) {
+      throw new Error('A session with this code already exists — edit that one instead.');
+    }
+  }
+  sheet.appendRow([code, new Date(body.startDate), new Date(body.endDate)]);
+  return { success: true };
+}
+
+function adminUpdateFinanceSession_(body) {
+  var code = String(body.sessionCode || '').trim();
+  if (!code) throw new Error('Session code is required.');
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(FINANCE_SESSIONS_SHEET);
+  if (!sheet) throw new Error('Finance Sessions sheet not found.');
+  var values = sheet.getDataRange().getValues();
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var codeCol = headers.indexOf('session code'), startCol = headers.indexOf('start date'), endCol = headers.indexOf('end date');
+  var needle = code.toLowerCase();
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][codeCol] || '').trim().toLowerCase() === needle) {
+      if (startCol !== -1) sheet.getRange(i + 1, startCol + 1).setValue(new Date(body.startDate));
+      if (endCol !== -1) sheet.getRange(i + 1, endCol + 1).setValue(new Date(body.endDate));
+      return { success: true };
+    }
+  }
+  throw new Error('Session not found.');
+}
+
+// ===== Finance: opening balance =====
+// A single one-time starting figure (BD and DE, in local currency each)
+// representing real total revenue up to the day this system went live —
+// added once, by hand, since it predates this ledger entirely. Every
+// Finance row recorded from that point on is added on top of it, so
+// "All-Time Revenue" never needs a per-session manual carry-forward.
+function adminGetFinanceOpeningBalance_() {
+  var props = PropertiesService.getScriptProperties();
+  return {
+    success: true,
+    openingBD: Number(props.getProperty('FINANCE_OPENING_BD')) || 0,
+    openingDE: Number(props.getProperty('FINANCE_OPENING_DE')) || 0
+  };
+}
+
+function adminSetFinanceOpeningBalance_(bd, de) {
+  var props = PropertiesService.getScriptProperties();
+  props.setProperty('FINANCE_OPENING_BD', String(Number(bd) || 0));
+  props.setProperty('FINANCE_OPENING_DE', String(Number(de) || 0));
+  return { success: true };
 }
 
 // Emails a student the moment their registration is confirmed — this is

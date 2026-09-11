@@ -34,6 +34,7 @@ const ADMIN_TABS = [
   { id: 'a1', label: 'A1 Pipeline' },
   { id: 'crm', label: 'CRM' },
   { id: 'batches', label: 'Batches' },
+  { id: 'finance', label: 'Finance' },
   { id: 'content', label: 'Content' },
 ] as const
 type AdminTab = (typeof ADMIN_TABS)[number]['id']
@@ -96,6 +97,39 @@ type Batch = {
   startDate: string
   endDate: string
   confirmedCount: number
+}
+
+type FinanceEntry = {
+  row: number
+  date: string
+  glabId: string
+  name: string
+  course: string
+  session: string
+  courseFee: number
+  amountPaid: number
+  discount: number
+  due: number
+  location: string
+  paymentAccount: string
+  paymentReference: string
+  notes: string
+}
+
+type FinanceExpense = {
+  row: number
+  date: string
+  description: string
+  amount: number
+  location: string
+  paidFrom: string
+  session: string
+}
+
+type FinanceSession = {
+  sessionCode: string
+  startDate: string
+  endDate: string
 }
 
 type Application = {
@@ -205,6 +239,31 @@ export default function AdminPage() {
   const [savingBatch, setSavingBatch] = useState(false)
   const [batchFormError, setBatchFormError] = useState('')
 
+  const [finance, setFinance] = useState<FinanceEntry[] | null>(null)
+  const [financeError, setFinanceError] = useState('')
+  const [loadingFinance, setLoadingFinance] = useState(false)
+  const [financeSessionFilter, setFinanceSessionFilter] = useState('All')
+  const [editingFinanceRow, setEditingFinanceRow] = useState<number | null>(null)
+  const [financeEntryForm, setFinanceEntryForm] = useState({ courseFee: '', amountPaid: '', discount: '', location: '', paymentAccount: '', paymentReference: '', notes: '' })
+  const [savingFinanceEntry, setSavingFinanceEntry] = useState(false)
+
+  const [financeExpenses, setFinanceExpenses] = useState<FinanceExpense[] | null>(null)
+  const [expenseForm, setExpenseForm] = useState({ date: '', description: '', amount: '', location: '', paidFrom: '' })
+  const [savingExpense, setSavingExpense] = useState(false)
+  const [expenseError, setExpenseError] = useState('')
+
+  const [financeSessions, setFinanceSessions] = useState<FinanceSession[] | null>(null)
+  const [showAddSession, setShowAddSession] = useState(false)
+  const [sessionForm, setSessionForm] = useState({ sessionCode: '', startDate: '', endDate: '' })
+  const [editingSessionCode, setEditingSessionCode] = useState<string | null>(null)
+  const [savingSession, setSavingSession] = useState(false)
+  const [sessionFormError, setSessionFormError] = useState('')
+
+  const [openingBD, setOpeningBD] = useState<number | null>(null)
+  const [openingDE, setOpeningDE] = useState<number | null>(null)
+  const [openingForm, setOpeningForm] = useState({ openingBD: '', openingDE: '' })
+  const [savingOpening, setSavingOpening] = useState(false)
+
   const [reviewName, setReviewName] = useState('')
   const [reviewLocation, setReviewLocation] = useState('')
   const [reviewRating, setReviewRating] = useState(5)
@@ -291,6 +350,14 @@ export default function AdminPage() {
   useEffect(() => {
     if (activeTab === 'batches' && batches === null && !loadingBatches) loadBatches()
   }, [activeTab, batches, loadingBatches])
+
+  useEffect(() => {
+    if (activeTab !== 'finance' || finance !== null || loadingFinance) return
+    loadFinance()
+    loadFinanceExpenses()
+    loadFinanceSessions()
+    loadOpeningBalance()
+  }, [activeTab, finance, loadingFinance])
 
   const handleLogin = async () => {
     if (!password) return
@@ -495,6 +562,154 @@ export default function AdminPage() {
       setBatchFormError(err.message || 'Failed to save batch.')
     } finally {
       setSavingBatch(false)
+    }
+  }
+
+  const loadFinance = async () => {
+    setLoadingFinance(true)
+    setFinanceError('')
+    try {
+      const res = await fetch('/api/admin/finance', { method: 'POST' })
+      const data = await res.json()
+      if (data.success) setFinance(data.entries)
+      else setFinanceError(data.error || 'Failed to load Finance entries.')
+    } catch {
+      setFinanceError('Failed to load Finance entries.')
+    } finally {
+      setLoadingFinance(false)
+    }
+  }
+
+  const loadFinanceExpenses = async () => {
+    const res = await fetch('/api/admin/finance/expenses', { method: 'POST' })
+    const data = await res.json()
+    if (data.success) setFinanceExpenses(data.expenses)
+  }
+
+  const loadFinanceSessions = async () => {
+    const res = await fetch('/api/admin/finance/sessions', { method: 'POST' })
+    const data = await res.json()
+    if (data.success) setFinanceSessions(data.sessions)
+  }
+
+  const loadOpeningBalance = async () => {
+    const res = await fetch('/api/admin/finance/opening-balance', { method: 'POST' })
+    const data = await res.json()
+    if (data.success) {
+      setOpeningBD(data.openingBD)
+      setOpeningDE(data.openingDE)
+      setOpeningForm({ openingBD: String(data.openingBD), openingDE: String(data.openingDE) })
+    }
+  }
+
+  const startEditFinanceEntry = (e: FinanceEntry) => {
+    setEditingFinanceRow(e.row)
+    setFinanceEntryForm({
+      courseFee: String(e.courseFee || ''), amountPaid: String(e.amountPaid || ''), discount: String(e.discount || ''),
+      location: e.location, paymentAccount: e.paymentAccount, paymentReference: e.paymentReference, notes: e.notes,
+    })
+  }
+
+  const saveFinanceEntry = async () => {
+    if (!editingFinanceRow) return
+    setSavingFinanceEntry(true)
+    try {
+      const res = await fetch('/api/admin/finance/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          row: editingFinanceRow,
+          courseFee: Number(financeEntryForm.courseFee) || 0,
+          amountPaid: Number(financeEntryForm.amountPaid) || 0,
+          discount: Number(financeEntryForm.discount) || 0,
+          location: financeEntryForm.location,
+          paymentAccount: financeEntryForm.paymentAccount,
+          paymentReference: financeEntryForm.paymentReference,
+          notes: financeEntryForm.notes,
+        }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setEditingFinanceRow(null)
+        loadFinance()
+      }
+    } finally {
+      setSavingFinanceEntry(false)
+    }
+  }
+
+  const addExpense = async () => {
+    if (!expenseForm.description.trim() || !expenseForm.amount) return
+    setSavingExpense(true)
+    setExpenseError('')
+    try {
+      const res = await fetch('/api/admin/finance/expenses/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(expenseForm),
+      })
+      const data = await res.json()
+      if (!data.success) throw new Error(data.error || 'Failed to add expense.')
+      setExpenseForm({ date: '', description: '', amount: '', location: '', paidFrom: '' })
+      loadFinanceExpenses()
+    } catch (err: any) {
+      setExpenseError(err.message || 'Failed to add expense.')
+    } finally {
+      setSavingExpense(false)
+    }
+  }
+
+  const startAddSession = () => {
+    setEditingSessionCode(null)
+    setSessionForm({ sessionCode: '', startDate: '', endDate: '' })
+    setSessionFormError('')
+    setShowAddSession(true)
+  }
+
+  const startEditSession = (s: FinanceSession) => {
+    setEditingSessionCode(s.sessionCode)
+    setSessionForm({ sessionCode: s.sessionCode, startDate: s.startDate, endDate: s.endDate })
+    setSessionFormError('')
+    setShowAddSession(true)
+  }
+
+  const saveSession = async () => {
+    if (!sessionForm.sessionCode.trim() || !sessionForm.startDate || !sessionForm.endDate) return
+    setSavingSession(true)
+    setSessionFormError('')
+    try {
+      const res = await fetch(editingSessionCode ? '/api/admin/finance/sessions/update' : '/api/admin/finance/sessions/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sessionForm),
+      })
+      const data = await res.json()
+      if (!data.success) throw new Error(data.error || 'Failed to save session.')
+      setShowAddSession(false)
+      setEditingSessionCode(null)
+      loadFinanceSessions()
+    } catch (err: any) {
+      setSessionFormError(err.message || 'Failed to save session.')
+    } finally {
+      setSavingSession(false)
+    }
+  }
+
+  const saveOpeningBalance = async () => {
+    setSavingOpening(true)
+    try {
+      const res = await fetch('/api/admin/finance/opening-balance/set', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ openingBD: Number(openingForm.openingBD) || 0, openingDE: Number(openingForm.openingDE) || 0 }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setOpeningBD(data.success ? Number(openingForm.openingBD) || 0 : openingBD)
+        setOpeningDE(data.success ? Number(openingForm.openingDE) || 0 : openingDE)
+      }
+    } finally {
+      setSavingOpening(false)
     }
   }
 
@@ -1736,6 +1951,180 @@ export default function AdminPage() {
           )}
         </div>
         </>)}
+
+        {activeTab === 'finance' && (() => {
+          const sessionCodes = ['All', ...(financeSessions || []).map(s => s.sessionCode)]
+          const filteredEntries = (finance || []).filter(e => financeSessionFilter === 'All' || e.session === financeSessionFilter)
+          const filteredExpenses = (financeExpenses || []).filter(e => financeSessionFilter === 'All' || e.session === financeSessionFilter)
+          const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0)
+          const revenueBD = sum(filteredEntries.filter(e => e.location === 'BD').map(e => e.amountPaid))
+          const revenueDE = sum(filteredEntries.filter(e => e.location === 'DE').map(e => e.amountPaid))
+          const totalDiscount = sum(filteredEntries.map(e => e.discount))
+          const totalDue = sum(filteredEntries.map(e => e.due))
+          const expensesBD = sum(filteredExpenses.filter(e => e.location === 'BD').map(e => e.amount))
+          const expensesDE = sum(filteredExpenses.filter(e => e.location === 'DE').map(e => e.amount))
+          const allTimeBD = (openingBD || 0) + sum((finance || []).filter(e => e.location === 'BD').map(e => e.amountPaid))
+          const allTimeDE = (openingDE || 0) + sum((finance || []).filter(e => e.location === 'DE').map(e => e.amountPaid))
+          const fmt = (n: number) => n.toLocaleString()
+
+          return (<>
+          {/* Opening balance */}
+          <div className="card p-6">
+            <div className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Opening Balance</div>
+            <p className="text-sm mb-3" style={{ color: 'var(--text-muted)' }}>
+              A one-time starting figure representing real total revenue up to the day this system went live. Set once — everything recorded from here on is added on top of it automatically.
+            </p>
+            <div className="flex items-center gap-3 flex-wrap">
+              <input type="number" value={openingForm.openingBD} onChange={e => setOpeningForm(f => ({ ...f, openingBD: e.target.value }))} placeholder="Opening Revenue (BD)" className="input text-sm" style={{ width: 200 }} />
+              <input type="number" value={openingForm.openingDE} onChange={e => setOpeningForm(f => ({ ...f, openingDE: e.target.value }))} placeholder="Opening Revenue (DE)" className="input text-sm" style={{ width: 200 }} />
+              <button onClick={saveOpeningBalance} disabled={savingOpening} className="btn-primary text-sm px-3 py-1.5 disabled:opacity-50">{savingOpening ? 'Saving...' : 'Save'}</button>
+            </div>
+          </div>
+
+          {/* Sessions */}
+          <div className="card p-6">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Sessions</div>
+              <button onClick={startAddSession} className="btn-primary text-sm px-3 py-1.5">Add New Session</button>
+            </div>
+            <p className="text-sm mb-3" style={{ color: 'var(--text-muted)' }}>Define each session's date range once — every Finance/Expense entry is auto-tagged by matching its date into these ranges.</p>
+            {showAddSession && (
+              <div className="rounded-xl p-4 mb-4" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+                <div className="space-y-3">
+                  <input type="text" value={sessionForm.sessionCode} onChange={e => setSessionForm(f => ({ ...f, sessionCode: e.target.value }))} placeholder="Session Code (e.g. 26H)" className="input text-sm" disabled={!!editingSessionCode} />
+                  <div className="grid grid-cols-2 gap-3">
+                    <input type="date" value={sessionForm.startDate} onChange={e => setSessionForm(f => ({ ...f, startDate: e.target.value }))} className="input text-sm" />
+                    <input type="date" value={sessionForm.endDate} onChange={e => setSessionForm(f => ({ ...f, endDate: e.target.value }))} className="input text-sm" />
+                  </div>
+                  {sessionFormError && <p className="text-sm" style={{ color: '#DD0000' }}>{sessionFormError}</p>}
+                  <div className="flex items-center gap-2">
+                    <button onClick={saveSession} disabled={savingSession} className="btn-primary text-sm px-3 py-1.5 disabled:opacity-50">{savingSession ? 'Saving...' : editingSessionCode ? 'Save Changes' : 'Create Session'}</button>
+                    <button onClick={() => setShowAddSession(false)} className="btn-secondary text-sm px-3 py-1.5">Cancel</button>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="space-y-2">
+              {(financeSessions || []).map(s => (
+                <div key={s.sessionCode} className="p-3 rounded-lg flex items-center justify-between gap-3 flex-wrap" style={{ background: 'var(--bg-secondary)' }}>
+                  <div className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                    <strong>{s.sessionCode}</strong> — {s.startDate} → {s.endDate}
+                  </div>
+                  <button onClick={() => startEditSession(s)} className="btn-secondary text-sm px-3 py-1.5">Edit</button>
+                </div>
+              ))}
+              {financeSessions && financeSessions.length === 0 && <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No sessions defined yet.</p>}
+            </div>
+          </div>
+
+          {/* Summary */}
+          <div className="card p-6">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Summary</div>
+              <select value={financeSessionFilter} onChange={e => setFinanceSessionFilter(e.target.value)} className="input text-sm" style={{ width: 160 }}>
+                {sessionCodes.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+              <div><div style={{ color: 'var(--text-muted)' }}>Revenue (BD)</div><div className="font-semibold" style={{ color: 'var(--text-primary)' }}>{fmt(revenueBD)}</div></div>
+              <div><div style={{ color: 'var(--text-muted)' }}>Revenue (DE)</div><div className="font-semibold" style={{ color: 'var(--text-primary)' }}>{fmt(revenueDE)}</div></div>
+              <div><div style={{ color: 'var(--text-muted)' }}>Discount Given</div><div className="font-semibold" style={{ color: 'var(--text-primary)' }}>{fmt(totalDiscount)}</div></div>
+              <div><div style={{ color: 'var(--text-muted)' }}>Due Outstanding</div><div className="font-semibold" style={{ color: '#DD0000' }}>{fmt(totalDue)}</div></div>
+              <div><div style={{ color: 'var(--text-muted)' }}>Expenses (BD)</div><div className="font-semibold" style={{ color: 'var(--text-primary)' }}>{fmt(expensesBD)}</div></div>
+              <div><div style={{ color: 'var(--text-muted)' }}>Expenses (DE)</div><div className="font-semibold" style={{ color: 'var(--text-primary)' }}>{fmt(expensesDE)}</div></div>
+              <div><div style={{ color: 'var(--text-muted)' }}>All-Time Revenue (BD)</div><div className="font-semibold" style={{ color: '#16a34a' }}>{fmt(allTimeBD)}</div></div>
+              <div><div style={{ color: 'var(--text-muted)' }}>All-Time Revenue (DE)</div><div className="font-semibold" style={{ color: '#16a34a' }}>{fmt(allTimeDE)}</div></div>
+            </div>
+          </div>
+
+          {/* Finance entries */}
+          <div className="card p-6">
+            <div className="flex items-center justify-between mb-3">
+              <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Finance Entries</div>
+              <button onClick={loadFinance} disabled={loadingFinance} className="text-sm underline inline-flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
+                <RefreshCw size={13} className={loadingFinance ? 'animate-spin' : ''} /> Refresh
+              </button>
+            </div>
+            <p className="text-sm mb-3" style={{ color: 'var(--text-muted)' }}>New rows appear automatically when a registration is confirmed. Fill in Course Fee, Amount Paid, Discount, Location, and Payment Account as you reconcile each one.</p>
+            {financeError ? (
+              <p className="text-sm" style={{ color: '#DD0000' }}>{financeError}</p>
+            ) : finance === null || loadingFinance ? (
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading...</p>
+            ) : filteredEntries.length === 0 ? (
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No entries yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {filteredEntries.map(e => (
+                  <div key={e.row} className="p-3 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
+                    <div className="flex items-center justify-between gap-3 flex-wrap mb-1">
+                      <div className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                        <strong>{e.glabId}</strong> — {e.name} · {e.course} · {e.date} {e.session && `· ${e.session}`}
+                      </div>
+                      {editingFinanceRow !== e.row && (
+                        <button onClick={() => startEditFinanceEntry(e)} className="btn-secondary text-sm px-3 py-1.5">Edit</button>
+                      )}
+                    </div>
+                    {editingFinanceRow === e.row ? (
+                      <div className="space-y-2 mt-2">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          <input type="number" value={financeEntryForm.courseFee} onChange={ev => setFinanceEntryForm(f => ({ ...f, courseFee: ev.target.value }))} placeholder="Course Fee" className="input text-sm" />
+                          <input type="number" value={financeEntryForm.amountPaid} onChange={ev => setFinanceEntryForm(f => ({ ...f, amountPaid: ev.target.value }))} placeholder="Amount Paid" className="input text-sm" />
+                          <input type="number" value={financeEntryForm.discount} onChange={ev => setFinanceEntryForm(f => ({ ...f, discount: ev.target.value }))} placeholder="Discount" className="input text-sm" />
+                          <select value={financeEntryForm.location} onChange={ev => setFinanceEntryForm(f => ({ ...f, location: ev.target.value }))} className="input text-sm">
+                            <option value="">Location</option>
+                            <option value="BD">BD</option>
+                            <option value="DE">DE</option>
+                          </select>
+                          <input type="text" value={financeEntryForm.paymentAccount} onChange={ev => setFinanceEntryForm(f => ({ ...f, paymentAccount: ev.target.value }))} placeholder="Payment Account (e.g. bKash-660)" className="input text-sm" />
+                          <input type="text" value={financeEntryForm.paymentReference} onChange={ev => setFinanceEntryForm(f => ({ ...f, paymentReference: ev.target.value }))} placeholder="Payment Reference" className="input text-sm" />
+                        </div>
+                        <input type="text" value={financeEntryForm.notes} onChange={ev => setFinanceEntryForm(f => ({ ...f, notes: ev.target.value }))} placeholder="Notes (optional)" className="input text-sm" />
+                        <div className="flex items-center gap-2">
+                          <button onClick={saveFinanceEntry} disabled={savingFinanceEntry} className="btn-primary text-sm px-3 py-1.5 disabled:opacity-50">{savingFinanceEntry ? 'Saving...' : 'Save'}</button>
+                          <button onClick={() => setEditingFinanceRow(null)} className="btn-secondary text-sm px-3 py-1.5">Cancel</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                        Fee: {fmt(e.courseFee)} · Paid: {fmt(e.amountPaid)} · Discount: {fmt(e.discount)} · Due: <span style={{ color: e.due > 0 ? '#DD0000' : 'inherit' }}>{fmt(e.due)}</span> · {e.location || 'No location'} · {e.paymentAccount || 'No account set'}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Expenses */}
+          <div className="card p-6">
+            <div className="font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Expenses</div>
+            <div className="rounded-xl p-4 mb-4" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-2">
+                <input type="date" value={expenseForm.date} onChange={e => setExpenseForm(f => ({ ...f, date: e.target.value }))} className="input text-sm" />
+                <input type="text" value={expenseForm.description} onChange={e => setExpenseForm(f => ({ ...f, description: e.target.value }))} placeholder="Description" className="input text-sm" />
+                <input type="number" value={expenseForm.amount} onChange={e => setExpenseForm(f => ({ ...f, amount: e.target.value }))} placeholder="Amount" className="input text-sm" />
+                <select value={expenseForm.location} onChange={e => setExpenseForm(f => ({ ...f, location: e.target.value }))} className="input text-sm">
+                  <option value="">Location</option>
+                  <option value="BD">BD</option>
+                  <option value="DE">DE</option>
+                </select>
+                <input type="text" value={expenseForm.paidFrom} onChange={e => setExpenseForm(f => ({ ...f, paidFrom: e.target.value }))} placeholder="Paid From (e.g. Cash)" className="input text-sm" />
+              </div>
+              {expenseError && <p className="text-sm mb-2" style={{ color: '#DD0000' }}>{expenseError}</p>}
+              <button onClick={addExpense} disabled={savingExpense} className="btn-primary text-sm px-3 py-1.5 disabled:opacity-50">{savingExpense ? 'Adding...' : 'Add Expense'}</button>
+            </div>
+            <div className="space-y-2">
+              {filteredExpenses.map(e => (
+                <div key={e.row} className="p-3 rounded-lg flex items-center justify-between gap-3 flex-wrap" style={{ background: 'var(--bg-secondary)' }}>
+                  <div className="text-sm" style={{ color: 'var(--text-primary)' }}>{e.date} — {e.description}</div>
+                  <div className="text-sm" style={{ color: 'var(--text-muted)' }}>{fmt(e.amount)} · {e.location || '—'} · {e.paidFrom || '—'}</div>
+                </div>
+              ))}
+              {financeExpenses && filteredExpenses.length === 0 && <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No expenses recorded yet.</p>}
+            </div>
+          </div>
+          </>)
+        })()}
 
         {activeTab === 'content' && (<>
         {/* Pending reviews (student self-submitted) */}

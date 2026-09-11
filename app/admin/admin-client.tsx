@@ -2008,7 +2008,7 @@ export default function AdminPage() {
         </>)}
 
         {activeTab === 'finance' && (() => {
-          const sessionCodes = ['All', ...(financeSessions || []).map(s => s.sessionCode)]
+          const sessionCodes = (financeSessions || []).map(s => s.sessionCode)
           const filteredEntries = (finance || []).filter(e => financeSessionFilter === 'All' || e.session === financeSessionFilter)
           const filteredExpenses = (financeExpenses || []).filter(e => financeSessionFilter === 'All' || e.session === financeSessionFilter)
           const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0)
@@ -2021,8 +2021,37 @@ export default function AdminPage() {
           const allTimeBD = (openingBD || 0) + sum((finance || []).filter(e => e.location === 'BD').map(e => e.amountPaid))
           const allTimeDE = (openingDE || 0) + sum((finance || []).filter(e => e.location === 'DE').map(e => e.amountPaid))
           const fmt = (n: number) => n.toLocaleString()
+          const entryCounts: Record<string, number> = {}
+          ;(finance || []).forEach(e => { if (e.session) entryCounts[e.session] = (entryCounts[e.session] || 0) + 1 })
 
           return (<>
+          {/* Session tabs — filters everything below (Summary, Entries, Expenses) */}
+          <div className="flex gap-1.5 flex-wrap">
+            <button
+              onClick={() => setFinanceSessionFilter('All')}
+              className="text-sm px-3 py-1.5 rounded-full font-medium"
+              style={{
+                background: financeSessionFilter === 'All' ? '#DD0000' : 'var(--bg-secondary)',
+                color: financeSessionFilter === 'All' ? '#fff' : 'var(--text-muted)',
+              }}
+            >
+              All ({(finance || []).length})
+            </button>
+            {sessionCodes.map(code => (
+              <button
+                key={code}
+                onClick={() => setFinanceSessionFilter(code)}
+                className="text-sm px-3 py-1.5 rounded-full font-medium"
+                style={{
+                  background: financeSessionFilter === code ? '#DD0000' : 'var(--bg-secondary)',
+                  color: financeSessionFilter === code ? '#fff' : 'var(--text-muted)',
+                }}
+              >
+                {code} ({entryCounts[code] || 0})
+              </button>
+            ))}
+          </div>
+
           {/* Opening balance */}
           <div className="card p-6">
             <div className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Opening Balance</div>
@@ -2089,11 +2118,8 @@ export default function AdminPage() {
 
           {/* Summary */}
           <div className="card p-6">
-            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-              <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Summary</div>
-              <select value={financeSessionFilter} onChange={e => setFinanceSessionFilter(e.target.value)} className="input text-sm" style={{ width: 160 }}>
-                {sessionCodes.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
+            <div className="font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>
+              Summary {financeSessionFilter !== 'All' && `— ${financeSessionFilter}`}
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
               <div><div style={{ color: 'var(--text-muted)' }}>Revenue (BD)</div><div className="font-semibold" style={{ color: 'var(--text-primary)' }}>{fmt(revenueBD)}</div></div>

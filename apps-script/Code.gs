@@ -1919,6 +1919,34 @@ function findFeedback_(glabId) {
   return null;
 }
 
+// Picks which confirmed registration's batch info (links, attendance,
+// feedback) a student should see on MyGLAB right now. A student can have
+// more than one confirmed registration at a time — e.g. already confirmed
+// for B1 while still finishing A2 — and we deliberately keep showing the
+// EARLIEST one that hasn't ended yet, so a student keeps seeing their
+// current course's Meet link right up through its last day, instead of
+// the view jumping to the next course the moment its registration gets
+// confirmed. The registration confirmation email is unaffected by this —
+// it already includes the new course's own links immediately, which is
+// separate and intentional. Once every confirmed registration's batch has
+// ended, falls back to the most recently confirmed one (their latest
+// completed/ongoing course) — the prior, simpler behavior.
+function pickActiveRegistration_(history) {
+  if (!history.length) return null;
+  var today = new Date();
+  today.setHours(0, 0, 0, 0);
+  for (var i = 0; i < history.length; i++) {
+    var info = findBatchInfo_(history[i].batchId);
+    // No end date on file — treat as still active rather than risk
+    // skipping a course prematurely just because its dates aren't filled
+    // in on the Batch Links sheet yet.
+    if (!info.endDate) return history[i];
+    var end = new Date(info.endDate);
+    if (isNaN(end.getTime()) || end >= today) return history[i];
+  }
+  return history[history.length - 1];
+}
+
 // Assembles the full MyGLAB dashboard for a confirmed student: batch info
 // (course, dates, links), attendance, published exam results, and any
 // instructor feedback. A student who exists but isn't Confirmed yet still
@@ -1932,15 +1960,15 @@ function getDashboard_(glabId) {
   var registration = findLatestRegistration_(student.glabId);
   var confirmed = !!registration && registration.status === CONFIRMED_STATUS;
   var history = findRegistrationHistory_(student.glabId); // Confirmed-only, oldest first.
-  // The most recently CONFIRMED registration — deliberately independent of
-  // `registration`/`confirmed` above, which only reflect the single latest
-  // row regardless of status. Without this, a student mid-registration for
-  // their next level (a newer row still "Submitted", not yet confirmed)
-  // would lose all visibility into their most recently completed course's
-  // attendance/class links while that new submission is awaiting payment
-  // verification — attendance/class links should track "what did they last
-  // actually complete," not "what's the newest row in the sheet."
-  var confirmedRegistration = history.length > 0 ? history[history.length - 1] : null;
+  // The registration whose batch info a student should currently see —
+  // deliberately independent of `registration`/`confirmed` above, which
+  // only reflect the single latest row regardless of status. Without this,
+  // a student mid-registration for their next level (a newer row still
+  // "Submitted", not yet confirmed, or already confirmed but not yet
+  // started) would lose all visibility into their current course's
+  // attendance/class links. See pickActiveRegistration_ for how it picks
+  // between multiple confirmed registrations.
+  var confirmedRegistration = pickActiveRegistration_(history);
 
   var response = {
     success: true,

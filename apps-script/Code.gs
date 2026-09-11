@@ -129,6 +129,8 @@ function doPost(e) {
       response = adminSetStudentBlocked_(body.glabId, body.blocked);
     } else if (body.action === 'adminFindStudent') {
       response = adminFindStudent_(body.glabId);
+    } else if (body.action === 'adminRestoreMissingStudent') {
+      response = adminRestoreMissingStudent_(body.glabId, body.name);
     } else if (body.action === 'adminListSubmittedRegistrations') {
       response = adminListSubmittedRegistrations_();
     } else if (body.action === 'adminListAllRegistrations') {
@@ -1104,6 +1106,25 @@ function adminApplyApplicationCleanup_(rows) {
 // Adds a bare row to Students with just GLAB ID + Name — the same minimal
 // row an admin used to type in by hand when manually selecting an A1
 // applicant. Eligibility is granted separately via adminSetStudentEligible_.
+// Restores one student's row on the Students sheet if it's missing —
+// recovery for rows that get deleted by mistake (e.g. someone clearing
+// out "done with the program" students, not realizing this sheet is also
+// the MyGLAB login/identity record, not just an eligibility list — a
+// finished B1 student still needs their row to exist to see their own
+// attendance/certificate history and log in at all). A no-op (not an
+// error) if the row already exists, so this is safe to call speculatively
+// on a list of GLAB IDs without checking first. Restores identity only —
+// eligibility checkboxes stay unset, exactly as a normal finished
+// student's would be.
+function adminRestoreMissingStudent_(glabId, name) {
+  glabId = String(glabId || '').trim();
+  if (!glabId) throw new Error('GLAB ID is required.');
+  var existing = findStudent_(glabId);
+  if (existing) return { success: true, alreadyExists: true };
+  appendStudentRow_(glabId, name || '');
+  return { success: true, restored: true };
+}
+
 function appendStudentRow_(glabId, name) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(STUDENTS_SHEET);
   if (!sheet) throw new Error('Students sheet not found');

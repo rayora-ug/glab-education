@@ -235,6 +235,8 @@ export default function AdminPage() {
   const [pendingReviewsError, setPendingReviewsError] = useState('')
   const [loadingPendingReviews, setLoadingPendingReviews] = useState(false)
   const [approvingReviewRow, setApprovingReviewRow] = useState<number | null>(null)
+  const [confirmDeleteReviewRow, setConfirmDeleteReviewRow] = useState<number | null>(null)
+  const [deletingReviewRow, setDeletingReviewRow] = useState<number | null>(null)
 
   useEffect(() => {
     fetch('/api/admin/session').then(r => r.json()).then(d => {
@@ -679,6 +681,24 @@ export default function AdminPage() {
       }
     } finally {
       setApprovingReviewRow(null)
+    }
+  }
+
+  const deletePendingReview = async (row: number) => {
+    setDeletingReviewRow(row)
+    try {
+      const res = await fetch('/api/admin/reviews/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ row }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setPendingReviews(prev => (prev || []).filter(r => r.row !== row))
+      }
+    } finally {
+      setDeletingReviewRow(null)
+      setConfirmDeleteReviewRow(null)
     }
   }
 
@@ -1564,13 +1584,44 @@ export default function AdminPage() {
                         {rev.rating ? Array.from({ length: rev.rating }).map((_, i) => <Star key={i} size={11} fill="#FFCE00" style={{ color: '#FFCE00' }} />) : null}
                       </div>
                     </div>
-                    <button
-                      onClick={() => approvePendingReview(rev.row)}
-                      disabled={approvingReviewRow === rev.row}
-                      className="btn-primary text-sm px-3 py-1.5 disabled:opacity-50"
-                    >
-                      {approvingReviewRow === rev.row ? '...' : 'Publish'}
-                    </button>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {confirmDeleteReviewRow === rev.row ? (
+                        <>
+                          <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Delete this review?</span>
+                          <button
+                            onClick={() => deletePendingReview(rev.row)}
+                            disabled={deletingReviewRow === rev.row}
+                            className="text-sm px-3 py-1.5 rounded-lg disabled:opacity-50"
+                            style={{ background: '#DD0000', color: '#fff' }}
+                          >
+                            {deletingReviewRow === rev.row ? '...' : 'Yes, delete'}
+                          </button>
+                          <button
+                            onClick={() => setConfirmDeleteReviewRow(null)}
+                            disabled={deletingReviewRow === rev.row}
+                            className="btn-secondary text-sm px-3 py-1.5 disabled:opacity-50"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => setConfirmDeleteReviewRow(rev.row)}
+                            className="btn-secondary text-sm px-3 py-1.5"
+                          >
+                            Delete
+                          </button>
+                          <button
+                            onClick={() => approvePendingReview(rev.row)}
+                            disabled={approvingReviewRow === rev.row}
+                            className="btn-primary text-sm px-3 py-1.5 disabled:opacity-50"
+                          >
+                            {approvingReviewRow === rev.row ? '...' : 'Publish'}
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                   <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{rev.text}</p>
                 </div>

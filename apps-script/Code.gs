@@ -105,6 +105,8 @@ function doPost(e) {
       response = getPublishedReviews_();
     } else if (body.action === 'adminAddReview') {
       response = adminAddReview_(body);
+    } else if (body.action === 'adminDeleteReview') {
+      response = adminDeleteReview_(body.row);
     } else if (body.action === 'getPublishedAnnouncements') {
       response = getPublishedAnnouncements_();
     } else if (body.action === 'adminAddAnnouncement') {
@@ -1472,6 +1474,21 @@ function markReviewsSynced_(rowNumbers) {
     sheet.getRange(r, syncedCol + 1).setValue(true);
   });
   return { success: true, updated: rowNumbers.length };
+}
+
+// Permanently removes one row from the Reviews tab — for a duplicate
+// self-submission (a student accidentally submitting the same review
+// twice) or any other pending review that shouldn't be published.
+// Row numbers only ever come from listReviews_'s own output, but the
+// header-row guard stays as a hard backstop against ever wiping the
+// sheet's column labels.
+function adminDeleteReview_(row) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(REVIEWS_SHEET);
+  if (!sheet) throw new Error('Reviews sheet not found');
+  row = Number(row);
+  if (!row || row < 2) throw new Error('Invalid row.');
+  sheet.deleteRow(row);
+  return { success: true };
 }
 
 // Returns every "Synced" review from the Reviews tab, for live display on

@@ -133,6 +133,12 @@ function doPost(e) {
       response = adminListSubmittedRegistrations_();
     } else if (body.action === 'adminListAllRegistrations') {
       response = adminListAllRegistrations_();
+    } else if (body.action === 'adminListBatches') {
+      response = adminListBatches_();
+    } else if (body.action === 'adminCreateBatch') {
+      response = adminCreateBatch_(body);
+    } else if (body.action === 'adminUpdateBatch') {
+      response = adminUpdateBatch_(body);
     } else if (body.action === 'adminListCRM') {
       response = adminListCRM_();
     } else if (body.action === 'adminSendOutreach') {
@@ -477,6 +483,137 @@ function findBatchInfo_(batchId) {
     }
   }
   return empty;
+}
+
+var BATCH_LINKS_HEADERS = [
+  'Batch ID', 'WhatsApp Group Link', 'Google Classroom Link', 'Google Meet Link', 'Start Date', 'End Date'
+];
+
+// Lists every batch in the Batch Links tab for the admin panel, each
+// annotated with how many currently-Confirmed registrations point at it —
+// so admin can see the real impact of editing a batch's links before
+// doing it, rather than discovering it after the fact (which is exactly
+// how a currently-enrolled cohort briefly lost its class links: an
+// existing batch's row was cleared to prep the next one, instead of
+// adding a new row for it).
+function adminListBatches_() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(BATCH_LINKS_SHEET);
+  if (!sheet) return { success: true, batches: [] };
+
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return { success: true, batches: [] };
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var col = function (name) { return headers.indexOf(name); };
+  var idCol = col('batch id'), whatsappCol = col('whatsapp group link'),
+      classroomCol = col('google classroom link'), meetCol = col('google meet link'),
+      startCol = col('start date'), endCol = col('end date');
+  if (idCol === -1) return { success: true, batches: [] };
+
+  var confirmedCounts = {};
+  var regSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(REGISTRATIONS_SHEET);
+  if (regSheet) {
+    var regValues = regSheet.getDataRange().getValues();
+    if (regValues.length > 1) {
+      var regHeaders = regValues[0].map(function (h) { return String(h).trim().toLowerCase(); });
+      var regBatchCol = regHeaders.indexOf('batch id'), regStatusCol = regHeaders.indexOf('status');
+      if (regBatchCol !== -1 && regStatusCol !== -1) {
+        for (var r = 1; r < regValues.length; r++) {
+          var status = String(regValues[r][regStatusCol] || '').trim();
+          if (status !== CONFIRMED_STATUS) continue;
+          var bId = String(regValues[r][regBatchCol] || '').trim().toLowerCase();
+          if (!bId) continue;
+          confirmedCounts[bId] = (confirmedCounts[bId] || 0) + 1;
+        }
+      }
+    }
+  }
+
+  var cell = function (row, c) { return c !== -1 ? String(row[c] || '').trim() : ''; };
+  var batches = [];
+  for (var i = 1; i < values.length; i++) {
+    var batchId = cell(values[i], idCol);
+    if (!batchId) continue;
+    batches.push({
+      batchId: batchId,
+      whatsappLink: cell(values[i], whatsappCol),
+      classroomLink: cell(values[i], classroomCol),
+      meetLink: cell(values[i], meetCol),
+      startDate: startCol !== -1 ? (normalizeDate_(values[i][startCol]) || '') : '',
+      endDate: endCol !== -1 ? (normalizeDate_(values[i][endCol]) || '') : '',
+      confirmedCount: confirmedCounts[batchId.toLowerCase()] || 0
+    });
+  }
+  return { success: true, batches: batches };
+}
+
+// Creates a brand-new batch row. Deliberately refuses to touch an
+// existing batch ID — the whole point is to make it structurally
+// impossible to repeat the mistake of clearing/reusing a live batch's row
+// to prep the next one, instead of giving the next batch its own row.
+function adminCreateBatch_(body) {
+  var batchId = String(body.batchId || '').trim();
+  if (!batchId) throw new Error('Batch ID is required.');
+
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(BATCH_LINKS_SHEET);
+  if (!sheet) {
+    sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet(BATCH_LINKS_SHEET);
+    sheet.appendRow(BATCH_LINKS_HEADERS);
+  }
+  var values = sheet.getDataRange().getValues();
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var idCol = headers.indexOf('batch id');
+  if (idCol === -1) throw new Error('Batch Links sheet must have a "Batch ID" column.');
+
+  var needle = batchId.toLowerCase();
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][idCol] || '').trim().toLowerCase() === needle) {
+      throw new Error('A batch with this ID already exists — edit that one instead of creating a duplicate.');
+    }
+  }
+
+  var row = new Array(headers.length).fill('');
+  var set = function (name, value) { var c = headers.indexOf(name); if (c !== -1) row[c] = value; };
+  set('batch id', batchId);
+  set('whatsapp group link', body.whatsappLink || '');
+  set('google classroom link', body.classroomLink || '');
+  set('google meet link', body.meetLink || '');
+  set('start date', body.startDate || '');
+  set('end date', body.endDate || '');
+  sheet.appendRow(row);
+  return { success: true };
+}
+
+// Updates an existing batch's links — for legitimate corrections to a
+// batch that's already been created, as opposed to adminCreateBatch_'s
+// job of starting a new one. Requires the batch to already exist, the
+// mirror-image guard of adminCreateBatch_'s "must not already exist".
+function adminUpdateBatch_(body) {
+  var batchId = String(body.batchId || '').trim();
+  if (!batchId) throw new Error('Batch ID is required.');
+
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(BATCH_LINKS_SHEET);
+  if (!sheet) throw new Error('Batch Links sheet not found.');
+  var values = sheet.getDataRange().getValues();
+  var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var idCol = headers.indexOf('batch id');
+  if (idCol === -1) throw new Error('Batch Links sheet must have a "Batch ID" column.');
+
+  var needle = batchId.toLowerCase();
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][idCol] || '').trim().toLowerCase() === needle) {
+      var setCell = function (name, value) {
+        var c = headers.indexOf(name);
+        if (c !== -1) sheet.getRange(i + 1, c + 1).setValue(value);
+      };
+      setCell('whatsapp group link', body.whatsappLink || '');
+      setCell('google classroom link', body.classroomLink || '');
+      setCell('google meet link', body.meetLink || '');
+      setCell('start date', body.startDate || '');
+      setCell('end date', body.endDate || '');
+      return { success: true };
+    }
+  }
+  throw new Error('Batch not found.');
 }
 
 // Finds an A1 application by Email + WhatsApp Number. Reads the

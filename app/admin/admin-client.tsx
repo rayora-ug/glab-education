@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import {
   Lock, ShieldX, Search, Ban, CheckCircle, Power,
   ExternalLink, RefreshCw, LogOut, Loader2, Star, PlusCircle,
-  UserPlus, XCircle, Settings, Megaphone, Flag, Trash2, Mail,
+  UserPlus, XCircle, Settings, Megaphone, Flag, Trash2, Mail, AlertTriangle,
 } from 'lucide-react'
 import { REVIEW_LEVELS } from '../portal/shared'
 import coursesData from '../../data/courses.json'
@@ -33,6 +33,7 @@ const ADMIN_TABS = [
   { id: 'registrations', label: 'Registrations' },
   { id: 'a1', label: 'A1 Pipeline' },
   { id: 'crm', label: 'CRM' },
+  { id: 'batches', label: 'Batches' },
   { id: 'content', label: 'Content' },
 ] as const
 type AdminTab = (typeof ADMIN_TABS)[number]['id']
@@ -85,6 +86,16 @@ type CRMEntry = {
   lastCourse: string
   lastStatus: string
   lastActivity: string | null
+}
+
+type Batch = {
+  batchId: string
+  whatsappLink: string
+  classroomLink: string
+  meetLink: string
+  startDate: string
+  endDate: string
+  confirmedCount: number
 }
 
 type Application = {
@@ -185,6 +196,15 @@ export default function AdminPage() {
   const [testResult, setTestResult] = useState('')
   const [testError, setTestError] = useState('')
 
+  const [batches, setBatches] = useState<Batch[] | null>(null)
+  const [batchesError, setBatchesError] = useState('')
+  const [loadingBatches, setLoadingBatches] = useState(false)
+  const [editingBatchId, setEditingBatchId] = useState<string | null>(null)
+  const [batchForm, setBatchForm] = useState({ batchId: '', whatsappLink: '', classroomLink: '', meetLink: '', startDate: '', endDate: '' })
+  const [showAddBatch, setShowAddBatch] = useState(false)
+  const [savingBatch, setSavingBatch] = useState(false)
+  const [batchFormError, setBatchFormError] = useState('')
+
   const [reviewName, setReviewName] = useState('')
   const [reviewLocation, setReviewLocation] = useState('')
   const [reviewRating, setReviewRating] = useState(5)
@@ -267,6 +287,10 @@ export default function AdminPage() {
   useEffect(() => {
     if (activeTab === 'crm' && crm === null && !loadingCrm) loadCrm()
   }, [activeTab, crm, loadingCrm])
+
+  useEffect(() => {
+    if (activeTab === 'batches' && batches === null && !loadingBatches) loadBatches()
+  }, [activeTab, batches, loadingBatches])
 
   const handleLogin = async () => {
     if (!password) return
@@ -417,6 +441,60 @@ export default function AdminPage() {
       setCrmError('Failed to load the student database.')
     } finally {
       setLoadingCrm(false)
+    }
+  }
+
+  const loadBatches = async () => {
+    setLoadingBatches(true)
+    setBatchesError('')
+    try {
+      const res = await fetch('/api/admin/batches', { method: 'POST' })
+      const data = await res.json()
+      if (data.success) setBatches(data.batches)
+      else setBatchesError(data.error || 'Failed to load batches.')
+    } catch {
+      setBatchesError('Failed to load batches.')
+    } finally {
+      setLoadingBatches(false)
+    }
+  }
+
+  const startAddBatch = () => {
+    setEditingBatchId(null)
+    setBatchForm({ batchId: '', whatsappLink: '', classroomLink: '', meetLink: '', startDate: '', endDate: '' })
+    setBatchFormError('')
+    setShowAddBatch(true)
+  }
+
+  const startEditBatch = (b: Batch) => {
+    setEditingBatchId(b.batchId)
+    setBatchForm({
+      batchId: b.batchId, whatsappLink: b.whatsappLink, classroomLink: b.classroomLink,
+      meetLink: b.meetLink, startDate: b.startDate, endDate: b.endDate,
+    })
+    setBatchFormError('')
+    setShowAddBatch(true)
+  }
+
+  const saveBatch = async () => {
+    if (!batchForm.batchId.trim()) return
+    setSavingBatch(true)
+    setBatchFormError('')
+    try {
+      const res = await fetch(editingBatchId ? '/api/admin/batches/update' : '/api/admin/batches/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(batchForm),
+      })
+      const data = await res.json()
+      if (!data.success) throw new Error(data.error || 'Failed to save batch.')
+      setShowAddBatch(false)
+      setEditingBatchId(null)
+      loadBatches()
+    } catch (err: any) {
+      setBatchFormError(err.message || 'Failed to save batch.')
+    } finally {
+      setSavingBatch(false)
     }
   }
 
@@ -1553,6 +1631,109 @@ export default function AdminPage() {
               </>
             )
           })()}
+        </div>
+        </>)}
+
+        {activeTab === 'batches' && (<>
+        <div className="card p-6">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Batches</div>
+            <div className="flex items-center gap-3">
+              <button onClick={loadBatches} disabled={loadingBatches} className="text-sm underline inline-flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
+                <RefreshCw size={13} className={loadingBatches ? 'animate-spin' : ''} /> Refresh
+              </button>
+              <button onClick={startAddBatch} className="btn-primary text-sm px-3 py-1.5">Add New Batch</button>
+            </div>
+          </div>
+          <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>
+            Every batch — current or upcoming — gets its own permanent row here. Never reuse an existing batch's row to prep the next one; add a new one instead.
+          </p>
+
+          {showAddBatch && (
+            <div className="rounded-xl p-4 mb-4" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+              <div className="font-semibold text-sm mb-3" style={{ color: 'var(--text-primary)' }}>
+                {editingBatchId ? `Edit batch: ${editingBatchId}` : 'Add New Batch'}
+              </div>
+              {editingBatchId && (batches?.find(b => b.batchId === editingBatchId)?.confirmedCount ?? 0) > 0 && (
+                <div className="rounded-lg p-3 mb-3 flex items-center gap-2" style={{ background: 'rgba(221,0,0,0.08)', border: '1px solid rgba(221,0,0,0.25)' }}>
+                  <AlertTriangle size={16} style={{ color: '#DD0000', flexShrink: 0 }} />
+                  <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                    {batches?.find(b => b.batchId === editingBatchId)?.confirmedCount} confirmed student{(batches?.find(b => b.batchId === editingBatchId)?.confirmedCount ?? 0) === 1 ? '' : 's'} currently see these links on MyGLAB — saving will change what they see immediately.
+                  </p>
+                </div>
+              )}
+              <div className="space-y-3">
+                <input
+                  type="text" value={batchForm.batchId}
+                  onChange={e => setBatchForm(f => ({ ...f, batchId: e.target.value }))}
+                  placeholder="Batch ID (e.g. b1-34-E)" className="input text-sm"
+                  disabled={!!editingBatchId}
+                />
+                <input
+                  type="url" value={batchForm.whatsappLink}
+                  onChange={e => setBatchForm(f => ({ ...f, whatsappLink: e.target.value }))}
+                  placeholder="WhatsApp Group Link" className="input text-sm"
+                />
+                <input
+                  type="url" value={batchForm.classroomLink}
+                  onChange={e => setBatchForm(f => ({ ...f, classroomLink: e.target.value }))}
+                  placeholder="Google Classroom Link" className="input text-sm"
+                />
+                <input
+                  type="url" value={batchForm.meetLink}
+                  onChange={e => setBatchForm(f => ({ ...f, meetLink: e.target.value }))}
+                  placeholder="Google Meet Link" className="input text-sm"
+                />
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="date" value={batchForm.startDate}
+                    onChange={e => setBatchForm(f => ({ ...f, startDate: e.target.value }))}
+                    className="input text-sm"
+                  />
+                  <input
+                    type="date" value={batchForm.endDate}
+                    onChange={e => setBatchForm(f => ({ ...f, endDate: e.target.value }))}
+                    className="input text-sm"
+                  />
+                </div>
+                {batchFormError && <p className="text-sm" style={{ color: '#DD0000' }}>{batchFormError}</p>}
+                <div className="flex items-center gap-2">
+                  <button onClick={saveBatch} disabled={savingBatch || !batchForm.batchId.trim()} className="btn-primary text-sm px-3 py-1.5 disabled:opacity-50">
+                    {savingBatch ? 'Saving...' : editingBatchId ? 'Save Changes' : 'Create Batch'}
+                  </button>
+                  <button onClick={() => setShowAddBatch(false)} disabled={savingBatch} className="btn-secondary text-sm px-3 py-1.5 disabled:opacity-50">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {batchesError ? (
+            <p className="text-sm" style={{ color: '#DD0000' }}>{batchesError}</p>
+          ) : batches === null || loadingBatches ? (
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading...</p>
+          ) : batches.length === 0 ? (
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No batches yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {batches.map(b => (
+                <div key={b.batchId} className="p-3 rounded-lg flex items-center justify-between gap-3 flex-wrap" style={{ background: 'var(--bg-secondary)' }}>
+                  <div>
+                    <div className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
+                      {b.batchId} {b.confirmedCount > 0 && <span className="text-xs font-normal" style={{ color: 'var(--text-muted)' }}>— {b.confirmedCount} confirmed</span>}
+                    </div>
+                    <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                      {[b.startDate, b.endDate].filter(Boolean).join(' → ') || 'No dates set'}
+                      {' · '}
+                      {[b.whatsappLink && 'WhatsApp', b.classroomLink && 'Classroom', b.meetLink && 'Meet'].filter(Boolean).join(', ') || 'No links set'}
+                    </div>
+                  </div>
+                  <button onClick={() => startEditBatch(b)} className="btn-secondary text-sm px-3 py-1.5">Edit</button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         </>)}
 

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import {
   Lock, ShieldX, Search, Ban, CheckCircle, Power,
   ExternalLink, RefreshCw, LogOut, Loader2, Star, PlusCircle,
-  UserPlus, XCircle, Settings, Megaphone, Flag, Trash2, Mail, AlertTriangle,
+  UserPlus, XCircle, Settings, Megaphone, Flag, Trash2, Mail, AlertTriangle, ChevronDown, ChevronUp,
 } from 'lucide-react'
 import { REVIEW_LEVELS } from '../portal/shared'
 import coursesData from '../../data/courses.json'
@@ -263,6 +263,7 @@ export default function AdminPage() {
   const [openingDE, setOpeningDE] = useState<number | null>(null)
   const [openingForm, setOpeningForm] = useState({ openingBD: '', openingDE: '' })
   const [savingOpening, setSavingOpening] = useState(false)
+  const [showOpeningBalance, setShowOpeningBalance] = useState(false)
 
   const [confirmDeleteFinanceRow, setConfirmDeleteFinanceRow] = useState<number | null>(null)
   const [deletingFinanceRow, setDeletingFinanceRow] = useState<number | null>(null)
@@ -2060,15 +2061,22 @@ export default function AdminPage() {
 
           {/* Opening balance */}
           <div className="card p-6">
-            <div className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Opening Balance</div>
-            <p className="text-sm mb-3" style={{ color: 'var(--text-muted)' }}>
-              A one-time starting figure representing real total revenue up to the day this system went live. Set once — everything recorded from here on is added on top of it automatically.
-            </p>
-            <div className="flex items-center gap-3 flex-wrap">
-              <input type="number" value={openingForm.openingBD} onChange={e => setOpeningForm(f => ({ ...f, openingBD: e.target.value }))} placeholder="Opening Revenue (BD)" className="input text-sm" style={{ width: 200 }} />
-              <input type="number" value={openingForm.openingDE} onChange={e => setOpeningForm(f => ({ ...f, openingDE: e.target.value }))} placeholder="Opening Revenue (DE)" className="input text-sm" style={{ width: 200 }} />
-              <button onClick={saveOpeningBalance} disabled={savingOpening} className="btn-primary text-sm px-3 py-1.5 disabled:opacity-50">{savingOpening ? 'Saving...' : 'Save'}</button>
-            </div>
+            <button onClick={() => setShowOpeningBalance(v => !v)} className="w-full flex items-center justify-between gap-2">
+              <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>Opening Balance</span>
+              {showOpeningBalance ? <ChevronUp size={18} style={{ color: 'var(--text-muted)' }} /> : <ChevronDown size={18} style={{ color: 'var(--text-muted)' }} />}
+            </button>
+            {showOpeningBalance && (
+              <>
+                <p className="text-sm mb-3 mt-2" style={{ color: 'var(--text-muted)' }}>
+                  A one-time starting figure representing real total revenue up to the day this system went live. Set once — everything recorded from here on is added on top of it automatically.
+                </p>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <input type="number" value={openingForm.openingBD} onChange={e => setOpeningForm(f => ({ ...f, openingBD: e.target.value }))} placeholder="Opening Revenue (BD)" className="input text-sm" style={{ width: 200 }} />
+                  <input type="number" value={openingForm.openingDE} onChange={e => setOpeningForm(f => ({ ...f, openingDE: e.target.value }))} placeholder="Opening Revenue (DE)" className="input text-sm" style={{ width: 200 }} />
+                  <button onClick={saveOpeningBalance} disabled={savingOpening} className="btn-primary text-sm px-3 py-1.5 disabled:opacity-50">{savingOpening ? 'Saving...' : 'Save'}</button>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Sessions */}

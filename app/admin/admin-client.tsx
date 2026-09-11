@@ -2025,6 +2025,12 @@ export default function AdminPage() {
           ;(finance || []).forEach(e => { if (e.session) entryCounts[e.session] = (entryCounts[e.session] || 0) + 1 })
 
           return (<>
+          {/* All-Time Revenue — lifetime total before any expenses */}
+          <div className="rounded-xl p-6 text-center" style={{ background: '#DD0000' }}>
+            <div className="text-sm font-semibold uppercase tracking-wide mb-1" style={{ color: 'rgba(255,255,255,0.8)' }}>All-Time Revenue (Lifetime, Before Expenses)</div>
+            <div className="font-display font-black text-4xl" style={{ color: '#fff' }}>{fmt(allTimeBD + allTimeDE)}</div>
+          </div>
+
           {/* Session tabs — filters everything below (Summary, Entries, Expenses) */}
           <div className="flex gap-1.5 flex-wrap">
             <button

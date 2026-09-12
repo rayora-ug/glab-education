@@ -1235,8 +1235,8 @@ function sendA1SelectionEmail_(email, name) {
       '— GLAB Team'
     ];
     GmailApp.sendEmail(email, "You've been selected for GLAB A1 Intensive!", lines.join('\n'), {
-      name: 'GLAB Team',
-      from: 'mrayhanur@gmail.com'
+      name: 'GLAB - German Language Academy of Bangladesh',
+      from: 'info@glabeducation.com'
     });
   } catch (err) {
     PropertiesService.getScriptProperties().setProperty(
@@ -1259,8 +1259,8 @@ function sendA1RejectionEmail_(email, name) {
       '— GLAB Team'
     ];
     GmailApp.sendEmail(email, 'Your GLAB A1 Application Result', lines.join('\n'), {
-      name: 'GLAB Team',
-      from: 'mrayhanur@gmail.com'
+      name: 'GLAB - German Language Academy of Bangladesh',
+      from: 'info@glabeducation.com'
     });
   } catch (err) {
     PropertiesService.getScriptProperties().setProperty(
@@ -2386,8 +2386,8 @@ function adminSendOutreach_(recipients, subject, body) {
     var personalized = String(body).replace(/\{\{\s*name\s*\}\}/gi, name || 'there');
     try {
       GmailApp.sendEmail(email, subject, personalized, {
-        name: 'GLAB Team',
-        from: 'mrayhanur@gmail.com'
+        name: 'GLAB - German Language Academy of Bangladesh',
+        from: 'info@glabeducation.com'
       });
       sent++;
     } catch (err) {
@@ -2799,12 +2799,12 @@ function sendConfirmationEmail_(email, name, course, batchId, glabId) {
     lines.push('— GLAB Team');
 
     GmailApp.sendEmail(email, 'GLAB Registration Confirmed — ' + course, lines.join('\n'), {
-      name: 'GLAB Team',
-      from: 'mrayhanur@gmail.com'
+      name: 'GLAB - German Language Academy of Bangladesh',
+      from: 'info@glabeducation.com'
     });
     PropertiesService.getScriptProperties().setProperty(
       'LAST_EMAIL_SENT',
-      new Date().toISOString() + ' — sent to ' + email + ' from mrayhanur@gmail.com'
+      new Date().toISOString() + ' — sent to ' + email + ' from info@glabeducation.com'
     );
   } catch (err) {
     // A failed email should never fail the confirmation itself — but record
@@ -2874,8 +2874,8 @@ function sendGlabIdRecoveryEmail_(email, matches) {
     lines.push('');
     lines.push('— GLAB Team');
     GmailApp.sendEmail(email, 'Your GLAB ID', lines.join('\n'), {
-      name: 'GLAB Team',
-      from: 'mrayhanur@gmail.com'
+      name: 'GLAB - German Language Academy of Bangladesh',
+      from: 'info@glabeducation.com'
     });
     PropertiesService.getScriptProperties().setProperty(
       'LAST_ID_RECOVERY_SENT',

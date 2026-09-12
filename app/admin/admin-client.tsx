@@ -51,6 +51,7 @@ type Student = {
 }
 
 type PendingRegistration = {
+  row: number
   timestamp: string
   glabId: string
   name: string
@@ -208,6 +209,8 @@ export default function AdminPage() {
   const [pendingError, setPendingError] = useState('')
   const [loadingPending, setLoadingPending] = useState(false)
   const [confirmingKey, setConfirmingKey] = useState('')
+  const [confirmDeleteRegistrationRow, setConfirmDeleteRegistrationRow] = useState<number | null>(null)
+  const [deletingRegistrationRow, setDeletingRegistrationRow] = useState<number | null>(null)
   const [pendingBatchFilter, setPendingBatchFilter] = useState('All')
 
   const [allRegistrations, setAllRegistrations] = useState<AllRegistration[] | null>(null)
@@ -837,6 +840,22 @@ export default function AdminPage() {
     }
   }
 
+  const deletePendingRegistration = async (row: number) => {
+    setDeletingRegistrationRow(row)
+    try {
+      const res = await fetch('/api/admin/registrations/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ row }),
+      })
+      const data = await res.json()
+      if (data.success) setPending(prev => (prev || []).filter(r => r.row !== row))
+    } finally {
+      setDeletingRegistrationRow(null)
+      setConfirmDeleteRegistrationRow(null)
+    }
+  }
+
   const loadApplications = async () => {
     setLoadingApplications(true)
     setApplicationsError('')
@@ -1402,19 +1421,50 @@ export default function AdminPage() {
               {filtered.map(reg => {
                 const key = reg.glabId + reg.timestamp
                 return (
-                  <div key={key} className="p-4 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
+                  <div key={reg.row} className="p-4 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
                     <div className="flex items-center justify-between gap-4 flex-wrap mb-2">
                       <div>
-                        <div className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{reg.name} · {reg.glabId}</div>
-                        <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{reg.course} — {reg.batchId}</div>
+                        <div className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{reg.name || '(no name)'} · {reg.glabId || '(no GLAB ID)'}</div>
+                        <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{reg.course || '—'} — {reg.batchId || '—'}</div>
                       </div>
-                      <button
-                        onClick={() => confirmRegistration(reg)}
-                        disabled={confirmingKey === key}
-                        className="btn-primary text-sm px-3 py-1.5 disabled:opacity-50"
-                      >
-                        {confirmingKey === key ? '...' : 'Confirm'}
-                      </button>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {confirmDeleteRegistrationRow === reg.row ? (
+                          <>
+                            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Delete this entry?</span>
+                            <button
+                              onClick={() => deletePendingRegistration(reg.row)}
+                              disabled={deletingRegistrationRow === reg.row}
+                              className="text-sm px-3 py-1.5 rounded-lg disabled:opacity-50"
+                              style={{ background: '#DD0000', color: '#fff' }}
+                            >
+                              {deletingRegistrationRow === reg.row ? '...' : 'Yes, delete'}
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteRegistrationRow(null)}
+                              disabled={deletingRegistrationRow === reg.row}
+                              className="btn-secondary text-sm px-3 py-1.5 disabled:opacity-50"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => setConfirmDeleteRegistrationRow(reg.row)}
+                              className="btn-secondary text-sm px-3 py-1.5"
+                            >
+                              Delete
+                            </button>
+                            <button
+                              onClick={() => confirmRegistration(reg)}
+                              disabled={confirmingKey === key}
+                              className="btn-primary text-sm px-3 py-1.5 disabled:opacity-50"
+                            >
+                              {confirmingKey === key ? '...' : 'Confirm'}
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                     <div className="text-xs flex flex-wrap gap-x-4 gap-y-1" style={{ color: 'var(--text-muted)' }}>
                       <span>{reg.paymentMethod}{reg.paymentReference ? ` · Ref: ${reg.paymentReference}` : ''}</span>

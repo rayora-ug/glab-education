@@ -142,6 +142,8 @@ function doPost(e) {
       response = adminRestoreMissingStudent_(body.glabId, body.name);
     } else if (body.action === 'adminListSubmittedRegistrations') {
       response = adminListSubmittedRegistrations_();
+    } else if (body.action === 'adminDeleteRegistration') {
+      response = adminDeleteRegistration_(body.row);
     } else if (body.action === 'adminListAllRegistrations') {
       response = adminListAllRegistrations_();
     } else if (body.action === 'adminListFinance') {
@@ -2169,6 +2171,7 @@ function adminListSubmittedRegistrations_() {
     if (status !== DEFAULT_STATUS) continue;
     var ts = timestampCol !== -1 ? values[i][timestampCol] : null;
     registrations.push({
+      row: i + 1,
       timestamp: ts instanceof Date ? ts.toISOString() : String(ts || ''),
       glabId: idCol !== -1 ? values[i][idCol] : '',
       name: nameCol !== -1 ? values[i][nameCol] : '',
@@ -2181,6 +2184,20 @@ function adminListSubmittedRegistrations_() {
     });
   }
   return { success: true, registrations: registrations };
+}
+
+// Permanently removes one row from the Registrations sheet — for a
+// stray/malformed row (blank fields, never a real submission) sitting in
+// the pending-verification queue with nothing to actually verify. Row
+// numbers only ever come from adminListSubmittedRegistrations_'s own
+// output; the header-row guard is a hard backstop regardless.
+function adminDeleteRegistration_(row) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(REGISTRATIONS_SHEET);
+  if (!sheet) throw new Error('Registrations sheet not found.');
+  row = Number(row);
+  if (!row || row < 2) throw new Error('Invalid row.');
+  sheet.deleteRow(row);
+  return { success: true };
 }
 
 // Returns every Registrations row regardless of status (unlike

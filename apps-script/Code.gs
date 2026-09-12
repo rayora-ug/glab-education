@@ -1218,6 +1218,23 @@ function adminSetA1IdSettings_(prefix, nextSeq) {
   return { success: true };
 }
 
+// Two signature variants: a lean one for transactional email (the
+// recipient just wants their info, e.g. a confirmation or their GLAB ID),
+// and a fuller one for outreach/re-engagement email (A1 rejection, CRM
+// outreach) where reinforcing trust and giving a next step actually
+// serves the message's purpose.
+var SIGNATURE_TRANSACTIONAL = [
+  '— GLAB Team',
+  'German Language Academy of Bangladesh',
+  'glabeducation.com | WhatsApp: https://wa.me/message/72NY3RBASOPYI1'
+];
+var SIGNATURE_OUTREACH = [
+  '— GLAB Team',
+  'German Language Academy of Bangladesh',
+  'glabeducation.com/courses | glabeducation.com/reviews',
+  'WhatsApp: https://wa.me/message/72NY3RBASOPYI1 | Facebook: https://www.facebook.com/share/18sKb3EnVh'
+];
+
 function sendA1SelectionEmail_(email, name) {
   if (!email) return;
   try {
@@ -1231,9 +1248,8 @@ function sendA1SelectionEmail_(email, name) {
       'Your GLAB ID will be assigned once your registration is submitted.',
       '',
       'Seats are limited, so please register as soon as you can to secure your spot.',
-      '',
-      '— GLAB Team'
-    ];
+      ''
+    ].concat(SIGNATURE_TRANSACTIONAL);
     GmailApp.sendEmail(email, "You've been selected for GLAB A1 Intensive!", lines.join('\n'), {
       name: 'GLAB - German Language Academy of Bangladesh',
       from: 'info@glabeducation.com'
@@ -1255,9 +1271,8 @@ function sendA1RejectionEmail_(email, name) {
       'Due to the limited number of seats, not all applicants can be accommodated.',
       'We sincerely appreciate your interest in GLAB and encourage you to apply again in a future session.',
       'Thank you for your understanding, and we wish you all the best in your German language learning journey.',
-      '',
-      '— GLAB Team'
-    ];
+      ''
+    ].concat(SIGNATURE_OUTREACH);
     GmailApp.sendEmail(email, 'Your GLAB A1 Application Result', lines.join('\n'), {
       name: 'GLAB - German Language Academy of Bangladesh',
       from: 'info@glabeducation.com'
@@ -2796,7 +2811,7 @@ function sendConfirmationEmail_(email, name, course, batchId, glabId) {
     lines.push('');
     lines.push('You can check your batch, class links, and attendance anytime at glabeducation.com/myglab with your GLAB ID: ' + glabId);
     lines.push('');
-    lines.push('— GLAB Team');
+    lines = lines.concat(SIGNATURE_TRANSACTIONAL);
 
     GmailApp.sendEmail(email, 'GLAB Registration Confirmed — ' + course, lines.join('\n'), {
       name: 'GLAB - German Language Academy of Bangladesh',
@@ -2872,7 +2887,7 @@ function sendGlabIdRecoveryEmail_(email, matches) {
     lines.push('');
     lines.push("If you didn't request this, you can safely ignore this email.");
     lines.push('');
-    lines.push('— GLAB Team');
+    lines = lines.concat(SIGNATURE_TRANSACTIONAL);
     GmailApp.sendEmail(email, 'Your GLAB ID', lines.join('\n'), {
       name: 'GLAB - German Language Academy of Bangladesh',
       from: 'info@glabeducation.com'

@@ -9,6 +9,8 @@ import {
 import { REVIEW_LEVELS } from '../portal/shared'
 import coursesData from '../../data/courses.json'
 
+const OUTREACH_SIGNATURE = '— GLAB Team\nGerman Language Academy of Bangladesh\nglabeducation.com/courses | glabeducation.com/reviews\nWhatsApp: https://wa.me/message/72NY3RBASOPYI1 | Facebook: https://www.facebook.com/share/18sKb3EnVh'
+
 const a1Batches = (coursesData as any[])
   .filter(c => c.level === 'A1' && c.registrationOpen)
   .flatMap((c: any) => (c.batches || []).map((b: any) => ({
@@ -219,7 +221,7 @@ export default function AdminPage() {
   const [crmSegmentFilter, setCrmSegmentFilter] = useState('All')
   const [crmSearch, setCrmSearch] = useState('')
   const [outreachSubject, setOutreachSubject] = useState('')
-  const [outreachBody, setOutreachBody] = useState('')
+  const [outreachBody, setOutreachBody] = useState(`Hi {{name}},\n\n\n${OUTREACH_SIGNATURE}`)
   const [outreachConfirming, setOutreachConfirming] = useState(false)
   const [sendingOutreach, setSendingOutreach] = useState(false)
   const [outreachResult, setOutreachResult] = useState('')
@@ -783,7 +785,7 @@ export default function AdminPage() {
       if (!data.success) throw new Error(data.error || 'Failed to send.')
       setOutreachResult(`Sent ${data.sent}${data.failed ? `, ${data.failed} failed` : ''}.`)
       setOutreachSubject('')
-      setOutreachBody('')
+      setOutreachBody(`Hi {{name}},\n\n\n${OUTREACH_SIGNATURE}`)
     } catch (err: any) {
       setOutreachError(err.message || 'Failed to send.')
     } finally {

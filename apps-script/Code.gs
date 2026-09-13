@@ -16,8 +16,21 @@ var A1_WAITLIST_HEADERS = ['Timestamp', 'Name', 'Email', 'WhatsApp Number'];
 var FINANCE_SHEET = 'Finance';
 var FINANCE_HEADERS = [
   'Date', 'GLAB ID', 'Name', 'Course', 'Session', 'Course Fee', 'Amount Paid',
-  'Discount', 'Location', 'Payment Account', 'Payment Reference', 'Notes'
+  'Discount', 'Location', 'Payment Account', 'Payment Reference', 'Notes', 'Reconciled'
 ];
+// Fixed per-level course fees, used to pre-fill Course Fee and Amount
+// Paid the moment a registration is submitted — set explicitly here
+// rather than derived from courses.json (a Next.js data file Apps
+// Script can't read), so update this map by hand whenever fees change.
+var COURSE_FEES = { A1: 12000, A2: 15000, B1: 15000 };
+
+function courseFeeForCourse_(course) {
+  var c = String(course || '').toUpperCase();
+  if (c.indexOf('A1') === 0) return COURSE_FEES.A1;
+  if (c.indexOf('A2') === 0) return COURSE_FEES.A2;
+  if (c.indexOf('B1') === 0) return COURSE_FEES.B1;
+  return 0;
+}
 var FINANCE_EXPENSES_SHEET = 'Finance Expenses';
 var FINANCE_EXPENSES_HEADERS = ['Date', 'Description', 'Amount', 'Location', 'Paid From', 'Session'];
 var FINANCE_SESSIONS_SHEET = 'Finance Sessions';
@@ -150,6 +163,8 @@ function doPost(e) {
       response = adminListFinance_();
     } else if (body.action === 'adminUpdateFinanceEntry') {
       response = adminUpdateFinanceEntry_(body);
+    } else if (body.action === 'adminConfirmFinanceEntry') {
+      response = adminConfirmFinanceEntry_(body.row);
     } else if (body.action === 'adminDeleteFinanceEntry') {
       response = adminDeleteFinanceEntry_(body.row);
     } else if (body.action === 'adminAddFinanceExpense') {
@@ -1386,8 +1401,9 @@ function submitRegistration_(body) {
   }
 
   var fileUrl = saveProofFile_(body.fileBase64, body.fileName, body.fileMimeType);
+  var timestamp = new Date();
   appendRegistrationRow_({
-    'Timestamp': new Date(),
+    'Timestamp': timestamp,
     'GLAB ID': student.glabId,
     'Name': student.name,
     'Course': body.course,
@@ -1398,6 +1414,14 @@ function submitRegistration_(body) {
     'Proof File Link': fileUrl,
     'Feedback': body.feedback || '',
     'Status': DEFAULT_STATUS
+  });
+  createFinanceEntryFromRegistration_({
+    date: timestamp,
+    glabId: student.glabId,
+    name: student.name,
+    course: body.course,
+    payingFrom: body.paymentMethod,
+    paymentReference: body.paymentReference || ''
   });
   return { success: true };
 }
@@ -2457,8 +2481,6 @@ function adminConfirmRegistration_(glabId, timestamp) {
   var courseCol = headers.indexOf('course');
   var batchIdCol = headers.indexOf('batch id');
   var emailCol = headers.indexOf('email');
-  var payingFromCol = headers.indexOf('paying from');
-  var paymentRefCol = headers.indexOf('payment reference');
   if (idCol === -1 || timestampCol === -1 || statusCol === -1) {
     throw new Error('Registrations sheet must have "GLAB ID", "Timestamp", and "Status" columns');
   }
@@ -2477,14 +2499,6 @@ function adminConfirmRegistration_(glabId, timestamp) {
         batchIdCol !== -1 ? values[i][batchIdCol] : '',
         values[i][idCol]
       );
-      createFinanceEntryFromRegistration_({
-        date: values[i][timestampCol],
-        glabId: values[i][idCol],
-        name: nameCol !== -1 ? values[i][nameCol] : '',
-        course: courseCol !== -1 ? values[i][courseCol] : '',
-        payingFrom: payingFromCol !== -1 ? values[i][payingFromCol] : '',
-        paymentReference: paymentRefCol !== -1 ? values[i][paymentRefCol] : ''
-      });
       return { success: true };
     }
   }
@@ -2493,13 +2507,19 @@ function adminConfirmRegistration_(glabId, timestamp) {
 
 // ===== Finance =====
 // Auto-populates the Finance sheet the moment a registration is
-// confirmed — GLAB ID, Name, Course, Date, Session, Location, and Payment
-// Reference all come from data the site already has, so admin never
-// retypes them from a bKash notification. Course Fee, Amount Paid,
-// Discount, and the specific Payment Account (which bKash number/bank)
-// genuinely can't be known automatically — the registration form only
-// captures a broad "Paying From" category, not which account a payment
-// landed in — so those stay blank for admin to fill in when reconciling.
+// submitted (not confirmed — admin wants to see it right away, adjust if
+// needed, and click Confirm) — GLAB ID, Name, Course, Date, Session,
+// Location, and Payment Reference all come from data the site already
+// has, so admin never retypes them from a bKash notification. Course Fee
+// and Amount Paid are pre-filled from the fixed per-level fee (both the
+// same value — a discrepancy only shows up once admin checks the actual
+// payment), left as a starting point admin can edit. The specific
+// Payment Account (which bKash number/bank) genuinely can't be known
+// automatically — the registration form only captures a broad "Paying
+// From" category, not which account a payment landed in — so that stays
+// blank. New entries start unreconciled (Reconciled = false) until
+// admin either edits and saves, or clicks Confirm to accept the
+// pre-filled values as-is.
 function createFinanceEntryFromRegistration_(info) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(FINANCE_SHEET);
   if (!sheet) {
@@ -2513,14 +2533,18 @@ function createFinanceEntryFromRegistration_(info) {
 
   var payingFrom = String(info.payingFrom || '').trim().toLowerCase();
   var location = payingFrom.indexOf('germany') !== -1 || payingFrom.indexOf('eu') !== -1 ? 'DE' : 'BD';
+  var fee = courseFeeForCourse_(info.course);
 
   set('date', info.date);
   set('glab id', info.glabId);
   set('name', info.name);
   set('course', info.course);
   set('session', findSessionForDate_(info.date));
+  set('course fee', fee);
+  set('amount paid', fee);
   set('location', location);
   set('payment reference', info.paymentReference);
+  set('reconciled', false);
   sheet.appendRow(row);
 }
 
@@ -2561,7 +2585,7 @@ function adminListFinance_() {
   var dateCol = col('date'), idCol = col('glab id'), nameCol = col('name'), courseCol = col('course'),
       sessionCol = col('session'), feeCol = col('course fee'), paidCol = col('amount paid'),
       discountCol = col('discount'), locCol = col('location'), acctCol = col('payment account'),
-      refCol = col('payment reference'), notesCol = col('notes');
+      refCol = col('payment reference'), notesCol = col('notes'), reconciledCol = col('reconciled');
 
   var entries = [];
   for (var i = 1; i < values.length; i++) {
@@ -2583,7 +2607,8 @@ function adminListFinance_() {
       location: locCol !== -1 ? values[i][locCol] : '',
       paymentAccount: acctCol !== -1 ? values[i][acctCol] : '',
       paymentReference: refCol !== -1 ? values[i][refCol] : '',
-      notes: notesCol !== -1 ? values[i][notesCol] : ''
+      notes: notesCol !== -1 ? values[i][notesCol] : '',
+      reconciled: reconciledCol !== -1 && isTruthy_(values[i][reconciledCol])
     });
   }
   entries.reverse();
@@ -2612,6 +2637,23 @@ function adminUpdateFinanceEntry_(body) {
   setCell('payment account', body.paymentAccount || '');
   setCell('payment reference', body.paymentReference || '');
   setCell('notes', body.notes || '');
+  setCell('reconciled', true);
+  return { success: true };
+}
+
+// The one-click path for the common case where the pre-filled Course
+// Fee/Amount Paid are already correct — accepts them as-is without
+// requiring admin to open the edit form and re-save the same values.
+function adminConfirmFinanceEntry_(row) {
+  row = Number(row);
+  if (!row || row < 2) throw new Error('Invalid row.');
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(FINANCE_SHEET);
+  if (!sheet) throw new Error('Finance sheet not found.');
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+    .map(function (h) { return String(h).trim().toLowerCase(); });
+  var c = headers.indexOf('reconciled');
+  if (c === -1) throw new Error('Finance sheet has no "Reconciled" column.');
+  sheet.getRange(row, c + 1).setValue(true);
   return { success: true };
 }
 

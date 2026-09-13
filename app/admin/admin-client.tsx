@@ -117,6 +117,7 @@ type FinanceEntry = {
   paymentAccount: string
   paymentReference: string
   notes: string
+  reconciled: boolean
 }
 
 type FinanceExpense = {
@@ -271,6 +272,7 @@ export default function AdminPage() {
   const [showOpeningBalance, setShowOpeningBalance] = useState(false)
 
   const [confirmDeleteFinanceRow, setConfirmDeleteFinanceRow] = useState<number | null>(null)
+  const [confirmingFinanceRow, setConfirmingFinanceRow] = useState<number | null>(null)
   const [deletingFinanceRow, setDeletingFinanceRow] = useState<number | null>(null)
   const [confirmDeleteExpenseRow, setConfirmDeleteExpenseRow] = useState<number | null>(null)
   const [deletingExpenseRow, setDeletingExpenseRow] = useState<number | null>(null)
@@ -723,6 +725,21 @@ export default function AdminPage() {
       }
     } finally {
       setSavingOpening(false)
+    }
+  }
+
+  const confirmFinanceEntry = async (row: number) => {
+    setConfirmingFinanceRow(row)
+    try {
+      const res = await fetch('/api/admin/finance/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ row }),
+      })
+      const data = await res.json()
+      if (data.success) setFinance(prev => (prev || []).map(e => e.row === row ? { ...e, reconciled: true } : e))
+    } finally {
+      setConfirmingFinanceRow(null)
     }
   }
 
@@ -2217,10 +2234,11 @@ export default function AdminPage() {
             ) : (
               <div className="space-y-2">
                 {filteredEntries.map(e => (
-                  <div key={e.row} className="p-3 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
+                  <div key={e.row} className="p-3 rounded-lg" style={{ background: 'var(--bg-secondary)', border: e.reconciled ? undefined : '1px solid rgba(255,206,0,0.5)' }}>
                     <div className="flex items-center justify-between gap-3 flex-wrap mb-1">
                       <div className="text-sm" style={{ color: 'var(--text-primary)' }}>
                         <strong>{e.glabId}</strong> — {e.name} · {e.course} · {e.date} {e.session && `· ${e.session}`}
+                        {!e.reconciled && <span className="ml-2 text-xs font-semibold px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,206,0,0.2)', color: '#B8920A' }}>Needs review</span>}
                       </div>
                       {editingFinanceRow !== e.row && (
                         <div className="flex items-center gap-2 flex-wrap">
@@ -2236,6 +2254,11 @@ export default function AdminPage() {
                             <>
                               <button onClick={() => setConfirmDeleteFinanceRow(e.row)} className="btn-secondary text-sm px-3 py-1.5">Delete</button>
                               <button onClick={() => startEditFinanceEntry(e)} className="btn-secondary text-sm px-3 py-1.5">Edit</button>
+                              {!e.reconciled && (
+                                <button onClick={() => confirmFinanceEntry(e.row)} disabled={confirmingFinanceRow === e.row} className="btn-primary text-sm px-3 py-1.5 disabled:opacity-50">
+                                  {confirmingFinanceRow === e.row ? '...' : 'Confirm'}
+                                </button>
+                              )}
                             </>
                           )}
                         </div>

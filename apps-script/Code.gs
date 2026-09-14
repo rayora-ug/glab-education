@@ -1556,7 +1556,36 @@ function submitContact_(body) {
     body.subject || '',
     body.message
   ]);
+  sendContactNotification_(body.name, body.email, body.subject || '', body.message);
   return { success: true };
+}
+
+// Notifies admin the moment someone submits the /contact form — without
+// this, a new message just sat silently in the Contact Messages sheet
+// until someone happened to open it. Sent to info@glabeducation.com,
+// which lands directly in the admin's own inbox as a verified alias.
+// Never blocks the actual submission if the email fails.
+function sendContactNotification_(name, email, subject, message) {
+  try {
+    var lines = [
+      'New message from the contact form:',
+      '',
+      'Name: ' + name,
+      'Email: ' + email,
+      'Subject: ' + (subject || '(none)'),
+      '',
+      message
+    ];
+    GmailApp.sendEmail('info@glabeducation.com', 'New Contact Form Message' + (subject ? ' — ' + subject : ''), lines.join('\n'), {
+      name: 'GLAB Website',
+      from: 'info@glabeducation.com',
+      replyTo: email
+    });
+  } catch (err) {
+    PropertiesService.getScriptProperties().setProperty(
+      'LAST_CONTACT_NOTIFY_ERROR', new Date().toISOString() + ' — ' + err.message
+    );
+  }
 }
 
 // Records an exam submission. Scores are never sent back to the student —
